@@ -593,3 +593,329 @@ async fn turning_an_integration_off_removes_its_events_live() -> TestResult {
     wait_for(&hub, "shown again", |ev| find(ev, id).map(|_| ())).await?;
     Ok(())
 }
+
+// ---- NetworkManager -------------------------------------------------------
+
+use zbus::OwnedObjectPath;
+
+struct FakeNm {
+    primary: String,
+    active: Vec<String>,
+    connectivity: u32,
+}
+
+#[interface(name = "org.freedesktop.NetworkManager")]
+impl FakeNm {
+    #[zbus(property)]
+    fn state(&self) -> u32 {
+        70
+    }
+    #[zbus(property)]
+    fn connectivity(&self) -> u32 {
+        self.connectivity
+    }
+    #[zbus(property)]
+    fn primary_connection(&self) -> OwnedObjectPath {
+        OwnedObjectPath::try_from(self.primary.clone()).unwrap_or_else(|_| panic!("valid path"))
+    }
+    #[zbus(property)]
+    fn active_connections(&self) -> Vec<OwnedObjectPath> {
+        self.active
+            .iter()
+            .filter_map(|p| OwnedObjectPath::try_from(p.clone()).ok())
+            .collect()
+    }
+}
+
+struct FakeActive {
+    id: &'static str,
+    kind: &'static str,
+    vpn: bool,
+}
+
+#[interface(name = "org.freedesktop.NetworkManager.Connection.Active")]
+impl FakeActive {
+    #[zbus(property)]
+    fn id(&self) -> String {
+        self.id.into()
+    }
+    #[zbus(property, name = "Type")]
+    fn kind(&self) -> String {
+        self.kind.into()
+    }
+    #[zbus(property)]
+    fn vpn(&self) -> bool {
+        self.vpn
+    }
+    #[zbus(property)]
+    fn state(&self) -> u32 {
+        2
+    }
+}
+
+fn system_line(event: &Event) -> Option<String> {
+    match &event.payload {
+        Payload::System(p) => Some(format!(
+            "{} · {}",
+            p.title,
+            p.detail.clone().unwrap_or_default()
+        )),
+        _ => None,
+    }
+}
+
+#[tokio::test]
+async fn network_reports_vpn_switches_portal_and_offline() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    const NM: &str = "/org/freedesktop/NetworkManager";
+    const WIFI: &str = "/org/freedesktop/NetworkManager/ActiveConnection/1";
+    const VPN: &str = "/org/freedesktop/NetworkManager/ActiveConnection/2";
+    const LAN: &str = "/org/freedesktop/NetworkManager/ActiveConnection/3";
+    let service = zbus::connection::Builder::session()
+        .serve_at(
+            NM,
+            FakeNm {
+                primary: WIFI.into(),
+                active: vec![WIFI.into()],
+                connectivity: 4,
+            },
+        )
+        .serve_at(
+            WIFI,
+            FakeActive {
+                id: "Home",
+                kind: "802-11-wireless",
+                vpn: false,
+            },
+        )
+        .name("org.freedesktop.NetworkManager")
+        .build()
+        .await?;
+    let hub = new_hub();
+    let watcher = tokio::spawn(selawi_islandd::integrations::network::watch(
+        hub.clone(),
+        Connection::session().await?,
+    ));
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(events(&hub).await.is_empty(), "nothing at startup");
+    assert!(hub.integrations_json().await.contains("on Home"));
+
+    let server = service.object_server();
+    let nm = server.interface::<_, FakeNm>(NM).await?;
+
+    // A VPN comes up.
+    server
+        .at(
+            VPN,
+            FakeActive {
+                id: "Work VPN",
+                kind: "vpn",
+                vpn: true,
+            },
+        )
+        .await?;
+    nm.get_mut().await.active = vec![WIFI.into(), VPN.into()];
+    nm.get()
+        .await
+        .active_connections_changed(nm.signal_emitter())
+        .await?;
+    let line = wait_for(&hub, "vpn up", |ev| {
+        find(ev, "network:vpn:Work_VPN").and_then(system_line)
+    })
+    .await?;
+    assert_eq!(line, "Work VPN · VPN connected");
+
+    // Switch from Wi-Fi to Ethernet.
+    server
+        .at(
+            LAN,
+            FakeActive {
+                id: "Office LAN",
+                kind: "802-3-ethernet",
+                vpn: false,
+            },
+        )
+        .await?;
+    {
+        let mut n = nm.get_mut().await;
+        n.primary = LAN.into();
+        n.active = vec![LAN.into(), VPN.into()];
+    }
+    nm.get()
+        .await
+        .primary_connection_changed(nm.signal_emitter())
+        .await?;
+    let line = wait_for(&hub, "ethernet", |ev| {
+        find(ev, "network:primary")
+            .and_then(system_line)
+            .filter(|l| l.contains("Office"))
+    })
+    .await?;
+    assert_eq!(line, "Office LAN · Ethernet connected");
+
+    // A login page appears, then everything disconnects.
+    nm.get_mut().await.connectivity = 2;
+    nm.get()
+        .await
+        .connectivity_changed(nm.signal_emitter())
+        .await?;
+    let line = wait_for(&hub, "portal", |ev| {
+        find(ev, "network:portal").and_then(system_line)
+    })
+    .await?;
+    assert_eq!(line, "Sign in to network · Office LAN");
+
+    {
+        let mut n = nm.get_mut().await;
+        n.primary = "/".into();
+        n.active = vec![];
+        n.connectivity = 1;
+    }
+    nm.get()
+        .await
+        .active_connections_changed(nm.signal_emitter())
+        .await?;
+    let line = wait_for(&hub, "offline", |ev| {
+        find(ev, "network:primary")
+            .and_then(system_line)
+            .filter(|l| l.starts_with("Offline"))
+    })
+    .await?;
+    assert_eq!(line, "Offline · No network connection");
+    let ev = events(&hub).await;
+    assert!(
+        find(&ev, "network:portal").is_none_or(|e| e.state.is_terminal()),
+        "portal cleared"
+    );
+    assert_eq!(
+        find(&ev, "network:vpn:Work_VPN")
+            .and_then(system_line)
+            .as_deref(),
+        Some("Work VPN · VPN disconnected")
+    );
+    watcher.abort();
+    Ok(())
+}
+
+// ---- UDisks2 --------------------------------------------------------------
+
+struct FakeDrive {
+    vendor: &'static str,
+    model: &'static str,
+    bus: &'static str,
+}
+
+#[interface(name = "org.freedesktop.UDisks2.Drive")]
+impl FakeDrive {
+    #[zbus(property)]
+    fn vendor(&self) -> String {
+        self.vendor.into()
+    }
+    #[zbus(property)]
+    fn model(&self) -> String {
+        self.model.into()
+    }
+    #[zbus(property)]
+    fn connection_bus(&self) -> String {
+        self.bus.into()
+    }
+    #[zbus(property)]
+    fn removable(&self) -> bool {
+        self.bus == "usb"
+    }
+}
+
+#[tokio::test]
+async fn storage_reports_usb_drives_only() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    const ROOT: &str = "/org/freedesktop/UDisks2";
+    const NVME: &str = "/org/freedesktop/UDisks2/drives/Samsung_SSD";
+    const STICK: &str = "/org/freedesktop/UDisks2/drives/SanDisk_Ultra_42";
+    let service = zbus::connection::Builder::session()
+        .serve_at(
+            NVME,
+            FakeDrive {
+                vendor: "",
+                model: "Samsung SSD 980",
+                bus: "",
+            },
+        )
+        .serve_at(ROOT, zbus::fdo::ObjectManager)
+        .name("org.freedesktop.UDisks2")
+        .build()
+        .await?;
+    let hub = new_hub();
+    let watcher = tokio::spawn(selawi_islandd::integrations::storage::watch(
+        hub.clone(),
+        Connection::session().await?,
+    ));
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(events(&hub).await.is_empty());
+    assert!(
+        hub.integrations_json().await.contains("0 removable drives"),
+        "internal disk ignored"
+    );
+
+    service
+        .object_server()
+        .at(
+            STICK,
+            FakeDrive {
+                vendor: "SanDisk",
+                model: "Ultra",
+                bus: "usb",
+            },
+        )
+        .await?;
+    let id = "storage:SanDisk_Ultra_42";
+    let line = wait_for(&hub, "plugged in", |ev| find(ev, id).and_then(system_line)).await?;
+    assert_eq!(line, "SanDisk Ultra · USB drive connected");
+
+    service
+        .object_server()
+        .remove::<FakeDrive, _>(STICK)
+        .await?;
+    let line = wait_for(&hub, "removed", |ev| {
+        find(ev, id)
+            .and_then(system_line)
+            .filter(|l| l.ends_with("removed"))
+    })
+    .await?;
+    assert_eq!(line, "SanDisk Ultra · USB drive removed");
+    watcher.abort();
+    Ok(())
+}
+
+// ---- System warnings -------------------------------------------------------
+
+#[tokio::test]
+async fn health_warns_about_low_memory_from_fake_proc() -> TestResult {
+    let root = std::env::temp_dir().join(format!("selawi-health-it-{}", std::process::id()));
+    std::fs::create_dir_all(root.join("proc"))?;
+    std::fs::write(
+        root.join("proc/meminfo"),
+        "MemTotal: 8000000 kB\nMemAvailable: 400000 kB\n",
+    )?;
+    let hub = new_hub();
+    let task_root = root.clone();
+    let watcher = tokio::spawn({
+        let hub = hub.clone();
+        async move { selawi_islandd::integrations::health::watch(hub, &task_root).await }
+    });
+    let line = wait_for(&hub, "memory warning", |ev| {
+        find(ev, "health:memory").and_then(system_line)
+    })
+    .await?;
+    assert!(line.starts_with("Memory low · 5% free"), "{line}");
+    assert!(hub
+        .integrations_json()
+        .await
+        .contains("checks memory every 15 s"));
+    watcher.abort();
+    std::fs::remove_dir_all(root)?;
+    Ok(())
+}

@@ -134,7 +134,7 @@ pub struct Configuration {
 impl Configuration {
     /// The whole configuration as JSON (see docs/INTEGRATIONS.md).
     async fn get(&self) -> String {
-        self.hub.config().to_json()
+        self.hub.config().effective().to_json()
     }
 
     /// Replaces the configuration. Applied immediately and saved.
@@ -147,7 +147,7 @@ impl Configuration {
             .hub
             .set_config(config_json)
             .map_err(IslandError::InvalidConfig)?;
-        Self::changed(&emitter, &config.to_json()).await?;
+        Self::changed(&emitter, &config.effective().to_json()).await?;
         Ok(())
     }
 

@@ -22,7 +22,19 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 /// Integration ids the configuration may mention.
-pub const KNOWN_INTEGRATIONS: [&str; 4] = ["mpris", "upower", "bluez", "notifications"];
+pub const KNOWN_INTEGRATIONS: [&str; 7] = [
+    "mpris",
+    "upower",
+    "bluez",
+    "notifications",
+    "network",
+    "storage",
+    "health",
+];
+
+/// Integrations that are off unless turned on: they poll instead of
+/// listening to signals.
+const OFF_BY_DEFAULT: [&str; 1] = ["health"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -67,7 +79,20 @@ pub struct Config {
 
 impl Config {
     pub fn enabled(&self, integration: &str) -> bool {
-        self.integrations.get(integration).copied().unwrap_or(true)
+        self.integrations
+            .get(integration)
+            .copied()
+            .unwrap_or(!OFF_BY_DEFAULT.contains(&integration))
+    }
+
+    /// The configuration with every known integration's on/off state
+    /// spelled out, as shown to the settings window.
+    pub fn effective(&self) -> Config {
+        let mut config = self.clone();
+        for id in KNOWN_INTEGRATIONS {
+            config.integrations.insert(id.to_string(), self.enabled(id));
+        }
+        config
     }
 
     /// Parses and checks a configuration (from the file or from D-Bus).
@@ -152,6 +177,12 @@ mod tests {
         let config = Config::parse(r#"{"integrations":{"bluez":false}}"#)?;
         assert!(!config.enabled("bluez"));
         assert!(config.enabled("mpris"));
+        assert!(!config.enabled("health"), "polling integrations are opt-in");
+        assert_eq!(
+            config.effective().integrations.len(),
+            KNOWN_INTEGRATIONS.len()
+        );
+        assert_eq!(config.effective().integrations.get("bluez"), Some(&false));
         assert_eq!(config.media.mode, MediaMode::All);
         assert!(config.notifications.show_body);
         assert_eq!(Config::parse("{}")?, Config::default());

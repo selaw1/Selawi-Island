@@ -7,9 +7,9 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 1 | Repository, conventions, architecture docs, event protocol, Rust core | **Done** |
 | 2 | GNOME extension: pill, compact/expanded, animation, hover/click, simulated events | **Done** (checked on GNOME 51) |
 | 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
-| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** — awaiting manual check on GNOME 51 |
-| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Next** |
-| 6 | Browser extensions (Chromium, Firefox) + native messaging | Planned |
+| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** (checked on GNOME 51) |
+| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** — awaiting manual check; brightness and GPU left out on purpose |
+| 6 | Browser extensions (Chromium, Firefox) + native messaging | **Next** |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | Planned |
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
@@ -43,9 +43,19 @@ Status key: **Done** · **In progress** · **Next** · Planned
 6. Integration status (`Integrations1`), live configuration
    (`Configuration1`) and the Integrations preferences page.
 
-## Phase 5 plan (proposed)
+## Phase 5 (done)
 
-NetworkManager (Wi-Fi, wired, VPN connect/disconnect), UDisks2 (USB drives
-and storage mounted/removed), brightness and keyboard backlight through
-GNOME's own controls; CPU/RAM/temperature only as opt-in warnings, read on
-change or on a slow timer only where no signal exists.
+- **Network** (NetworkManager): main connection changes, offline, captive
+  portal sign-in, VPN up/down.
+- **USB drives** (UDisks2): plugged in / removed.
+- **System warnings** (opt-in): low memory, high CPU temperature.
+- Left out on purpose: brightness and keyboard backlight (GNOME's own
+  display), low disk space (GNOME's notification), GPU usage (unreliable).
+
+## Phase 6 plan (proposed)
+
+A Chromium and a Firefox extension (TypeScript, minimal permissions) plus a
+native messaging host that forwards validated events to the daemon:
+per-tab media (several tabs in one browser, ad detection on YouTube),
+browser downloads with progress, and Google Meet / browser Zoom / Teams
+calls with confirmed in-call state.

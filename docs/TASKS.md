@@ -67,3 +67,19 @@
   daemon, 38 JS tests, end-to-end D-Bus test — all passing. The headless
   preferences test found that GJS has no `structuredClone`; fixed.
 - **Remaining:** manual checks on GNOME 51; Phase 5.
+
+## T-005 — Phase 5: network, USB drives, system warnings
+- **Created:** 2026-11-09
+- **Status:** Done (manual check pending)
+- **Description:** NetworkManager (connection changes, offline, captive
+  portal, VPN), UDisks2 (USB drives in/out), opt-in health warnings (low
+  memory, CPU temperature); per-integration defaults (health off);
+  settings page rows; icons.
+- **Files:** `daemon/src/integrations/{network,storage,health,mod}.rs`,
+  `daemon/src/{config,dbus,main}.rs`, `daemon/tests/fake_services.rs`,
+  `gnome-extension/{prefs-integrations.js,ui/view-model.js}`, tests, docs.
+- **Dependencies added:** none.
+- **Tests:** 47 daemon unit tests, 10 fake-service integration tests
+  (stable over 10 runs), headless preferences test, 39 JS tests,
+  end-to-end D-Bus test — all passing.
+- **Remaining:** manual checks; Phase 6 (browser extensions).

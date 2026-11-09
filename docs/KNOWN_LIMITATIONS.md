@@ -2,8 +2,12 @@
 
 ## Current (after Phase 3)
 
-- **Automatic detection covers media, battery, Bluetooth, notifications
-  and audio devices.** Network, storage and calls come later.
+- **Automatic detection covers media, battery, Bluetooth, notifications,
+  audio devices, network/VPN, USB drives and (opt-in) memory and CPU
+  temperature.** Calls and per-tab browser media come later.
+- **Only USB drives are shown**, not other USB devices (no desktop signal
+  for those).
+- **Warning limits are fixed** (memory 10 %, CPU 90 °C) for now.
   Per-integration limits are in `docs/INTEGRATIONS.md`.
 - **No album artwork**, by choice.
 - **Notification buttons are not shown** in the island (only GNOME, as the

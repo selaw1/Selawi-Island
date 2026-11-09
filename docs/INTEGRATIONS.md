@@ -23,7 +23,7 @@ Right-click the island → **Integrations** page. Changes apply immediately.
 
 | Setting | What it does |
 |---|---|
-| Sources: Media players / Battery / Bluetooth / Notifications | Turn each daemon integration on or off. Off removes its events right away |
+| Sources: Media players / Battery / Bluetooth / Notifications / Network / USB drives / System warnings | Turn each daemon integration on or off. Off removes its events right away. System warnings is off by default |
 | Sources: Audio devices | Audio output, microphone and mute changes (watched by the extension) |
 | Media: Players to show | **All players**, or **One player** |
 | Media: Preferred player | In one-player mode: this player wins whenever it is playing |
@@ -127,9 +127,60 @@ part lives in the extension and sends its events to the daemon.
 Volume changes are not shown: GNOME already shows its own volume display.
 Nothing is shown for the devices in use at startup.
 
+## Network — `network` (implemented)
+
+Source: NetworkManager (`org.freedesktop.NetworkManager`, system bus).
+
+| When | Shows | How long |
+|---|---|---|
+| The main connection changes | Name · Wi-Fi connected / Ethernet connected | 4 s |
+| No connection left | Offline · No network connection | 6 s |
+| The network needs a login page (hotel, café) | Sign in to network · name | Until it is no longer needed |
+| A VPN (incl. WireGuard) connects / disconnects | Name · VPN connected / disconnected | 4 s |
+
+Nothing at startup. When a VPN carries all traffic, the island still shows
+the real Wi-Fi or Ethernet underneath. Signal-strength changes are ignored.
+
+## USB drives — `storage` (implemented)
+
+Source: UDisks2 (`org.freedesktop.UDisks2`, system bus).
+
+| When | Shows | How long |
+|---|---|---|
+| A USB or removable drive is plugged in | Vendor Model · USB drive connected | 4 s |
+| It is removed | Vendor Model · USB drive removed | 4 s |
+
+Internal disks and drives present at startup are not announced. Other USB
+devices (keyboards, phones, hubs) are not reported by UDisks2, so they are
+not shown; wireless ones are covered by Bluetooth.
+
+## System warnings — `health` (implemented, off by default)
+
+Sources: `/proc/meminfo` and CPU temperature sensors in `/sys/class/hwmon`
+(coretemp, k10temp, zenpower, cpu_thermal), or CPU thermal zones.
+
+| When | Shows | How long |
+|---|---|---|
+| Available memory below 10 % | Memory low · 7% free · 1.1 GB available | 15 s |
+| CPU at 90 °C or more | High temperature · CPU at 93 °C | 15 s |
+
+Each warning is shown once and again only after the value has recovered
+(memory above 15 %, CPU below 80 °C). There is no signal for these values,
+so this is the only integration that checks on a timer (every 15 s, two
+small file reads); that is why it is off by default.
+
+## Not shown on purpose
+
+| What | Why |
+|---|---|
+| Volume, brightness, keyboard backlight | GNOME already shows its own on-screen display |
+| Low disk space | GNOME already sends a notification, which the island shows |
+| GPU usage | Readings differ by vendor and are not reliable |
+| Song names during browser ads | Browsers report one title per player; the Phase 6 browser extension can tell ads apart |
+
 ## Not yet implemented
 
 | Integration | Plan |
 |---|---|
-| Network, VPN, USB, storage, CPU/RAM, brightness | Phase 5 |
-| Calls (Slack, Meet, Zoom…) | Phases 6–7, through browser extensions and app integrations |
+| Per-tab browser media, meetings | Phase 6, browser extensions |
+| Calls (Slack, Zoom, Teams, Discord…) | Phase 7 |

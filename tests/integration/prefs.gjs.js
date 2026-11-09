@@ -64,6 +64,8 @@ async function main() {
     ok(service?.subtitle === 'Running', 'integrations page sees the running daemon');
     const bluetooth = byTitle(Adw.SwitchRow, 'Bluetooth');
     ok(bluetooth.active && bluetooth.sensitive, 'Bluetooth switch is on');
+    ok(byTitle(Adw.SwitchRow, 'Network').active, 'Network switch is on');
+    ok(!byTitle(Adw.SwitchRow, 'System warnings').active, 'System warnings switch is off by default');
     bluetooth.active = false;
     await sleep(500);
     ok(daemonConfig().integrations.bluez === false, 'turning Bluetooth off reaches the daemon');

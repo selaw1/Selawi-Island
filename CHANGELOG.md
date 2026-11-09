@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Phase 5
+
+### Added
+- Network (NetworkManager): connection changes, offline, “Sign in to
+  network” for captive portals, VPN connected/disconnected.
+- USB drives (UDisks2): plugged in and removed.
+- System warnings (opt-in): low memory and high CPU temperature.
+- Network, drive and warning icons; three new switches on the
+  Integrations page.
+
+### Changed
+- Integrations can have a default: System warnings is off unless turned
+  on. `Configuration1.Get` reports every integration's on/off state.
+
 ## Unreleased — Phase 4 (part 2)
 
 ### Added

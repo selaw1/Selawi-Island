@@ -76,3 +76,18 @@ test('battery and audio events get matching icons', () => {
     assert.equal(sys('audio:mic-mute', 'gnome-audio', 'Microphone muted', 'Built-in'), 'microphone-disabled-symbolic');
     assert.equal(sys('x', 'cli', 'Disk full', '', 'warning'), 'dialog-warning-symbolic', 'others unchanged');
 });
+
+test('network, drive and warning icons', () => {
+    const icon = (id, integration, title, detail) => describe({
+        ...base, id, category: 'system', state: 'started', source: {app: 'X', integration},
+        payload: {type: 'system', title, detail, severity: 'info'},
+    }, 0).iconName;
+    assert.equal(icon('network:primary', 'network', 'Home', 'Wi-Fi connected'), 'network-wireless-symbolic');
+    assert.equal(icon('network:primary', 'network', 'Office', 'Ethernet connected'), 'network-wired-symbolic');
+    assert.equal(icon('network:primary', 'network', 'Offline', 'No network connection'), 'network-offline-symbolic');
+    assert.equal(icon('network:vpn:Work', 'network', 'Work', 'VPN connected'), 'network-vpn-symbolic');
+    assert.equal(icon('network:vpn:Work', 'network', 'Work', 'VPN disconnected'), 'network-vpn-disconnected-symbolic');
+    assert.equal(icon('storage:x', 'storage', 'SanDisk', 'USB drive connected'), 'drive-harddisk-usb-symbolic');
+    assert.equal(icon('storage:x', 'storage', 'SanDisk', 'USB drive removed'), 'media-removable-symbolic');
+    assert.equal(icon('health:temperature', 'health', 'High temperature', 'CPU at 93 °C'), 'dialog-warning-symbolic');
+});

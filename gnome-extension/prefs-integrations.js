@@ -17,6 +17,9 @@ const SOURCES = [
     ['upower', 'Battery', 'Charger, full, low and critical battery'],
     ['bluez', 'Bluetooth', 'Devices connecting and disconnecting'],
     ['notifications', 'Notifications', 'App notifications'],
+    ['network', 'Network', 'Wi-Fi, Ethernet, VPN and network sign-in'],
+    ['storage', 'USB drives', 'Drives plugged in and removed'],
+    ['health', 'System warnings', 'Low memory and high CPU temperature (checks every 15 s)'],
 ];
 
 function call(iface, method, args = null) {
@@ -154,7 +157,7 @@ export function integrationsPage(settings, window) {
             row.sensitive = running;
         if (running) {
             for (const [id, row] of switches) {
-                row.active = config.integrations?.[id] ?? true;
+                row.active = config.integrations?.[id] ?? id !== 'health';
                 const [, , description] = SOURCES.find(([sid]) => sid === id);
                 const status = statusText(integrations.find(i => i.id === id));
                 row.subtitle = status ? `${description} · ${status}` : description;

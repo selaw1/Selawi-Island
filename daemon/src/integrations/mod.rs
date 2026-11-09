@@ -5,8 +5,11 @@
 //! away or fails; the runner then marks it and tries again later.
 
 pub mod bluez;
+pub mod health;
 pub mod mpris;
+pub mod network;
 pub mod notifications;
+pub mod storage;
 pub mod upower;
 pub mod variant;
 

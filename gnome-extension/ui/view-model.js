@@ -38,8 +38,9 @@ const SEVERITY_ICON = {
 };
 
 /**
- * Better icons for system events from our own integrations (battery from
- * the daemon's `upower`, audio devices from the extension's `gnome-audio`).
+ * Better icons for system events from our own integrations (battery,
+ * network, drives and warnings from the daemon; audio devices from the
+ * extension's `gnome-audio`).
  * Returns null for anything else.
  */
 function systemIcon(event) {
@@ -59,6 +60,19 @@ function systemIcon(event) {
             return `battery-level-${level}-symbolic`;
         }
     }
+    if (event.source.integration === 'network') {
+        if (event.id === 'network:portal')
+            return 'network-wireless-acquiring-symbolic';
+        if (event.id.startsWith('network:vpn:'))
+            return p.detail === 'VPN disconnected' ? 'network-vpn-disconnected-symbolic' : 'network-vpn-symbolic';
+        if (p.title === 'Offline')
+            return 'network-offline-symbolic';
+        return p.detail === 'Ethernet connected' ? 'network-wired-symbolic' : 'network-wireless-symbolic';
+    }
+    if (event.source.integration === 'storage')
+        return p.detail === 'USB drive removed' ? 'media-removable-symbolic' : 'drive-harddisk-usb-symbolic';
+    if (event.source.integration === 'health')
+        return event.id === 'health:memory' ? 'computer-symbolic' : 'dialog-warning-symbolic';
     if (event.source.integration === 'gnome-audio') {
         if (event.id === 'audio:output')
             return 'audio-speakers-symbolic';
