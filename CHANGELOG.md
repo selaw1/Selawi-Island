@@ -5,6 +5,8 @@
 ### Fixed
 - Extension failed to load on GNOME 51: `addTopChrome()` no longer accepts
   `affectsInputRegion`.
+- Replaced icons missing from current Adwaita (notification, finished
+  download, generic progress).
 
 ### Added
 - Rust workspace with `selawi-core`: event protocol v1 types, input

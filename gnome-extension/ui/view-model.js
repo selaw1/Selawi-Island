@@ -108,7 +108,7 @@ export function describe(event, now) {
     }
     case 'progress': {
         vm.iconName = event.category === 'transfer'
-            ? 'folder-download-symbolic' : 'emblem-synchronizing-symbolic';
+            ? 'folder-download-symbolic' : 'view-refresh-symbolic';
         vm.title = p.title;
         vm.subtitle = join(app, p.detail);
         if (event.state === 'failed') {
@@ -116,7 +116,7 @@ export function describe(event, now) {
             vm.trailing = 'Failed';
         } else if (event.state === 'ended') {
             vm.accent = 'green';
-            vm.iconName = 'emblem-ok-symbolic';
+            vm.iconName = 'object-select-symbolic';
             vm.trailing = 'Done';
             vm.progress = 1;
         } else {
@@ -138,7 +138,7 @@ export function describe(event, now) {
         break;
     }
     case 'notification':
-        vm.iconName = 'preferences-system-notifications-symbolic';
+        vm.iconName = 'mail-unread-symbolic';
         vm.title = p.title;
         vm.subtitle = join(app, p.body);
         break;

@@ -17,6 +17,7 @@ declares only `"51"`; add versions after testing them.
 | Reduced motion | `actor.ease()` returns 0 duration when “Reduce animation” is on | everywhere |
 | HiDPI | Sizes set in JS are multiplied by `St.ThemeContext.scale_factor`; CSS sizes are scaled by St | `island.js` |
 | Keyboard focus | `Main.ctrlAltTabManager.addGroup()` (removed when the actor is destroyed) | `island.js` |
+| Icons | Only symbolic icons from the current Adwaita theme (not its `legacy/` folder) | `view-model.js` |
 | Settings | `getSettings()` needs a compiled `schemas/gschemas.compiled` (the install script builds it) | `extension.js` |
 
 ## Wayland notes
