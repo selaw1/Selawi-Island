@@ -29,9 +29,15 @@ const TICK_MS = 1000;
 const Mode = Object.freeze({IDLE: 'idle', COMPACT: 'compact', EXPANDED: 'expanded'});
 
 export class Island {
-    constructor(settings, logger) {
+    /**
+     * @param {Gio.Settings} settings
+     * @param {object} logger
+     * @param {() => void} openPreferences - called on right-click
+     */
+    constructor(settings, logger, openPreferences) {
         this._settings = settings;
         this._log = logger;
+        this._openPreferences = openPreferences;
         this._feed = null;
         this._mode = Mode.IDLE;
         this._expandedBy = null; // 'user' | 'auto'
@@ -46,6 +52,9 @@ export class Island {
         this._monitors.connectObject('changed', () => {
             if (!this._savingDrop)
                 this._relayout(false);
+        }, 'clock-changed', () => {
+            if (this._mode === Mode.IDLE)
+                this._relayout(true);
         }, this);
 
         this._pill = new St.Widget({
@@ -76,6 +85,9 @@ export class Island {
         this._click = new Clutter.ClickGesture({required_button: Clutter.BUTTON_PRIMARY});
         this._click.connect('recognize', () => this._onClick());
         this._pill.add_action(this._click);
+        this._rightClick = new Clutter.ClickGesture({required_button: Clutter.BUTTON_SECONDARY});
+        this._rightClick.connect('recognize', () => this._openPreferences?.());
+        this._pill.add_action(this._rightClick);
         // Dragging starts only after the pointer moves 16 px, so clicks are
         // unaffected; once it starts it cancels the click.
         this._pan = new Clutter.PanGesture({required_button: Clutter.BUTTON_PRIMARY});
@@ -128,6 +140,7 @@ export class Island {
     }
 
     destroy() {
+        this._releaseGrab();
         this._clearCollapseTimer();
         this._stopTicking();
         this._feed?.disconnectObject(this);
@@ -257,7 +270,9 @@ export class Island {
             // Slim when idle; grows to normal height under the pointer so it
             // is easy to click.
             const idleHeight = Math.min(height, this._settings.get_int('idle-height') * s);
-            return {width: this._settings.get_int('idle-width') * s + grow, height: hovered ? height : idleHeight};
+            const clock = this._settings.get_boolean('idle-width-match-clock') ? this._monitors.clockWidth : null;
+            const idleWidth = clock ?? this._settings.get_int('idle-width') * s;
+            return {width: idleWidth + grow, height: hovered ? height : idleHeight};
         }
         }
     }
@@ -421,6 +436,10 @@ export class Island {
 
     _onDragBegin() {
         const pointer = this._pan.get_centroid_abs();
+        // Hold the pointer for the whole drag, like GNOME's own sliders.
+        // Without this, Wayland hands the pointer to the window underneath
+        // as soon as it leaves the pill and the drag is cancelled.
+        this._grab = global.stage.grab(this._pill);
         this._pill.remove_transition('x');
         this._pill.remove_transition('y');
         this._drag = {startX: this._pill.x, startY: this._pill.y, pointerX: pointer.x, pointerY: pointer.y};
@@ -438,7 +457,13 @@ export class Island {
             Math.round(this._drag.startY + pointer.y - this._drag.pointerY));
     }
 
+    _releaseGrab() {
+        this._grab?.dismiss();
+        this._grab = null;
+    }
+
     _onDragEnd() {
+        this._releaseGrab();
         if (!this._drag)
             return;
         this._drag = null;
@@ -470,6 +495,7 @@ export class Island {
     }
 
     _onDragCancel() {
+        this._releaseGrab();
         if (!this._drag)
             return;
         this._drag = null;

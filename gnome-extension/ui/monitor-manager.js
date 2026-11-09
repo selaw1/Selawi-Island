@@ -19,6 +19,10 @@ export class MonitorManager extends EventEmitter {
         Main.overview.connectObject('showing', changed, 'hidden', changed, this);
         global.display.connectObject('in-fullscreen-changed', changed, this);
         this._themeContext.connectObject('notify::scale-factor', changed, this);
+        // The clock's width changes with the time (9:59 → 10:00); that is a
+        // separate signal so the island can ease to it instead of jumping.
+        this._clock = Main.panel.statusArea.dateMenu ?? null;
+        this._clock?.connectObject('notify::width', () => this.emit('clock-changed'), this);
         this._settings.connectObject(
             'changed::monitor-index', changed,
             'changed::below-top-bar', changed,
@@ -72,6 +76,12 @@ export class MonitorManager extends EventEmitter {
         return Main.layoutManager.primaryIndex;
     }
 
+    /** Width of the top bar's date/time button, or null if unavailable. */
+    get clockWidth() {
+        const width = this._clock?.width ?? 0;
+        return width > 0 ? width : null;
+    }
+
     /** Same rule GNOME uses for its own chrome. */
     get fullscreenBlocked() {
         const monitor = this.monitor;
@@ -85,5 +95,7 @@ export class MonitorManager extends EventEmitter {
         global.display.disconnectObject(this);
         this._themeContext.disconnectObject(this);
         this._settings.disconnectObject(this);
+        this._clock?.disconnectObject(this);
+        this._clock = null;
     }
 }

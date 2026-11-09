@@ -19,6 +19,13 @@
   Dropping it near the top center snaps it back. Preferences: “Allow
   dragging” and “Reset” for the dragged position.
 - Clicking the idle island expands it to “Nothing to show”.
+- Right-click the island to open its preferences.
+- The idle island is as wide as the top bar clock (Preferences → “Idle
+  width matches the clock”).
+
+### Fixed
+- Dragging stopped halfway and snapped back when the pointer left the
+  island; the island now holds the pointer for the whole drag.
 
 ### Changed
 - The idle island is a slim 12 px bar that grows under the pointer

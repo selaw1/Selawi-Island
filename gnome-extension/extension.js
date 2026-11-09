@@ -13,7 +13,7 @@ export default class SelawiIslandExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         this._logger = this.getLogger();
-        this._island = new Island(this._settings, this._logger);
+        this._island = new Island(this._settings, this._logger, () => this.openPreferences());
         this._settings.connectObject('changed::simulation-enabled', () => this._resetFeed(), this);
         this._resetFeed();
     }

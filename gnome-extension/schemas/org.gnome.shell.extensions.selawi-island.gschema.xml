@@ -24,6 +24,10 @@
       <default>120</default>
       <summary>Width when there are no events</summary>
     </key>
+    <key name="idle-width-match-clock" type="b">
+      <default>true</default>
+      <summary>Make the idle island as wide as the top bar clock</summary>
+    </key>
     <key name="idle-height" type="i">
       <range min="4" max="80"/>
       <default>12</default>

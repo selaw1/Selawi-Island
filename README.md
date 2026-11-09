@@ -45,8 +45,11 @@ Then try it:
 selawi-island notify "Hello from the terminal"
 ```
 
-More in [docs/CLI.md](docs/CLI.md). To see the demo instead, turn on
-**Demo events** in `gnome-extensions prefs selawi-island@selawi`.
+More in [docs/CLI.md](docs/CLI.md).
+
+**Preferences:** right-click the island, or run
+`gnome-extensions prefs selawi-island@selawi`. There you can hide it when
+idle, change sizes, turn dragging off, reset its position or turn on the demo.
 
 Remove everything: `./scripts/uninstall.sh` (add `--purge` to also delete
 settings and saved events).

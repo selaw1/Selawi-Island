@@ -62,7 +62,11 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
         page.add(position);
 
         const size = new Adw.PreferencesGroup({title: 'Size and motion'});
-        size.add(spinRow(settings, 'idle-width', 'Idle width', 40, 400));
+        size.add(switchRow(settings, 'idle-width-match-clock', 'Idle width matches the clock',
+            'Turn off to choose the idle width below'));
+        const idleWidth = spinRow(settings, 'idle-width', 'Idle width', 40, 400);
+        settings.bind('idle-width-match-clock', idleWidth, 'sensitive', Gio.SettingsBindFlags.INVERT_BOOLEAN);
+        size.add(idleWidth);
         size.add(spinRow(settings, 'idle-height', 'Idle height', 4, 80));
         size.add(spinRow(settings, 'compact-width', 'Compact width', 160, 800));
         size.add(spinRow(settings, 'compact-height', 'Height', 24, 80));

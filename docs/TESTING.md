@@ -53,7 +53,7 @@ journalctl -f -o cat /usr/bin/gnome-shell
 
 ### Idle and position
 
-1. With no events the island is a thin bar. Hovering makes it taller; moving away makes it thin again.
+1. With no events the island is a thin bar as wide as the clock above it. Hovering makes it taller; moving away makes it thin again.
 2. Click it: it expands and says **Nothing to show**. Click again (or Escape) to close.
 3. Drag it somewhere else and let go: it stays there. Send `selawi-island notify hi`: it grows in place, never off the screen edge.
 4. Log out and in: it is still where you left it.
@@ -61,6 +61,8 @@ journalctl -f -o cat /usr/bin/gnome-shell
 6. With two monitors, drag it onto the other one: it stays on that monitor.
 7. Turn off **Allow dragging**: dragging does nothing, clicking still works.
 8. Turn off **Show when idle**: with no events the island disappears completely.
+9. Drag fast, across windows and the top bar: the island stays under the pointer the whole way.
+10. Right-click the island: its preferences open.
 
 ### Demo (turn on “Demo events” in preferences)
 
