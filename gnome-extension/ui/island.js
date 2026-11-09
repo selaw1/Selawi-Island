@@ -89,9 +89,10 @@ export class Island {
                 this._relayout(true);
         }, this);
 
-        // trackFullscreen is handled by us so we also control visibility
-        // when idle and hidden; the input region follows visibility.
-        Main.layoutManager.addTopChrome(this._pill, {affectsInputRegion: true, trackFullscreen: false});
+        // GNOME 51 accepts only trackFullscreen and affectsStruts here; a
+        // visible reactive actor gets pointer input automatically. Fullscreen
+        // is handled by us so we also control visibility when idle.
+        Main.layoutManager.addTopChrome(this._pill, {trackFullscreen: false});
         // Keyboard access: Ctrl+Alt+Tab focuses the island, like the top bar.
         // Removed automatically when the pill is destroyed.
         Main.ctrlAltTabManager.addGroup(this._pill, 'Selawi Island', 'dialog-information-symbolic');

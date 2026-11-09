@@ -12,7 +12,7 @@ declares only `"51"`; add versions after testing them.
 | Clicks | `Clutter.ClickGesture` added with `add_action()`. The shell no longer uses `button-release-event` | `island.js` |
 | Keys | `Clutter.KeyController` (`key-press`, `get_key()`) | `island.js` |
 | Nested buttons | Innermost gesture recognizes first and cancels outer ones; `island.js` also skips the toggle when the click lands on an `St.Button` | `island.js` |
-| Chrome | `Main.layoutManager.addTopChrome(actor, {affectsInputRegion, trackFullscreen})` | `island.js` |
+| Chrome | `Main.layoutManager.addTopChrome(actor, {trackFullscreen})`. The only accepted options are `trackFullscreen` and `affectsStruts`; `affectsInputRegion` was removed (any other key throws). Visible reactive actors receive input automatically | `island.js` |
 | Fullscreen rule | Hidden when `monitor.inFullscreen && !Main.overview.visible` (same rule GNOME uses) | `monitor-manager.js` |
 | Reduced motion | `actor.ease()` returns 0 duration when “Reduce animation” is on | everywhere |
 | HiDPI | Sizes set in JS are multiplied by `St.ThemeContext.scale_factor`; CSS sizes are scaled by St | `island.js` |

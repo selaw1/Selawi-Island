@@ -2,6 +2,10 @@
 
 ## Unreleased — Milestone 1 (Phases 1–2)
 
+### Fixed
+- Extension failed to load on GNOME 51: `addTopChrome()` no longer accepts
+  `affectsInputRegion`.
+
 ### Added
 - Rust workspace with `selawi-core`: event protocol v1 types, input
   validation, lifecycle rules, eight priority tiers, and an event store with
