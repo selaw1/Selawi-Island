@@ -1,0 +1,154 @@
+/* Selawi Island. Sizes set from JavaScript are scaled for HiDPI; sizes here
+   are scaled by St automatically. */
+
+.selawi-island {
+  background-color: #000;
+  border-radius: 18px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  color: #f5f5f7;
+  font-feature-settings: "tnum";
+}
+
+.selawi-island:focus {
+  box-shadow: 0 0 0 2px rgba(120, 170, 255, 0.8);
+}
+
+/* ---- compact ---------------------------------------------------------- */
+
+.selawi-compact {
+  padding: 0 14px;
+  spacing: 8px;
+}
+
+.selawi-compact-icon { icon-size: 16px; }
+
+.selawi-compact-title {
+  font-size: 10.5pt;
+  font-weight: 600;
+}
+
+.selawi-badge {
+  font-size: 9pt;
+  font-weight: 600;
+  color: rgba(245, 245, 247, 0.55);
+}
+
+.selawi-compact-trailing {
+  font-size: 10.5pt;
+  font-weight: 600;
+}
+
+/* ---- expanded --------------------------------------------------------- */
+
+.selawi-expanded {
+  padding: 16px 20px 14px;
+  spacing: 12px;
+}
+
+.selawi-expanded-header { spacing: 12px; }
+
+.selawi-icon-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.selawi-expanded-icon {
+  icon-size: 20px;
+  color: #000;
+}
+
+.selawi-title {
+  font-size: 11.5pt;
+  font-weight: 700;
+}
+
+.selawi-subtitle {
+  font-size: 9.5pt;
+  color: rgba(245, 245, 247, 0.6);
+}
+
+.selawi-trailing {
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.selawi-progress-track {
+  height: 4px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.selawi-progress-fill {
+  border-radius: 2px;
+  background-color: #f5f5f7;
+}
+
+.selawi-actions { spacing: 8px; }
+
+.selawi-action {
+  padding: 7px 12px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #f5f5f7;
+  font-size: 9.5pt;
+  font-weight: 600;
+  transition-duration: 120ms;
+}
+
+.selawi-action:hover { background-color: rgba(255, 255, 255, 0.2); }
+.selawi-action:active { background-color: rgba(255, 255, 255, 0.28); }
+.selawi-action:focus { box-shadow: inset 0 0 0 2px rgba(120, 170, 255, 0.8); }
+.selawi-action-dismiss { color: rgba(245, 245, 247, 0.7); }
+
+.selawi-others {
+  spacing: 2px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.selawi-other-row {
+  padding: 6px 8px;
+  border-radius: 9px;
+  transition-duration: 120ms;
+}
+
+.selawi-other-row:hover { background-color: rgba(255, 255, 255, 0.08); }
+.selawi-other-row:focus { box-shadow: inset 0 0 0 2px rgba(120, 170, 255, 0.8); }
+.selawi-other-row-box { spacing: 10px; }
+.selawi-other-icon { icon-size: 14px; }
+.selawi-other-title { font-size: 9.5pt; }
+
+.selawi-other-trailing {
+  font-size: 9.5pt;
+  color: rgba(245, 245, 247, 0.6);
+}
+
+.selawi-more {
+  padding: 2px 8px;
+  font-size: 9pt;
+  color: rgba(245, 245, 247, 0.45);
+}
+
+/* ---- accents ---------------------------------------------------------- */
+
+.selawi-compact-icon.accent-neutral, .selawi-compact-trailing.accent-neutral,
+.selawi-other-icon.accent-neutral, .selawi-trailing.accent-neutral { color: #f5f5f7; }
+.selawi-compact-icon.accent-green, .selawi-compact-trailing.accent-green,
+.selawi-other-icon.accent-green, .selawi-trailing.accent-green { color: #30d158; }
+.selawi-compact-icon.accent-blue, .selawi-compact-trailing.accent-blue,
+.selawi-other-icon.accent-blue, .selawi-trailing.accent-blue { color: #0a84ff; }
+.selawi-compact-icon.accent-pink, .selawi-compact-trailing.accent-pink,
+.selawi-other-icon.accent-pink, .selawi-trailing.accent-pink { color: #ff375f; }
+.selawi-compact-icon.accent-orange, .selawi-compact-trailing.accent-orange,
+.selawi-other-icon.accent-orange, .selawi-trailing.accent-orange { color: #ff9f0a; }
+.selawi-compact-icon.accent-red, .selawi-compact-trailing.accent-red,
+.selawi-other-icon.accent-red, .selawi-trailing.accent-red { color: #ff453a; }
+
+.selawi-icon-tile.accent-neutral, .selawi-progress-fill.accent-neutral { background-color: #f5f5f7; }
+.selawi-icon-tile.accent-green, .selawi-progress-fill.accent-green { background-color: #30d158; }
+.selawi-icon-tile.accent-blue, .selawi-progress-fill.accent-blue { background-color: #0a84ff; }
+.selawi-icon-tile.accent-pink, .selawi-progress-fill.accent-pink { background-color: #ff375f; }
+.selawi-icon-tile.accent-orange, .selawi-progress-fill.accent-orange { background-color: #ff9f0a; }
+.selawi-icon-tile.accent-red, .selawi-progress-fill.accent-red { background-color: #ff453a; }

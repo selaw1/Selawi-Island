@@ -1,0 +1,9 @@
+{
+  "name": "selawi-island-dev",
+  "private": true,
+  "type": "module",
+  "description": "Development scripts only. Nothing here is installed.",
+  "scripts": {
+    "test": "node --test tests/js/*.test.js"
+  }
+}

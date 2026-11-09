@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.selawi-island" path="/org/gnome/shell/extensions/selawi-island/">
+    <key name="simulation-enabled" type="b">
+      <default>true</default>
+      <summary>Play simulated demo events</summary>
+    </key>
+    <key name="monitor-index" type="i">
+      <range min="-1" max="16"/>
+      <default>-1</default>
+      <summary>Monitor to show the island on (-1 = primary)</summary>
+    </key>
+    <key name="below-top-bar" type="b">
+      <default>true</default>
+      <summary>Place the island below the top bar instead of over it</summary>
+    </key>
+    <key name="top-margin" type="i">
+      <range min="0" max="200"/>
+      <default>6</default>
+      <summary>Gap above the island, in pixels</summary>
+    </key>
+    <key name="idle-width" type="i">
+      <range min="40" max="400"/>
+      <default>120</default>
+      <summary>Width when there are no events</summary>
+    </key>
+    <key name="compact-width" type="i">
+      <range min="160" max="800"/>
+      <default>320</default>
+      <summary>Width of the compact island</summary>
+    </key>
+    <key name="compact-height" type="i">
+      <range min="24" max="80"/>
+      <default>36</default>
+      <summary>Height of the idle and compact island</summary>
+    </key>
+    <key name="expanded-width" type="i">
+      <range min="280" max="1000"/>
+      <default>440</default>
+      <summary>Width of the expanded island</summary>
+    </key>
+    <key name="show-when-idle" type="b">
+      <default>true</default>
+      <summary>Show a small pill when there are no events</summary>
+    </key>
+    <key name="auto-expand" type="b">
+      <default>true</default>
+      <summary>Briefly expand when a new most-important event arrives</summary>
+    </key>
+    <key name="auto-expand-ms" type="i">
+      <range min="1000" max="30000"/>
+      <default>3500</default>
+      <summary>How long an automatic expansion lasts, in milliseconds</summary>
+    </key>
+    <key name="animation-duration-scale" type="d">
+      <range min="0.0" max="3.0"/>
+      <default>1.0</default>
+      <summary>Animation duration multiplier (0 = no animation)</summary>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,322 @@
+{
+  "protocol_version": 1,
+  "loop": true,
+  "steps": [
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-media",
+        "source": {
+          "app": "Spotify",
+          "integration": "simulator"
+        },
+        "category": "media",
+        "state": "started",
+        "persistent": true,
+        "payload": {
+          "type": "media",
+          "title": "Midnight City",
+          "artist": "M83",
+          "album": "Hurry Up, We're Dreaming",
+          "playing": true,
+          "position_ms": 0,
+          "duration_ms": 243000
+        },
+        "actions": [
+          {
+            "id": "play_pause",
+            "label": "Pause"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 4000,
+      "event": {
+        "id": "sim-buds",
+        "source": {
+          "app": "Bluetooth",
+          "integration": "simulator"
+        },
+        "category": "device",
+        "state": "started",
+        "ttl_ms": 5000,
+        "payload": {
+          "type": "device",
+          "name": "Galaxy Buds2 Pro",
+          "device_kind": "headphones",
+          "connected": true,
+          "battery_percent": 82
+        }
+      }
+    },
+    {
+      "delay_ms": 4000,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "started",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Downloading \u00b7 1.2 GB",
+          "percent": 0.0
+        },
+        "actions": [
+          {
+            "id": "cancel",
+            "label": "Cancel"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "updated",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Downloading \u00b7 1.2 GB",
+          "percent": 18.0
+        },
+        "actions": [
+          {
+            "id": "cancel",
+            "label": "Cancel"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "updated",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Downloading \u00b7 1.2 GB",
+          "percent": 41.0
+        },
+        "actions": [
+          {
+            "id": "cancel",
+            "label": "Cancel"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "updated",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Downloading \u00b7 1.2 GB",
+          "percent": 67.0
+        },
+        "actions": [
+          {
+            "id": "cancel",
+            "label": "Cancel"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "updated",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Downloading \u00b7 1.2 GB",
+          "percent": 88.0
+        },
+        "actions": [
+          {
+            "id": "cancel",
+            "label": "Cancel"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 1500,
+      "event": {
+        "id": "sim-download",
+        "source": {
+          "app": "Firefox",
+          "integration": "simulator"
+        },
+        "category": "transfer",
+        "state": "ended",
+        "persistent": true,
+        "payload": {
+          "type": "progress",
+          "title": "archlinux-x86_64.iso",
+          "detail": "Download complete",
+          "percent": 100.0
+        },
+        "actions": []
+      }
+    },
+    {
+      "delay_ms": 5000,
+      "event": {
+        "id": "sim-call",
+        "source": {
+          "app": "Slack",
+          "integration": "simulator"
+        },
+        "category": "call",
+        "state": "started",
+        "persistent": true,
+        "payload": {
+          "type": "call",
+          "title": "Design sync",
+          "confidence": "confirmed"
+        },
+        "actions": [
+          {
+            "id": "end",
+            "label": "Leave"
+          }
+        ]
+      }
+    },
+    {
+      "delay_ms": 3000,
+      "event": {
+        "id": "sim-build",
+        "source": {
+          "app": "Terminal",
+          "integration": "simulator"
+        },
+        "category": "notification",
+        "state": "started",
+        "ttl_ms": 6000,
+        "payload": {
+          "type": "notification",
+          "title": "Build passed",
+          "body": "cargo test \u00b7 42 tests"
+        }
+      }
+    },
+    {
+      "delay_ms": 9000,
+      "event": {
+        "id": "sim-call",
+        "source": {
+          "app": "Slack",
+          "integration": "simulator"
+        },
+        "category": "call",
+        "state": "ended",
+        "persistent": true,
+        "payload": {
+          "type": "call",
+          "title": "Design sync",
+          "confidence": "confirmed"
+        },
+        "actions": []
+      }
+    },
+    {
+      "delay_ms": 5000,
+      "event": {
+        "id": "sim-battery",
+        "source": {
+          "app": "Power",
+          "integration": "simulator"
+        },
+        "category": "system",
+        "state": "started",
+        "priority": "critical",
+        "ttl_ms": 7000,
+        "payload": {
+          "type": "system",
+          "title": "Battery low",
+          "detail": "15% remaining",
+          "severity": "warning"
+        }
+      }
+    },
+    {
+      "delay_ms": 8000,
+      "event": {
+        "id": "sim-buds",
+        "source": {
+          "app": "Bluetooth",
+          "integration": "simulator"
+        },
+        "category": "device",
+        "state": "started",
+        "ttl_ms": 5000,
+        "payload": {
+          "type": "device",
+          "name": "Galaxy Buds2 Pro",
+          "device_kind": "headphones",
+          "connected": false
+        }
+      }
+    },
+    {
+      "delay_ms": 6000,
+      "event": {
+        "id": "sim-media",
+        "source": {
+          "app": "Spotify",
+          "integration": "simulator"
+        },
+        "category": "media",
+        "state": "ended",
+        "persistent": true,
+        "payload": {
+          "type": "media",
+          "title": "Midnight City",
+          "artist": "M83",
+          "album": "Hurry Up, We're Dreaming",
+          "playing": false,
+          "position_ms": 60000,
+          "duration_ms": 243000
+        },
+        "actions": []
+      }
+    }
+  ]
+}
