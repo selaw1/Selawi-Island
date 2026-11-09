@@ -40,6 +40,24 @@ trait Core {
     fn protocol_version(&self) -> zbus::Result<u32>;
 }
 
+#[proxy(
+    interface = "com.selawi.Island.Integrations1",
+    default_service = "com.selawi.Island",
+    default_path = "/com/selawi/Island"
+)]
+trait Integrations {
+    fn list(&self) -> zbus::Result<String>;
+}
+
+#[derive(serde::Deserialize)]
+struct IntegrationRow {
+    id: String,
+    name: String,
+    status: String,
+    #[serde(default)]
+    detail: Option<String>,
+}
+
 #[derive(Parser)]
 #[command(
     name = "selawi-island",
@@ -86,6 +104,8 @@ enum Command {
     Send { json: String },
     /// Check that the daemon is running.
     Status,
+    /// Show the built-in integrations and what each is doing.
+    Integrations,
 }
 
 #[derive(Subcommand)]
@@ -240,6 +260,24 @@ async fn run(command: Command) -> Result<()> {
             // Validate locally first for a clearer message.
             parse_input(&json).map_err(|e| e.to_string())?;
             events.submit(&json).await.map_err(dbus_error)
+        }
+        Command::Integrations => {
+            let proxy = IntegrationsProxy::new(&connection)
+                .await
+                .map_err(dbus_error)?;
+            let rows: Vec<IntegrationRow> =
+                serde_json::from_str(&proxy.list().await.map_err(dbus_error)?)
+                    .map_err(|e| e.to_string())?;
+            for row in rows {
+                let detail = row.detail.map(|d| format!(" — {d}")).unwrap_or_default();
+                println!(
+                    "{:<8} {:<26} {}{detail}",
+                    row.id,
+                    row.name,
+                    row.status.replace('_', " ")
+                );
+            }
+            Ok(())
         }
         Command::Status => {
             let core = CoreProxy::new(&connection).await.map_err(dbus_error)?;

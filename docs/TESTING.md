@@ -13,7 +13,8 @@
 | `core/tests/engine.rs` (18) | Create, update, dedup, expiry, ttl refresh, linger, stale updates, priority (calls are never displaced), stable order, user overrides, dismissal, grouping, capacity, 10 000-event flood, snapshot/restore, restore grace period |
 | `core/tests/protocol_fixtures.rs` | Rust accepts/rejects every case in `tests/fixtures/protocol-cases.json` |
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
-| `daemon` unit tests (5) | Submit/list/dismiss, size limit, invalid input, expiry, snapshot file (mode 0600) survives restart, corrupt snapshot ignored |
+| `daemon` unit tests (22) | Engine (submit/list/dismiss, limits, expiry, snapshot 0600, corrupt snapshot), config, safe reading of D-Bus values, MPRIS event building (controls only when supported, paused ttl, stopped, hostile metadata), battery rules (quiet at startup, plug/unplug, low once, critical persistent, cleared by charger), Bluetooth (names, kinds, battery only when reported, never on disconnect) |
+| `daemon/tests/fake_services.rs` (4) | Each integration against a fake service on a private bus: a fake MPRIS player (appears, Pause reaches it, closes → ended; dismissed then resumed comes back), fake UPower (quiet at start, Charging, Battery low), fake BlueZ (connect, battery added a moment later, disconnect without battery) |
 | `tests/js/*.test.js` (36) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action) |
 | `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) and checks the Default position dropdown and the Make this the default / Reset buttons. Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
@@ -51,6 +52,16 @@ journalctl -f -o cat /usr/bin/gnome-shell
    ```bash
    systemctl --user restart selawi-islandd
    ```
+
+### Integrations (Phase 4)
+
+1. `selawi-island integrations`: `mpris` active; `upower` active (laptop) or unavailable (desktop); `bluez` active.
+2. Play music in Spotify, Firefox (YouTube) or any player: the island shows the track with a running time. **Pause / Next / Previous** in the expanded island control the player.
+3. Pause the music: it stays (Play button); after 5 minutes paused it disappears. Close the player: it ends.
+4. Laptop: unplug and plug in the charger: “On battery” / “Charging”.
+5. Connect Bluetooth earbuds: “Connected”, with battery only if the earbuds report it. Disconnect: “Disconnected” without battery.
+6. Turn one off in `~/.config/selawi-island/daemon.json` (see `docs/INTEGRATIONS.md`), restart the daemon: it shows `disabled`.
+7. `journalctl --user -u selawi-islandd` shows status changes but never track titles or device names.
 
 ### Idle and position
 

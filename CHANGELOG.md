@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Phase 4 (part 1)
+
+### Added
+- Media players (MPRIS): Spotify, browsers, VLC, mpv and others, with
+  Previous / Pause–Play / Next buttons that control the player.
+- Battery (UPower): charging, on battery, fully charged, low, critical.
+- Bluetooth (BlueZ): connect/disconnect with reported battery; low battery.
+- `com.selawi.Island.Integrations1` and `selawi-island integrations`.
+- `~/.config/selawi-island/daemon.json` to turn integrations off.
+
+### Changed
+- Compact island: icon and title are centered; “+N” sits at the left
+  edge and the time/percent at the right.
+- The daemon is a library plus a small binary, so integrations can be
+  tested against fake services.
+
 ## Unreleased — Phase 3
 
 ### Added

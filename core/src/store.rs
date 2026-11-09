@@ -274,7 +274,7 @@ impl EventStore {
         for mut event in snapshot {
             if !event.persistent
                 || event.state.is_terminal()
-                || to_input(&event).validate().is_err()
+                || event.to_input().validate().is_err()
             {
                 continue;
             }
@@ -410,20 +410,5 @@ impl EventStore {
             (Some(r), _) => Some(r),
             (None, e) => e,
         }
-    }
-}
-
-fn to_input(event: &Event) -> EventInput {
-    EventInput {
-        id: event.id.clone(),
-        source: event.source.clone(),
-        category: event.category,
-        state: event.state,
-        priority: Some(event.priority),
-        persistent: event.persistent,
-        ttl_ms: None,
-        group: event.group.clone(),
-        payload: event.payload.clone(),
-        actions: event.actions.clone(),
     }
 }

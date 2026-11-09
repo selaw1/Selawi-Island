@@ -59,6 +59,7 @@ cargo build && selawi-island progress finish --id "$ID" || selawi-island progres
 | Command | Meaning |
 |---|---|
 | `selawi-island status` | Is the daemon running? Version and event count |
+| `selawi-island integrations` | Built-in integrations and their status (see [INTEGRATIONS.md](INTEGRATIONS.md)) |
 | `selawi-island list` | Current events as JSON |
 | `selawi-island dismiss ID` | Remove an event |
 | `selawi-island send JSON` | Send a raw protocol v1 event input (`-` reads stdin) |

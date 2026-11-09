@@ -20,6 +20,12 @@ glib-compile-schemas --strict --dry-run gnome-extension/schemas
 echo "== End-to-end over a private D-Bus session"
 if command -v dbus-run-session >/dev/null; then
     cargo build -q -p selawi-islandd -p selawi-island
+    if ! out=$(dbus-run-session -- cargo test -q -p selawi-islandd --test fake_services 2>&1); then
+        echo "$out"
+        echo "Integration tests against fake services failed"
+        exit 1
+    fi
+    echo "$out" | grep -E "test result"
     if ! out=$(dbus-run-session -- tests/integration/dbus-smoke.sh 2>&1); then
         echo "$out"
         echo "End-to-end test failed"

@@ -6,8 +6,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 |---|---|---|
 | 1 | Repository, conventions, architecture docs, event protocol, Rust core | **Done** |
 | 2 | GNOME extension: pill, compact/expanded, animation, hover/click, simulated events | **Done** (checked on GNOME 51) |
-| 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** — awaiting manual check on GNOME 51 |
-| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Next** |
+| 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
+| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **In progress** — MPRIS, power, Bluetooth done; notifications and audio next |
 | 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | Planned |
 | 6 | Browser extensions (Chromium, Firefox) + native messaging | Planned |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | Planned |
@@ -31,14 +31,12 @@ Status key: **Done** · **In progress** · **Next** · Planned
   is not running; the demo is a preference.
 - `selawi-island notify|progress|list|dismiss|send|status`.
 
-## Phase 4 plan (proposed)
+## Phase 4 status
 
-Each integration is a module in the daemon that turns OS signals into
-events, reports whether it is supported/unavailable, and can be turned off:
-
-1. **MPRIS media** — players on the session bus; play/pause/next/previous
-   through `ActionInvoked`; player priority choice.
-2. **Power** (UPower) — battery level, charging, low battery.
-3. **Bluetooth** (BlueZ) — connect/disconnect, battery only when reported.
-4. **Notifications** — mirror freedesktop notifications without replacing GNOME's.
+1. **MPRIS media** — done: per-player events, Previous/Play-Pause/Next.
+2. **Power** (UPower) — done: charger, full, low, critical.
+3. **Bluetooth** (BlueZ) — done: connect/disconnect, reported battery, low battery.
+4. **Notifications** — next: mirror freedesktop notifications without replacing GNOME's.
 5. **Audio** — output device changes, volume/mute where reliably exposed.
+6. Integration status (`Integrations1`, `selawi-island integrations`) and
+   on/off configuration — done.

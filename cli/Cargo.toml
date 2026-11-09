@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 selawi-core = { path = "../core" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 clap = { version = "4", features = ["derive"] }
 zbus = { version = "6", default-features = false, features = ["tokio", "proxy"] }

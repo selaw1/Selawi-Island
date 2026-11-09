@@ -26,6 +26,16 @@ through D-Bus activation.
 | `Changed(events_json)` | signal | `s` | The list changed; same JSON as `List()` |
 | `ActionInvoked(id, action_id)` | signal | `ss` | Sent to the event's source so it can react (pause music, leave a call…) |
 
+## com.selawi.Island.Integrations1
+
+| Member | Kind | Signature | Meaning |
+|---|---|---|---|
+| `List()` | method | `→ s` | JSON array of `{"id", "name", "status", "detail"}`; status is `starting`, `active`, `unavailable`, `disabled` or `failed`. See [INTEGRATIONS.md](INTEGRATIONS.md) |
+
+Events created by built-in integrations have ids starting with the
+integration id (`mpris:`, `upower:`, `bluez:`). Their action buttons are
+handled inside the daemon; `ActionInvoked` is still emitted for them.
+
 ### Errors
 
 | Name | When |

@@ -360,6 +360,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "selawi-core",
+ "serde",
  "serde_json",
  "tokio",
  "zbus",
@@ -369,7 +370,9 @@ dependencies = [
 name = "selawi-islandd"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "selawi-core",
+ "serde",
  "serde_json",
  "tokio",
  "zbus",

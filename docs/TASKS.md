@@ -28,3 +28,22 @@
 - **Tests:** `./scripts/test.sh` — 38 Rust tests, 23 JS tests, end-to-end
   D-Bus test (daemon + CLI + DaemonFeed under GJS), all passing.
 - **Remaining:** manual checks in `docs/TESTING.md`; Phase 4 integrations.
+
+## T-003 — Phase 4 (part 1): media, battery, Bluetooth
+- **Created:** 2026-11-09
+- **Status:** Done (manual check pending); notifications and audio remain
+- **Description:** Daemon split into library + binary; `Hub` for engine,
+  signals, action routing and integration status; `Integrations1`;
+  `daemon.json` on/off config; MPRIS, UPower and BlueZ integrations;
+  `selawi-island integrations`; centered compact text in the island.
+- **Files:** `daemon/src/{lib,hub,config}.rs`, `daemon/src/integrations/*`,
+  `daemon/tests/fake_services.rs`, `daemon/src/{dbus,engine,main}.rs`,
+  `core/src/{events,store}.rs`, `cli/src/main.rs`,
+  `gnome-extension/ui/compact-view.js`, `gnome-extension/stylesheet.css`,
+  scripts and docs.
+- **Dependencies added:** `futures-util` (stream helpers), `serde` derive
+  in daemon and CLI.
+- **Tests:** `./scripts/test.sh` — 22 daemon unit tests, 4 integration
+  tests against fake MPRIS/UPower/BlueZ services (stable over 10 runs),
+  plus all earlier checks.
+- **Remaining:** notifications, audio; artwork; preferred player.

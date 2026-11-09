@@ -11,16 +11,17 @@ Three layers. Each may depend only on the layers listed after it.
 ## What exists today
 
 ```text
-  scripts, terminal            other programs (Phase 4+)
-  selawi-island (CLI) ─┐      ┌─ any D-Bus client
-                       ▼      ▼
-             ┌─────────────────────────────────────┐
-             │ selawi-islandd (daemon, Rust)        │
-             │  D-Bus: com.selawi.Island            │
-             │   Core1   Events1                    │
-             │  Engine ─ selawi-core EventStore     │
-             │  snapshot: ~/.local/state/…/events.json
-             └─────────────────────────────────────┘
+  scripts, terminal                       any D-Bus client
+  selawi-island (CLI) ─┐                 ┌─┘
+                       ▼                 ▼
+             ┌──────────────────────────────────────────┐
+             │ selawi-islandd (daemon, Rust)             │
+             │  D-Bus: com.selawi.Island                 │
+             │   Core1  Events1  Integrations1           │
+             │  Hub ─ Engine ─ selawi-core EventStore    │
+             │  integrations/  mpris  upower  bluez ◄────┼── session / system bus
+             │  snapshot: ~/.local/state/…/events.json   │
+             └──────────────────────────────────────────┘
                        │ Changed(json) signal / List()
                        ▼
  gnome-extension/  DaemonFeed ──► Island (ui/)
@@ -30,7 +31,8 @@ Three layers. Each may depend only on the layers listed after it.
 | Part | Where | Job |
 |---|---|---|
 | Shared core | `core/` | Event types, validation, lifecycle, priority, expiry, grouping, snapshot/restore. No platform code |
-| Daemon | `daemon/` | Owns the one `EventStore`, serves D-Bus, arms one expiry timer, saves persistent events. systemd user service `selawi-islandd` |
+| Daemon | `daemon/` | Owns the one `EventStore` behind a `Hub`, serves D-Bus, arms one expiry timer, saves persistent events, runs the integrations. systemd user service `selawi-islandd` |
+| Integrations | `daemon/src/integrations/` | MPRIS media, UPower battery, BlueZ Bluetooth. Each turns D-Bus signals into events, claims its own event-id prefix for action buttons, reports its status, and is restarted after failures. See [INTEGRATIONS.md](INTEGRATIONS.md) |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
 | Extension | `gnome-extension/` | Draws the island from a feed |
 
@@ -81,9 +83,11 @@ call duration or playing media is on screen).
 
 ## Planned (not built yet)
 
-- Interfaces `Integrations1`, `Plugins1`, `Configuration1`, `Diagnostics1`.
-- Linux adapters under `platform/linux/`: notifications, MPRIS, BlueZ,
-  power, audio (Phase 4).
+- Interfaces `Plugins1`, `Configuration1`, `Diagnostics1`.
+- Notification and audio integrations (rest of Phase 4).
+- When Windows/macOS work starts, the Linux integrations move behind
+  platform traits; until then they live in the daemon (no premature
+  abstraction).
 - Settings app, browser extensions, plugins — see the roadmap.
 
 ## Other platforms

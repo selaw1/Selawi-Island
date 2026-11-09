@@ -16,7 +16,8 @@ no hosting.
 | Daemon `selawi-islandd` on D-Bus + systemd user service | Implemented, tested on a private bus |
 | CLI `selawi-island` (notify, progress, list, dismiss, send, status) | Implemented, tested |
 | Demo events | Simulated, off by default |
-| Automatic detection (music, Bluetooth, battery, notifications, calls) | Not started — Phase 4 (see [ROADMAP](docs/ROADMAP.md)) |
+| Automatic detection: music players, battery, Bluetooth | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
+| Notifications, audio, network, calls | Not started (see [ROADMAP](docs/ROADMAP.md)) |
 
 ## Requirements (all free)
 

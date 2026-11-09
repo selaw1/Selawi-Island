@@ -2,27 +2,20 @@
 //!
 //! - `com.selawi.Island.Core1`: version information.
 //! - `com.selawi.Island.Events1`: submit, list, dismiss, actions.
+//! - `com.selawi.Island.Integrations1`: what each built-in integration is doing.
 //!
 //! See docs/DBUS.md for the full contract.
 
 use std::sync::Arc;
 
-use selawi_core::{Timestamp, PROTOCOL_VERSION};
-use tokio::sync::{Mutex, Notify};
+use selawi_core::PROTOCOL_VERSION;
 use zbus::object_server::SignalEmitter;
 use zbus::{interface, DBusError};
 
-use crate::engine::{Engine, SubmitError};
+use crate::hub::Hub;
 
 pub const BUS_NAME: &str = "com.selawi.Island";
 pub const OBJECT_PATH: &str = "/com/selawi/Island";
-
-/// State shared by the interfaces and the expiry task.
-pub struct Shared {
-    pub engine: Mutex<Engine>,
-    /// Wakes the expiry task whenever the next deadline may have changed.
-    pub wake: Notify,
-}
 
 #[derive(Debug, DBusError)]
 #[zbus(prefix = "com.selawi.Island.Error")]
@@ -51,73 +44,44 @@ impl Core {
 }
 
 pub struct Events {
-    pub shared: Arc<Shared>,
+    pub hub: Arc<Hub>,
 }
 
 #[interface(name = "com.selawi.Island.Events1")]
 impl Events {
     /// Adds or updates one event (protocol v1 event input as JSON).
-    async fn submit(
-        &self,
-        event_json: &str,
-        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
-    ) -> Result<(), IslandError> {
-        let list = {
-            let mut engine = self.shared.engine.lock().await;
-            match engine.submit(event_json, Timestamp::now()) {
-                Ok(true) => Some(engine.list_json()),
-                Ok(false) => None,
-                Err(SubmitError::TooLarge) => {
-                    return Err(IslandError::InvalidEvent(SubmitError::TooLarge.to_string()))
-                }
-                Err(e) => return Err(IslandError::InvalidEvent(e.to_string())),
-            }
-        };
-        self.shared.wake.notify_one();
-        if let Some(list) = list {
-            Self::changed(&emitter, &list).await?;
-        }
-        Ok(())
+    async fn submit(&self, event_json: &str) -> Result<(), IslandError> {
+        self.hub
+            .submit_json(event_json)
+            .await
+            .map_err(|e| IslandError::InvalidEvent(e.to_string()))
     }
 
     /// All current events, most important first, as a JSON array.
     async fn list(&self) -> String {
-        self.shared.engine.lock().await.list_json()
+        self.hub.list_json().await
     }
 
     /// Removes an event because the user dismissed it. Returns whether it existed.
-    async fn dismiss(
-        &self,
-        id: &str,
-        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
-    ) -> Result<bool, IslandError> {
-        let list = {
-            let mut engine = self.shared.engine.lock().await;
-            engine.dismiss(id).then(|| engine.list_json())
-        };
-        self.shared.wake.notify_one();
-        match list {
-            Some(list) => {
-                Self::changed(&emitter, &list).await?;
-                Ok(true)
-            }
-            None => Ok(false),
-        }
+    async fn dismiss(&self, id: &str) -> bool {
+        self.hub.dismiss(id).await
     }
 
-    /// Forwards a pressed action button to the event's source through the
-    /// `ActionInvoked` signal. Only actions the event declared are accepted.
+    /// A pressed action button. Only actions the event declared are
+    /// accepted. Built-in integrations receive it directly; every action is
+    /// also announced with `ActionInvoked` for external sources.
     async fn invoke_action(
         &self,
         id: &str,
         action_id: &str,
         #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
     ) -> Result<(), IslandError> {
-        if !self.shared.engine.lock().await.has_action(id, action_id) {
+        if !self.hub.has_action(id, action_id).await {
             return Err(IslandError::UnknownAction(format!(
                 "event has no action \"{action_id}\""
             )));
         }
+        self.hub.route_action(id, action_id).await;
         Self::action_invoked(&emitter, id, action_id).await?;
         Ok(())
     }
@@ -133,4 +97,17 @@ impl Events {
         id: &str,
         action_id: &str,
     ) -> zbus::Result<()>;
+}
+
+pub struct Integrations {
+    pub hub: Arc<Hub>,
+}
+
+#[interface(name = "com.selawi.Island.Integrations1")]
+impl Integrations {
+    /// Every built-in integration with its status, as a JSON array of
+    /// `{"id", "name", "status", "detail"}`.
+    async fn list(&self) -> String {
+        self.hub.integrations_json().await
+    }
 }

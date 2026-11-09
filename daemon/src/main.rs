@@ -4,20 +4,18 @@
 //! `com.selawi.Island`. Normally started by systemd (`selawi-islandd.service`)
 //! or by D-Bus activation.
 
-mod dbus;
-mod engine;
-
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
 
 use selawi_core::Timestamp;
+use selawi_islandd::config::Config;
+use selawi_islandd::dbus::{Core, Events, Integrations, BUS_NAME, OBJECT_PATH};
+use selawi_islandd::engine::{default_snapshot_path, Engine};
+use selawi_islandd::hub::Hub;
+use selawi_islandd::integrations::{self, bluez, mpris, upower};
 use tokio::signal::unix::{signal, SignalKind};
-use tokio::sync::{Mutex, Notify};
-
-use crate::dbus::{Core, Events, Shared, BUS_NAME, OBJECT_PATH};
-use crate::engine::{default_snapshot_path, Engine};
 
 const USAGE: &str = "\
 Usage: selawi-islandd [--no-persist] [--state-file PATH]
@@ -86,19 +84,12 @@ fn main() -> ExitCode {
 async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
     let engine = Engine::new(options.snapshot_path, Timestamp::now());
     eprintln!("Starting with {} restored event(s)", engine.len());
-    let shared = Arc::new(Shared {
-        engine: Mutex::new(engine),
-        wake: Notify::new(),
-    });
+    let hub = Arc::new(Hub::new(engine));
 
     let connection = zbus::connection::Builder::session()
         .serve_at(OBJECT_PATH, Core)
-        .serve_at(
-            OBJECT_PATH,
-            Events {
-                shared: shared.clone(),
-            },
-        )
+        .serve_at(OBJECT_PATH, Events { hub: hub.clone() })
+        .serve_at(OBJECT_PATH, Integrations { hub: hub.clone() })
         .name(BUS_NAME)
         .build()
         .await?;
@@ -108,12 +99,17 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
         .object_server()
         .interface::<_, Events>(OBJECT_PATH)
         .await?;
-    let emitter = iface.signal_emitter().clone();
+    hub.set_emitter(iface.signal_emitter().clone());
+
+    let config = Config::load();
+    integrations::spawn(hub.clone(), &config, mpris::ID, mpris::NAME, mpris::run);
+    integrations::spawn(hub.clone(), &config, upower::ID, upower::NAME, upower::run);
+    integrations::spawn(hub.clone(), &config, bluez::ID, bluez::NAME, bluez::run);
 
     let mut terminate = signal(SignalKind::terminate())?;
     let mut interrupt = signal(SignalKind::interrupt())?;
     tokio::select! {
-        result = expire_loop(shared, emitter) => result?,
+        () = expire_loop(hub) => {}
         _ = terminate.recv() => eprintln!("Stopping (SIGTERM)"),
         _ = interrupt.recv() => eprintln!("Stopping (SIGINT)"),
     }
@@ -121,31 +117,19 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Sleeps until the next expiry (or a change), never polls.
-async fn expire_loop(
-    shared: Arc<Shared>,
-    emitter: zbus::object_server::SignalEmitter<'static>,
-) -> zbus::Result<()> {
+async fn expire_loop(hub: Arc<Hub>) {
     loop {
-        let deadline = shared.engine.lock().await.next_deadline();
-        match deadline {
-            None => {
-                shared.wake.notified().await;
-                continue;
-            }
+        match hub.next_deadline().await {
+            None => hub.wake.notified().await,
             Some(deadline) => {
                 let wait = deadline.0.saturating_sub(Timestamp::now().0);
                 tokio::select! {
-                    () = tokio::time::sleep(Duration::from_millis(wait)) => {}
-                    () = shared.wake.notified() => continue,
+                    () = tokio::time::sleep(Duration::from_millis(wait)) => {
+                        hub.tick().await;
+                    }
+                    () = hub.wake.notified() => {}
                 }
             }
-        }
-        let list = {
-            let mut engine = shared.engine.lock().await;
-            engine.tick(Timestamp::now()).then(|| engine.list_json())
-        };
-        if let Some(list) = list {
-            Events::changed(&emitter, &list).await?;
         }
     }
 }

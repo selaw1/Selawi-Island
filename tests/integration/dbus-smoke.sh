@@ -17,6 +17,12 @@ if "$CLI" status >/dev/null 2>&1; then fail "status should fail without a daemon
 DAEMON_PID=$!
 for _ in $(seq 50); do "$CLI" status >/dev/null 2>&1 && break; sleep 0.1; done
 "$CLI" status | grep -q "protocol 1" || fail "daemon did not start"
+sleep 0.5
+INTEGRATIONS=$("$CLI" integrations)
+for id in mpris upower bluez; do
+    echo "$INTEGRATIONS" | grep -q "^$id " || fail "integration $id not listed"
+done
+echo "$INTEGRATIONS" | grep -q "^mpris .*active" || fail "mpris should be active on the session bus"
 
 "$CLI" notify "Hello" --id n1 --ttl 1
 ID=$("$CLI" progress start --title "Tests" --percent 10 --ttl 120)

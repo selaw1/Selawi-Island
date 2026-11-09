@@ -8,7 +8,7 @@ use std::io::Write;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
-use selawi_core::events::EventId;
+use selawi_core::events::{EventId, EventInput, LifecycleState};
 use selawi_core::{parse_input, EngineConfig, EngineError, Event, EventStore, Timestamp};
 
 /// Largest event JSON accepted over D-Bus.
@@ -65,6 +65,11 @@ impl Engine {
             return Err(SubmitError::TooLarge);
         }
         let input = parse_input(json).map_err(SubmitError::Rejected)?;
+        self.submit_input(input, now)
+    }
+
+    /// Applies an already-typed input (from a built-in integration).
+    pub fn submit_input(&mut self, input: EventInput, now: Timestamp) -> Result<bool, SubmitError> {
         self.store.tick(now);
         let changes = self
             .store
@@ -72,6 +77,21 @@ impl Engine {
             .map_err(SubmitError::Rejected)?;
         self.save_if_changed();
         Ok(!changes.is_empty())
+    }
+
+    /// Ends an active event (its source went away). Returns whether it did.
+    pub fn finish(&mut self, id: &str, now: Timestamp) -> bool {
+        let Some(event) = self.get(id).filter(|e| !e.state.is_terminal()) else {
+            return false;
+        };
+        let mut input = event.to_input();
+        input.state = LifecycleState::Ended;
+        input.actions.clear();
+        self.submit_input(input, now).unwrap_or(false)
+    }
+
+    pub fn get(&self, id: &str) -> Option<&Event> {
+        EventId::new(id).ok().and_then(|id| self.store.get(&id))
     }
 
     pub fn dismiss(&mut self, id: &str) -> bool {
@@ -107,6 +127,10 @@ impl Engine {
 
     pub fn len(&self) -> usize {
         self.store.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.store.is_empty()
     }
 
     /// Current events in display order as a JSON array.

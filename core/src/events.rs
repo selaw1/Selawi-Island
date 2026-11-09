@@ -281,6 +281,25 @@ pub struct Event {
     pub actions: Vec<Action>,
 }
 
+impl Event {
+    /// The input that would produce this event, e.g. to send it again with
+    /// a new state. The resolved priority is kept as an explicit priority.
+    pub fn to_input(&self) -> EventInput {
+        EventInput {
+            id: self.id.clone(),
+            source: self.source.clone(),
+            category: self.category,
+            state: self.state,
+            priority: Some(self.priority),
+            persistent: self.persistent,
+            ttl_ms: None,
+            group: self.group.clone(),
+            payload: self.payload.clone(),
+            actions: self.actions.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ValidationError {
     InvalidId(String),
