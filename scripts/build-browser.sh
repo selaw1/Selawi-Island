@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Builds the browser extensions into browser-extensions/build/{chrome,firefox}.
-# Needs Node.js and npm (sudo pacman -S --needed nodejs npm).
+# Needs Node.js and pnpm (sudo pacman -S --needed nodejs pnpm).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-command -v npm >/dev/null || { echo "npm not found. Install it: sudo pacman -S --needed nodejs npm"; exit 1; }
+command -v pnpm >/dev/null || { echo "pnpm not found. Install it: sudo pacman -S --needed nodejs pnpm"; exit 1; }
 if [ ! -x node_modules/.bin/tsc ]; then
     echo "Installing the TypeScript compiler (development only)..."
-    npm ci --no-audit --no-fund >/dev/null
+    pnpm install --frozen-lockfile --reporter=silent
 fi
 
 cd browser-extensions

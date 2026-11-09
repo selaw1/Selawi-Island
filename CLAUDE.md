@@ -21,7 +21,8 @@ The full project specification is the master plan the owner provided
 - JavaScript: GNOME 45+ ES modules only. Files in `gnome-extension/services/`
   `protocol.js`, `event-store.js`, `ui/view-model.js`, `ui/placement.js`, `ui/level.js` and `services/privacy-model.js` must stay free of
   `gi://` imports so Node can test them.
-- Browser extension: strict TypeScript, no `any`. Content scripts must not
+- Browser extension: strict TypeScript, no `any`. Use pnpm (not npm or
+  yarn) for the development dependencies. Content scripts must not
   import or export at runtime (the build checks). The helper only accepts
   `browser:` events.
 - No shell execution as a shortcut for integrations. No telemetry. No cloud.

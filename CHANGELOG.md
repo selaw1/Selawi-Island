@@ -9,6 +9,7 @@
   Meet says so, Mute/Unmute and Leave that press Meet's own buttons.
 - Browser downloads: name, progress, Done/Cancelled/Failed, Cancel button.
 - Event protocol: optional `muted` on call payloads (only when known).
+- The browser extension is built with pnpm (`pnpm-lock.yaml`).
 - During a confirmed call, the microphone bubble is folded into the call,
   which shows the voice waves.
 

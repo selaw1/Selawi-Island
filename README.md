@@ -26,7 +26,7 @@ no hosting.
 - Rust to build the daemon and CLI: `sudo pacman -S --needed base-devel git rust`
 - Node.js only to run the JavaScript unit tests: `sudo pacman -S --needed nodejs`
 - For voice waves: `gst-plugins-good` (normally already installed with GNOME)
-- To build the browser extension: `sudo pacman -S --needed nodejs npm`
+- To build the browser extension: `sudo pacman -S --needed nodejs pnpm`
 
 ## Install or update
 

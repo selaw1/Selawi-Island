@@ -3,7 +3,7 @@
 #   - selawi-islandd (daemon) and selawi-island (CLI) into ~/.local/bin
 #   - the systemd user service and D-Bus activation file
 #   - the GNOME Shell extension
-#   - the browser helper (native messaging host) and, if npm is available,
+#   - the browser helper (native messaging host) and, if pnpm is available,
 #     the browser extension in ~/.local/share/selawi-island/browser/
 # Run again to update. Use --extension-only to skip the Rust and browser parts.
 set -euo pipefail
@@ -86,14 +86,14 @@ JSON
   "allowed_extensions": ["$FIREFOX_EXTENSION_ID"]
 }
 JSON
-    if command -v npm >/dev/null; then
+    if command -v pnpm >/dev/null; then
         ./scripts/build-browser.sh >/dev/null
         rm -rf "$DATA/selawi-island/browser"
         install -d "$DATA/selawi-island/browser"
         cp -r browser-extensions/build/chrome browser-extensions/build/firefox "$DATA/selawi-island/browser/"
         echo "Browser extension ready in $DATA/selawi-island/browser (see docs/BROWSER_INTEGRATIONS.md to load it)"
     else
-        echo "npm not found: browser extension not built (sudo pacman -S --needed nodejs npm, then run this again)"
+        echo "pnpm not found: browser extension not built (sudo pacman -S --needed nodejs pnpm, then run this again)"
     fi
 }
 

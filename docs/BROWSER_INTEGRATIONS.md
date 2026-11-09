@@ -13,7 +13,7 @@ only the browser can see: **Google Meet calls** and **downloads**.
 
 `./scripts/install-local.sh` installs the helper (`selawi-island-browser-host`),
 registers it with Chrome, Chromium, Brave and Firefox, and builds the
-extension into `~/.local/share/selawi-island/browser/` (needs `npm`).
+extension into `~/.local/share/selawi-island/browser/` (needs `pnpm`).
 
 ### Chrome / Chromium / Brave
 

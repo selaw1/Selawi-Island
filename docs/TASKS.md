@@ -118,7 +118,7 @@
   `gnome-extension/ui/{view-model,island}.js`, `scripts/*.sh`,
   `tests/browser/**`, `tests/integration/browser-*`, fixtures, docs.
 - **Dependencies added:** dev-only `typescript` 7 and `@types/chrome`
-  (npm, `package-lock.json`).
+  (pnpm, `pnpm-lock.yaml`).
 - **Tests:** helper unit tests (6), extension model tests (4), helper
   against the daemon, and the built extension in real Chromium with a
   stand-in Meet page — all passing.
