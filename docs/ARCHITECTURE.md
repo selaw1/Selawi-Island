@@ -17,9 +17,11 @@ Three layers. Each may depend only on the layers listed after it.
              ┌──────────────────────────────────────────┐
              │ selawi-islandd (daemon, Rust)             │
              │  D-Bus: com.selawi.Island                 │
-             │   Core1  Events1  Integrations1           │
+             │   Core1 Events1 Integrations1 Configuration1
              │  Hub ─ Engine ─ selawi-core EventStore    │
-             │  integrations/  mpris  upower  bluez ◄────┼── session / system bus
+             │  config: ~/.config/selawi-island/daemon.json
+             │  integrations/ mpris upower bluez         │
+             │                notifications ◄────────────┼── session / system bus
              │  snapshot: ~/.local/state/…/events.json   │
              └──────────────────────────────────────────┘
                        │ Changed(json) signal / List()
@@ -32,7 +34,10 @@ Three layers. Each may depend only on the layers listed after it.
 |---|---|---|
 | Shared core | `core/` | Event types, validation, lifecycle, priority, expiry, grouping, snapshot/restore. No platform code |
 | Daemon | `daemon/` | Owns the one `EventStore` behind a `Hub`, serves D-Bus, arms one expiry timer, saves persistent events, runs the integrations. systemd user service `selawi-islandd` |
-| Integrations | `daemon/src/integrations/` | MPRIS media, UPower battery, BlueZ Bluetooth. Each turns D-Bus signals into events, claims its own event-id prefix for action buttons, reports its status, and is restarted after failures. See [INTEGRATIONS.md](INTEGRATIONS.md) |
+| Integrations | `daemon/src/integrations/` | MPRIS media, UPower battery, BlueZ Bluetooth, notifications (as a D-Bus monitor). Each turns D-Bus signals into events, owns the event ids `"<id>:…"`, reports its status, follows the live configuration (turned off → stopped and its events withdrawn), and is restarted after failures. See [INTEGRATIONS.md](INTEGRATIONS.md) |
+| Extension sources | `gnome-extension/services/audio-source.js` | What only GNOME Shell can see: audio device and microphone changes from GNOME's mixer, sent to the daemon with `Submit` |
+| Banner blocker | `gnome-extension/ui/banner-blocker.js` | Hides GNOME's notification banners while the daemon's notifications integration is active |
+| Preferences | `gnome-extension/prefs.js`, `prefs-integrations.js` | Island page (GSettings) and Integrations page (daemon `Configuration1` + GSettings) |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
 | Extension | `gnome-extension/` | Draws the island from a feed |
 
@@ -84,7 +89,6 @@ call duration or playing media is on screen).
 ## Planned (not built yet)
 
 - Interfaces `Plugins1`, `Configuration1`, `Diagnostics1`.
-- Notification and audio integrations (rest of Phase 4).
 - When Windows/macOS work starts, the Linux integrations move behind
   platform traits; until then they live in the daemon (no premature
   abstraction).

@@ -31,6 +31,16 @@ through D-Bus activation.
 | Member | Kind | Signature | Meaning |
 |---|---|---|---|
 | `List()` | method | `→ s` | JSON array of `{"id", "name", "status", "detail"}`; status is `starting`, `active`, `unavailable`, `disabled` or `failed`. See [INTEGRATIONS.md](INTEGRATIONS.md) |
+| `MediaPlayers()` | method | `→ s` | Running media players, JSON array of `{"id", "name"}`; `id` is the key for `media.preferred_player` |
+| `Changed(integrations_json)` | signal | `s` | An integration's status changed; same JSON as `List()` |
+
+## com.selawi.Island.Configuration1
+
+| Member | Kind | Signature | Meaning |
+|---|---|---|---|
+| `Get()` | method | `→ s` | The daemon configuration as JSON (shape in [INTEGRATIONS.md](INTEGRATIONS.md#settings)) |
+| `Set(config_json)` | method | `s → ()` | Replace it. Checked (unknown keys or integrations are rejected), saved to `~/.config/selawi-island/daemon.json` (0600) and applied immediately |
+| `Changed(config_json)` | signal | `s` | The configuration changed |
 
 Events created by built-in integrations have ids starting with the
 integration id (`mpris:`, `upower:`, `bluez:`). Their action buttons are
@@ -42,6 +52,7 @@ handled inside the daemon; `ActionInvoked` is still emitted for them.
 |---|---|
 | `com.selawi.Island.Error.InvalidEvent` | Malformed JSON, failed validation, too large, or a rejected state change (e.g. updating a finished event) |
 | `com.selawi.Island.Error.UnknownAction` | No such event, or it has no such action |
+| `com.selawi.Island.Error.InvalidConfig` | The configuration was malformed, invalid or could not be saved |
 
 ## Try it with gdbus
 

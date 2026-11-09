@@ -419,3 +419,177 @@ async fn dismissed_media_comes_back_on_resume() -> TestResult {
     watcher.abort();
     Ok(())
 }
+
+// ---- Notifications --------------------------------------------------------
+
+struct FakeNotificationServer;
+
+#[interface(name = "org.freedesktop.Notifications")]
+impl FakeNotificationServer {
+    #[allow(clippy::too_many_arguments)]
+    fn notify(
+        &self,
+        _app_name: &str,
+        _replaces_id: u32,
+        _app_icon: &str,
+        _summary: &str,
+        _body: &str,
+        _actions: Vec<String>,
+        _hints: HashMap<String, OwnedVariant>,
+        _expire_timeout: i32,
+    ) -> u32 {
+        1
+    }
+}
+
+#[zbus::proxy(
+    interface = "org.freedesktop.Notifications",
+    default_service = "org.freedesktop.Notifications",
+    default_path = "/org/freedesktop/Notifications"
+)]
+trait Notifications {
+    #[allow(clippy::too_many_arguments)]
+    fn notify(
+        &self,
+        app_name: &str,
+        replaces_id: u32,
+        app_icon: &str,
+        summary: &str,
+        body: &str,
+        actions: &[&str],
+        hints: HashMap<&str, Variant<'_>>,
+        expire_timeout: i32,
+    ) -> zbus::Result<u32>;
+}
+
+#[tokio::test]
+async fn notifications_are_observed_without_replacing_the_server() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    let _server = zbus::connection::Builder::session()
+        .serve_at("/org/freedesktop/Notifications", FakeNotificationServer)
+        .name("org.freedesktop.Notifications")
+        .build()
+        .await?;
+    let hub = new_hub();
+    let monitor = zbus::connection::Builder::session().build().await?;
+    let watcher = tokio::spawn(selawi_islandd::integrations::notifications::watch(
+        hub.clone(),
+        monitor,
+    ));
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let client = Connection::session().await?;
+    let proxy = NotificationsProxy::new(&client).await?;
+    let id = proxy
+        .notify(
+            "Slack",
+            0,
+            "",
+            "Yousef",
+            "<b>Lunch</b> &amp; coffee?",
+            &[],
+            HashMap::new(),
+            -1,
+        )
+        .await?;
+    assert_eq!(id, 1, "the real server still answers");
+
+    let (title, body) = wait_for(&hub, "notification", |ev| {
+        ev.iter().find_map(|e| match &e.payload {
+            Payload::Notification(p) if e.id.as_str().starts_with("notifications:slack:") => {
+                Some((p.title.clone(), p.body.clone()))
+            }
+            _ => None,
+        })
+    })
+    .await?;
+    assert_eq!(title, "Yousef");
+    assert_eq!(body.as_deref(), Some("Lunch & coffee?"));
+    watcher.abort();
+    Ok(())
+}
+
+// ---- Media mode and live configuration ------------------------------------
+
+async fn fake_player(suffix: &str, playing: bool) -> zbus::Result<Connection> {
+    zbus::connection::Builder::session()
+        .serve_at("/org/mpris/MediaPlayer2", FakeRoot)
+        .serve_at("/org/mpris/MediaPlayer2", FakePlayer { playing })
+        .name(format!("org.mpris.MediaPlayer2.{suffix}"))
+        .build()
+        .await
+}
+
+fn media_ids(events: &[Event]) -> Vec<String> {
+    let mut ids: Vec<String> = events
+        .iter()
+        .filter(|e| e.id.as_str().starts_with("mpris:modetest") && !e.state.is_terminal())
+        .map(|e| e.id.to_string())
+        .collect();
+    ids.sort();
+    ids
+}
+
+#[tokio::test]
+async fn one_player_mode_follows_the_preferred_player() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    let _a = fake_player("modetesta", true).await?;
+    let _b = fake_player("modetestb", true).await?;
+    let hub = new_hub();
+    let watcher = tokio::spawn(mpris::watch(hub.clone(), Connection::session().await?));
+
+    wait_for(&hub, "both players", |ev| {
+        (media_ids(ev).len() == 2).then_some(())
+    })
+    .await?;
+    let players = hub.media_players_json().await;
+    assert!(players.contains("\"id\":\"modetesta\"") && players.contains("\"id\":\"modetestb\""));
+
+    hub.set_config(r#"{"media":{"mode":"one","preferred_player":"modetesta"}}"#)?;
+    wait_for(&hub, "only the preferred player", |ev| {
+        (media_ids(ev) == ["mpris:modetesta"]).then_some(())
+    })
+    .await?;
+
+    hub.set_config(r#"{"media":{"mode":"one","preferred_player":"modetestb"}}"#)?;
+    wait_for(&hub, "switched to the other player", |ev| {
+        (media_ids(ev) == ["mpris:modetestb"]).then_some(())
+    })
+    .await?;
+
+    hub.set_config(r#"{"media":{"mode":"all"}}"#)?;
+    wait_for(&hub, "both again", |ev| {
+        (media_ids(ev).len() == 2).then_some(())
+    })
+    .await?;
+    watcher.abort();
+    Ok(())
+}
+
+#[tokio::test]
+async fn turning_an_integration_off_removes_its_events_live() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    let _player = fake_player("livetoggle", true).await?;
+    let hub = new_hub();
+    selawi_islandd::integrations::spawn(hub.clone(), mpris::ID, mpris::NAME, mpris::run);
+    let id = "mpris:livetoggle";
+    wait_for(&hub, "player shown", |ev| find(ev, id).map(|_| ())).await?;
+
+    hub.set_config(r#"{"integrations":{"mpris":false}}"#)?;
+    wait_for(&hub, "removed", |ev| find(ev, id).is_none().then_some(())).await?;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(hub
+        .integrations_json()
+        .await
+        .contains("\"status\":\"disabled\""));
+
+    hub.set_config("{}")?;
+    wait_for(&hub, "shown again", |ev| find(ev, id).map(|_| ())).await?;
+    Ok(())
+}

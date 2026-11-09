@@ -1,31 +1,102 @@
 //! Daemon configuration: `$XDG_CONFIG_HOME/selawi-island/daemon.json`.
 //!
 //! ```json
-//! { "integrations": { "mpris": true, "upower": true, "bluez": false } }
+//! {
+//!   "integrations": { "bluez": false },
+//!   "media": { "mode": "one", "preferred_player": "spotify" },
+//!   "notifications": { "show_body": true }
+//! }
 //! ```
 //!
-//! A missing file or key means "on". An unreadable file is reported and
-//! ignored, so a typo never stops the daemon.
+//! Every key is optional; a missing integration means "on". The settings
+//! window changes it through `com.selawi.Island.Configuration1`, and changes
+//! apply immediately. An invalid file is reported and ignored, so a typo
+//! never stops the daemon.
 
-use std::collections::HashMap;
-use std::path::PathBuf;
+use std::collections::BTreeMap;
+use std::fs;
+use std::io::Write;
+use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+use std::path::{Path, PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
+/// Integration ids the configuration may mention.
+pub const KNOWN_INTEGRATIONS: [&str; 4] = ["mpris", "upower", "bluez", "notifications"];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MediaMode {
+    /// Every active player has its own event.
+    #[default]
+    All,
+    /// Only one player is shown: the preferred one while it plays,
+    /// otherwise the one that started playing most recently.
+    One,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct MediaConfig {
+    pub mode: MediaMode,
+    /// Stable player key, e.g. "spotify", "firefox", "vlc".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub preferred_player: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct NotificationConfig {
+    /// Show the notification text, not only its title.
+    pub show_body: bool,
+}
+
+impl Default for NotificationConfig {
+    fn default() -> Self {
+        Self { show_body: true }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
 pub struct Config {
-    #[serde(default)]
-    pub integrations: HashMap<String, bool>,
+    pub integrations: BTreeMap<String, bool>,
+    pub media: MediaConfig,
+    pub notifications: NotificationConfig,
 }
 
 impl Config {
-    pub fn load() -> Config {
-        let Some(path) = default_path() else {
+    pub fn enabled(&self, integration: &str) -> bool {
+        self.integrations.get(integration).copied().unwrap_or(true)
+    }
+
+    /// Parses and checks a configuration (from the file or from D-Bus).
+    pub fn parse(json: &str) -> Result<Config, String> {
+        let config: Config = serde_json::from_str(json).map_err(|e| e.to_string())?;
+        for key in config.integrations.keys() {
+            if !KNOWN_INTEGRATIONS.contains(&key.as_str()) {
+                return Err(format!("unknown integration {key:?}"));
+            }
+        }
+        if let Some(player) = &config.media.preferred_player {
+            let valid = !player.is_empty()
+                && player.len() <= 100
+                && player
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+            if !valid {
+                return Err("media.preferred_player is not a valid player key".into());
+            }
+        }
+        Ok(config)
+    }
+
+    pub fn load(path: Option<&Path>) -> Config {
+        let Some(path) = path else {
             return Config::default();
         };
-        match std::fs::read_to_string(&path) {
-            Ok(text) => serde_json::from_str(&text).unwrap_or_else(|e| {
+        match fs::read_to_string(path) {
+            Ok(text) => Config::parse(&text).unwrap_or_else(|e| {
                 eprintln!("Ignoring {}: {e}", path.display());
                 Config::default()
             }),
@@ -37,8 +108,30 @@ impl Config {
         }
     }
 
-    pub fn enabled(&self, integration: &str) -> bool {
-        self.integrations.get(integration).copied().unwrap_or(true)
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap_or_else(|_| "{}".into())
+    }
+
+    /// Writes atomically, readable by the user only.
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        if let Some(dir) = path.parent() {
+            fs::DirBuilder::new()
+                .recursive(true)
+                .mode(0o700)
+                .create(dir)?;
+        }
+        let json = serde_json::to_string_pretty(self).map_err(std::io::Error::other)?;
+        let tmp = path.with_extension("json.tmp");
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(&tmp)?;
+        file.write_all(json.as_bytes())?;
+        file.write_all(b"\n")?;
+        file.sync_all()?;
+        fs::rename(&tmp, path)
     }
 }
 
@@ -55,16 +148,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn missing_keys_mean_enabled() -> Result<(), serde_json::Error> {
-        let config: Config = serde_json::from_str(r#"{"integrations":{"bluez":false}}"#)?;
+    fn missing_keys_mean_defaults() -> Result<(), String> {
+        let config = Config::parse(r#"{"integrations":{"bluez":false}}"#)?;
         assert!(!config.enabled("bluez"));
         assert!(config.enabled("mpris"));
-        assert!(Config::default().enabled("anything"));
+        assert_eq!(config.media.mode, MediaMode::All);
+        assert!(config.notifications.show_body);
+        assert_eq!(Config::parse("{}")?, Config::default());
         Ok(())
     }
 
     #[test]
-    fn unknown_top_level_keys_are_rejected() {
-        assert!(serde_json::from_str::<Config>(r#"{"integration":{}}"#).is_err());
+    fn full_config_round_trips() -> Result<(), String> {
+        let json = r#"{"integrations":{"notifications":false},
+            "media":{"mode":"one","preferred_player":"spotify"},
+            "notifications":{"show_body":false}}"#;
+        let config = Config::parse(json)?;
+        assert_eq!(config.media.mode, MediaMode::One);
+        assert_eq!(config.media.preferred_player.as_deref(), Some("spotify"));
+        assert_eq!(Config::parse(&config.to_json())?, config);
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_typos_and_bad_values() {
+        assert!(Config::parse(r#"{"integration":{}}"#).is_err());
+        assert!(Config::parse(r#"{"integrations":{"blueztooth":false}}"#).is_err());
+        assert!(Config::parse(r#"{"media":{"mode":"some"}}"#).is_err());
+        assert!(Config::parse(r#"{"media":{"preferred_player":"rm -rf /"}}"#).is_err());
+    }
+
+    #[test]
+    fn saves_privately() -> Result<(), Box<dyn std::error::Error>> {
+        let dir = std::env::temp_dir().join(format!("selawi-config-{}", std::process::id()));
+        let path = dir.join("daemon.json");
+        let mut config = Config::default();
+        config.integrations.insert("bluez".into(), false);
+        config.save(&path)?;
+        let mode = std::os::unix::fs::PermissionsExt::mode(&fs::metadata(&path)?.permissions());
+        assert_eq!(mode & 0o777, 0o600);
+        assert_eq!(Config::load(Some(&path)), config);
+        fs::remove_dir_all(dir)?;
+        Ok(())
     }
 }

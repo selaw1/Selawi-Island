@@ -60,3 +60,19 @@ test('paused media with unknown position shows no frozen 0:00', () => {
     const known = {...ev, payload: {...ev.payload, duration_ms: 60_000}};
     assert.equal(describe(known, 5000).trailing, '0:00', 'with a length, 0:00 is real');
 });
+
+test('battery and audio events get matching icons', () => {
+    const sys = (id, integration, title, detail, severity = 'info') => describe({
+        ...base, id, category: 'system', state: 'started', source: {app: 'X', integration},
+        payload: {type: 'system', title, detail, severity},
+    }, 0).iconName;
+    assert.equal(sys('upower:power', 'upower', 'Charging', '64%'), 'battery-level-60-charging-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'Charging', '100%'), 'battery-level-100-charged-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'Plugged in', '100%'), 'battery-level-100-plugged-in-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'On battery', '47%'), 'battery-level-50-symbolic');
+    assert.equal(sys('upower:warning', 'upower', 'Battery low', '9% remaining', 'warning'), 'battery-low-symbolic');
+    assert.equal(sys('upower:warning', 'upower', 'Battery critical', '3%', 'critical'), 'battery-caution-symbolic');
+    assert.equal(sys('audio:output', 'gnome-audio', 'Galaxy Buds', 'Audio output'), 'audio-speakers-symbolic');
+    assert.equal(sys('audio:mic-mute', 'gnome-audio', 'Microphone muted', 'Built-in'), 'microphone-disabled-symbolic');
+    assert.equal(sys('x', 'cli', 'Disk full', '', 'warning'), 'dialog-warning-symbolic', 'others unchanged');
+});

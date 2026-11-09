@@ -2,13 +2,15 @@
 
 ## Current (after Phase 3)
 
-- **Automatic detection covers media (MPRIS), battery (UPower) and
-  Bluetooth (BlueZ) only.** Notifications, audio, network and calls come
-  later. Per-integration limits are in `docs/INTEGRATIONS.md`.
-- **No album artwork yet** (the event protocol has no image field).
-- **Several media players are all shown**; there is no preferred-player
-  setting yet.
-- **Integrations are configured by a JSON file**, not in preferences yet.
+- **Automatic detection covers media, battery, Bluetooth, notifications
+  and audio devices.** Network, storage and calls come later.
+  Per-integration limits are in `docs/INTEGRATIONS.md`.
+- **No album artwork**, by choice.
+- **Notification buttons are not shown** in the island (only GNOME, as the
+  notification server, can deliver them); they stay in GNOME's list.
+- **Notifications rely on D-Bus monitoring**, which the session bus allows
+  for the same user. If a bus ever refuses it, the integration reports
+  `unavailable` and GNOME's banners stay visible.
 - **Actions reach only D-Bus sources.** `ActionInvoked` is a signal; the CLI
   exits after sending, so CLI events offer no action buttons (only Dismiss).
 - **Any program of the same user can send events.** The session bus is

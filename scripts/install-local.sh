@@ -18,7 +18,7 @@ install_extension() {
     local src=gnome-extension
     rm -rf "$EXT_DEST"
     mkdir -p "$EXT_DEST"
-    cp -r "$src"/metadata.json "$src"/extension.js "$src"/prefs.js "$src"/stylesheet.css \
+    cp -r "$src"/metadata.json "$src"/extension.js "$src"/prefs.js "$src"/prefs-integrations.js "$src"/stylesheet.css \
           "$src"/ui "$src"/services "$src"/data "$src"/schemas "$EXT_DEST"/
     glib-compile-schemas "$EXT_DEST/schemas"
     echo "Extension installed to $EXT_DEST"

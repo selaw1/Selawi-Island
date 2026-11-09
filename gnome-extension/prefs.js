@@ -7,6 +7,8 @@ import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+import {integrationsPage} from './prefs-integrations.js';
+
 function switchRow(settings, key, title, subtitle = '') {
     const row = new Adw.SwitchRow({title, subtitle});
     settings.bind(key, row, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -126,5 +128,6 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
         page.add(size);
 
         window.add(page);
+        window.add(integrationsPage(settings, window));
     }
 }

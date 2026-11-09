@@ -37,8 +37,9 @@ else
 fi
 
 echo "== Preferences window (headless GTK)"
-if command -v xvfb-run >/dev/null && command -v gjs >/dev/null &&
+if command -v xvfb-run >/dev/null && command -v gjs >/dev/null && command -v dbus-run-session >/dev/null &&
    gjs -c "imports.gi.versions.Gtk = '4.0'; imports.gi.Gtk; imports.gi.Adw" >/dev/null 2>&1; then
+    cargo build -q -p selawi-islandd -p selawi-island
     tests/integration/prefs-check.sh || { echo "Preferences check failed"; exit 1; }
 else
     echo "(needs gjs, GTK 4, libadwaita and xvfb-run: skipped)"

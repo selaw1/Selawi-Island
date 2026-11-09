@@ -2,13 +2,15 @@
 //! the built-in integrations and the expiry task all go through it.
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 use selawi_core::{EventInput, Timestamp};
 use serde::Serialize;
-use tokio::sync::{mpsc, Mutex, Notify};
+use tokio::sync::{mpsc, watch, Mutex, Notify};
 use zbus::object_server::SignalEmitter;
 
+use crate::config::Config;
 use crate::engine::{Engine, SubmitError};
 
 /// An action button pressed on an event owned by a built-in integration.
@@ -33,6 +35,14 @@ pub enum Status {
     Failed(String),
 }
 
+/// A media player currently on the bus, for the settings window.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MediaPlayer {
+    /// Stable key used by `media.preferred_player`, e.g. "spotify".
+    pub id: String,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct IntegrationInfo {
     pub id: &'static str,
@@ -49,17 +59,58 @@ pub struct Hub {
     /// Event id prefix → the integration that owns those events.
     routes: Mutex<Vec<(String, mpsc::UnboundedSender<ActionRequest>)>>,
     integrations: Mutex<BTreeMap<&'static str, IntegrationInfo>>,
+    config: watch::Sender<Config>,
+    config_path: Option<PathBuf>,
+    media_players: Mutex<Vec<MediaPlayer>>,
 }
 
 impl Hub {
+    /// A hub with the default configuration that is never saved (tests).
     pub fn new(engine: Engine) -> Self {
+        Self::with_config(engine, Config::default(), None)
+    }
+
+    /// `config_path` is where configuration changes are saved.
+    pub fn with_config(engine: Engine, config: Config, config_path: Option<PathBuf>) -> Self {
         Self {
             engine: Mutex::new(engine),
             wake: Notify::new(),
             emitter: OnceLock::new(),
             routes: Mutex::new(Vec::new()),
             integrations: Mutex::new(BTreeMap::new()),
+            config: watch::channel(config).0,
+            config_path,
+            media_players: Mutex::new(Vec::new()),
         }
+    }
+
+    pub fn config(&self) -> Config {
+        self.config.borrow().clone()
+    }
+
+    /// Follows configuration changes.
+    pub fn watch_config(&self) -> watch::Receiver<Config> {
+        self.config.subscribe()
+    }
+
+    /// Checks, saves and applies a new configuration (JSON).
+    pub fn set_config(&self, json: &str) -> Result<Config, String> {
+        let config = Config::parse(json)?;
+        if let Some(path) = &self.config_path {
+            config
+                .save(path)
+                .map_err(|e| format!("could not save: {e}"))?;
+        }
+        self.config.send_replace(config.clone());
+        Ok(config)
+    }
+
+    pub async fn set_media_players(&self, players: Vec<MediaPlayer>) {
+        *self.media_players.lock().await = players;
+    }
+
+    pub async fn media_players_json(&self) -> String {
+        serde_json::to_string(&*self.media_players.lock().await).unwrap_or_else(|_| "[]".into())
     }
 
     /// Set once the D-Bus object is registered, so changes can be announced.
@@ -81,6 +132,25 @@ impl Hub {
             .submit_input(input, Timestamp::now())?;
         self.after_change(changed).await;
         Ok(())
+    }
+
+    /// Removes an event silently (no "ended" moment), e.g. a media player
+    /// hidden because another one is preferred. Unlike dismissing, the
+    /// source may show it again with a plain update.
+    pub async fn withdraw(&self, id: &str) -> bool {
+        let removed = self.engine.lock().await.withdraw(id, Timestamp::now());
+        self.after_change(removed).await;
+        removed
+    }
+
+    /// Withdraws every active event whose id starts with `prefix`.
+    pub async fn withdraw_prefix(&self, prefix: &str) {
+        let removed = self
+            .engine
+            .lock()
+            .await
+            .withdraw_prefix(prefix, Timestamp::now());
+        self.after_change(removed).await;
     }
 
     /// Ends an active event because its source went away.
@@ -150,17 +220,32 @@ impl Hub {
     }
 
     pub async fn set_status(&self, id: &'static str, name: &'static str, status: Status) {
-        let mut integrations = self.integrations.lock().await;
-        let changed = integrations.get(id).map(|i| &i.status) != Some(&status);
-        if changed {
-            match &status {
-                Status::Failed(e) => eprintln!("Integration {id}: failed: {e}"),
-                Status::Unavailable(e) => eprintln!("Integration {id}: unavailable: {e}"),
-                Status::Active(_) => eprintln!("Integration {id}: active"),
-                Status::Disabled | Status::Starting => {}
+        let json = {
+            let mut integrations = self.integrations.lock().await;
+            let previous = integrations.get(id).map(|i| i.status.clone());
+            if previous.as_ref() == Some(&status) {
+                return;
+            }
+            let kind_changed = previous.as_ref().map(std::mem::discriminant)
+                != Some(std::mem::discriminant(&status));
+            if kind_changed {
+                match &status {
+                    Status::Failed(e) => eprintln!("Integration {id}: failed: {e}"),
+                    Status::Unavailable(e) => eprintln!("Integration {id}: unavailable: {e}"),
+                    Status::Active(_) => eprintln!("Integration {id}: active"),
+                    Status::Disabled => eprintln!("Integration {id}: disabled"),
+                    Status::Starting => {}
+                }
+            }
+            integrations.insert(id, IntegrationInfo { id, name, status });
+            let list: Vec<&IntegrationInfo> = integrations.values().collect();
+            serde_json::to_string(&list).unwrap_or_else(|_| "[]".into())
+        };
+        if let Some(emitter) = self.emitter.get() {
+            if let Err(e) = crate::dbus::Integrations::changed(emitter, &json).await {
+                eprintln!("Could not emit Integrations Changed: {e}");
             }
         }
-        integrations.insert(id, IntegrationInfo { id, name, status });
     }
 
     pub async fn integrations_json(&self) -> String {

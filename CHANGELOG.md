@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Phase 4 (part 2)
+
+### Added
+- Notifications in the island (watched as a D-Bus monitor, GNOME stays
+  the notification server). GNOME's own banners are hidden while the
+  island shows notifications, and come back if the daemon stops.
+- Audio device events from GNOME's mixer: output and microphone changes,
+  microphone muted/on.
+- Media: “All players” or “One player” with a preferred player.
+- Preferences → Integrations page: turn sources on/off, media mode and
+  preferred player, notification text, GNOME banners, audio devices.
+- `com.selawi.Island.Configuration1` (Get/Set/Changed), and
+  `Integrations1.MediaPlayers()` / `Integrations1.Changed`.
+- Battery events show battery-level icons; audio events show speaker or
+  microphone icons.
+
+### Changed
+- Turning an integration off or on applies immediately (no restart) and
+  removes its events.
+
 ## Unreleased — Phase 4 (part 1)
 
 ### Added

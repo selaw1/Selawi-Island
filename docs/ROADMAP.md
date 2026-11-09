@@ -7,8 +7,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 1 | Repository, conventions, architecture docs, event protocol, Rust core | **Done** |
 | 2 | GNOME extension: pill, compact/expanded, animation, hover/click, simulated events | **Done** (checked on GNOME 51) |
 | 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
-| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **In progress** — MPRIS, power, Bluetooth done; notifications and audio next |
-| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | Planned |
+| 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** — awaiting manual check on GNOME 51 |
+| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Next** |
 | 6 | Browser extensions (Chromium, Firefox) + native messaging | Planned |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | Planned |
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
@@ -31,12 +31,21 @@ Status key: **Done** · **In progress** · **Next** · Planned
   is not running; the demo is a preference.
 - `selawi-island notify|progress|list|dismiss|send|status`.
 
-## Phase 4 status
+## Phase 4 (done)
 
-1. **MPRIS media** — done: per-player events, Previous/Play-Pause/Next.
-2. **Power** (UPower) — done: charger, full, low, critical.
-3. **Bluetooth** (BlueZ) — done: connect/disconnect, reported battery, low battery.
-4. **Notifications** — next: mirror freedesktop notifications without replacing GNOME's.
-5. **Audio** — output device changes, volume/mute where reliably exposed.
-6. Integration status (`Integrations1`, `selawi-island integrations`) and
-   on/off configuration — done.
+1. **MPRIS media** — per-player events, Previous/Play-Pause/Next, all
+   players or one (preferred) player.
+2. **Power** (UPower) — charger, full, low, critical.
+3. **Bluetooth** (BlueZ) — connect/disconnect, reported battery, low battery.
+4. **Notifications** — observed as a D-Bus monitor; GNOME's banner hidden
+   while the island shows them.
+5. **Audio** (extension, GNOME mixer) — output/microphone changes, mic mute.
+6. Integration status (`Integrations1`), live configuration
+   (`Configuration1`) and the Integrations preferences page.
+
+## Phase 5 plan (proposed)
+
+NetworkManager (Wi-Fi, wired, VPN connect/disconnect), UDisks2 (USB drives
+and storage mounted/removed), brightness and keyboard backlight through
+GNOME's own controls; CPU/RAM/temperature only as opt-in warnings, read on
+change or on a slow timer only where no signal exists.

@@ -10,11 +10,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use selawi_core::Timestamp;
-use selawi_islandd::config::Config;
-use selawi_islandd::dbus::{Core, Events, Integrations, BUS_NAME, OBJECT_PATH};
+use selawi_islandd::config::{self, Config};
+use selawi_islandd::dbus::{Configuration, Core, Events, Integrations, BUS_NAME, OBJECT_PATH};
 use selawi_islandd::engine::{default_snapshot_path, Engine};
 use selawi_islandd::hub::Hub;
-use selawi_islandd::integrations::{self, bluez, mpris, upower};
+use selawi_islandd::integrations::{self, bluez, mpris, notifications, upower};
 use tokio::signal::unix::{signal, SignalKind};
 
 const USAGE: &str = "\
@@ -84,12 +84,15 @@ fn main() -> ExitCode {
 async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
     let engine = Engine::new(options.snapshot_path, Timestamp::now());
     eprintln!("Starting with {} restored event(s)", engine.len());
-    let hub = Arc::new(Hub::new(engine));
+    let config_path = config::default_path();
+    let config = Config::load(config_path.as_deref());
+    let hub = Arc::new(Hub::with_config(engine, config, config_path));
 
     let connection = zbus::connection::Builder::session()
         .serve_at(OBJECT_PATH, Core)
         .serve_at(OBJECT_PATH, Events { hub: hub.clone() })
         .serve_at(OBJECT_PATH, Integrations { hub: hub.clone() })
+        .serve_at(OBJECT_PATH, Configuration { hub: hub.clone() })
         .name(BUS_NAME)
         .build()
         .await?;
@@ -101,10 +104,15 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     hub.set_emitter(iface.signal_emitter().clone());
 
-    let config = Config::load();
-    integrations::spawn(hub.clone(), &config, mpris::ID, mpris::NAME, mpris::run);
-    integrations::spawn(hub.clone(), &config, upower::ID, upower::NAME, upower::run);
-    integrations::spawn(hub.clone(), &config, bluez::ID, bluez::NAME, bluez::run);
+    integrations::spawn(hub.clone(), mpris::ID, mpris::NAME, mpris::run);
+    integrations::spawn(hub.clone(), upower::ID, upower::NAME, upower::run);
+    integrations::spawn(hub.clone(), bluez::ID, bluez::NAME, bluez::run);
+    integrations::spawn(
+        hub.clone(),
+        notifications::ID,
+        notifications::NAME,
+        notifications::run,
+    );
 
     let mut terminate = signal(SignalKind::terminate())?;
     let mut interrupt = signal(SignalKind::interrupt())?;

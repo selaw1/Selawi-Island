@@ -3,6 +3,8 @@
 //! - `com.selawi.Island.Core1`: version information.
 //! - `com.selawi.Island.Events1`: submit, list, dismiss, actions.
 //! - `com.selawi.Island.Integrations1`: what each built-in integration is doing.
+//! - `com.selawi.Island.Configuration1`: daemon settings (integrations, media,
+//!   notifications).
 //!
 //! See docs/DBUS.md for the full contract.
 
@@ -26,6 +28,8 @@ pub enum IslandError {
     InvalidEvent(String),
     /// No event with that id, or it has no such action.
     UnknownAction(String),
+    /// The configuration JSON was malformed, invalid, or could not be saved.
+    InvalidConfig(String),
 }
 
 pub struct Core;
@@ -110,4 +114,44 @@ impl Integrations {
     async fn list(&self) -> String {
         self.hub.integrations_json().await
     }
+
+    /// Media players currently running, as a JSON array of `{"id", "name"}`.
+    /// `id` is the key used by `media.preferred_player`.
+    async fn media_players(&self) -> String {
+        self.hub.media_players_json().await
+    }
+
+    /// An integration's status changed. Carries the same JSON as `List`.
+    #[zbus(signal)]
+    pub async fn changed(emitter: &SignalEmitter<'_>, integrations_json: &str) -> zbus::Result<()>;
+}
+
+pub struct Configuration {
+    pub hub: Arc<Hub>,
+}
+
+#[interface(name = "com.selawi.Island.Configuration1")]
+impl Configuration {
+    /// The whole configuration as JSON (see docs/INTEGRATIONS.md).
+    async fn get(&self) -> String {
+        self.hub.config().to_json()
+    }
+
+    /// Replaces the configuration. Applied immediately and saved.
+    async fn set(
+        &self,
+        config_json: &str,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+    ) -> Result<(), IslandError> {
+        let config = self
+            .hub
+            .set_config(config_json)
+            .map_err(IslandError::InvalidConfig)?;
+        Self::changed(&emitter, &config.to_json()).await?;
+        Ok(())
+    }
+
+    /// The configuration changed. Carries the same JSON as `Get`.
+    #[zbus(signal)]
+    async fn changed(emitter: &SignalEmitter<'_>, config_json: &str) -> zbus::Result<()>;
 }

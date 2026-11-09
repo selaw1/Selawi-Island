@@ -5,6 +5,14 @@
       <default>false</default>
       <summary>Play simulated demo events instead of showing events from the daemon</summary>
     </key>
+    <key name="audio-events" type="b">
+      <default>true</default>
+      <summary>Show audio output, microphone and microphone mute changes</summary>
+    </key>
+    <key name="hide-gnome-banners" type="b">
+      <default>true</default>
+      <summary>Hide GNOME's notification banners while the island shows notifications</summary>
+    </key>
     <key name="monitor-index" type="i">
       <range min="-1" max="16"/>
       <default>-1</default>

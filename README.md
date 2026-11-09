@@ -16,8 +16,8 @@ no hosting.
 | Daemon `selawi-islandd` on D-Bus + systemd user service | Implemented, tested on a private bus |
 | CLI `selawi-island` (notify, progress, list, dismiss, send, status) | Implemented, tested |
 | Demo events | Simulated, off by default |
-| Automatic detection: music players, battery, Bluetooth | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
-| Notifications, audio, network, calls | Not started (see [ROADMAP](docs/ROADMAP.md)) |
+| Automatic detection: music players, battery, Bluetooth, notifications, audio devices | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
+| Network, storage, calls | Not started (see [ROADMAP](docs/ROADMAP.md)) |
 
 ## Requirements (all free)
 
@@ -50,7 +50,9 @@ More in [docs/CLI.md](docs/CLI.md).
 
 **Preferences:** right-click the island, or run
 `gnome-extensions prefs selawi-island@selawi`. There you can hide it when
-idle, change sizes, turn dragging off, reset its position or turn on the demo.
+idle, change sizes, turn dragging off, reset its position, turn on the demo,
+and (Integrations page) choose sources, the preferred media player and
+notification options.
 
 Remove everything: `./scripts/uninstall.sh` (add `--purge` to also delete
 settings and saved events).

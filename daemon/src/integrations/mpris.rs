@@ -13,6 +13,7 @@ use futures_util::StreamExt;
 use selawi_core::events::{
     Action, Category, EventId, EventInput, LifecycleState, MediaPayload, Payload, Source,
 };
+use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use zbus::fdo::{DBusProxy, PropertiesProxy};
 use zbus::names::InterfaceName;
@@ -20,7 +21,8 @@ use zbus::{proxy, Connection};
 
 use super::variant::{self, Props};
 use super::{id_part, Stop};
-use crate::hub::{ActionRequest, Hub, Status};
+use crate::config::{MediaConfig, MediaMode};
+use crate::hub::{ActionRequest, Hub, MediaPlayer, Status};
 
 pub const ID: &str = "mpris";
 pub const NAME: &str = "Media players (MPRIS)";
@@ -149,9 +151,152 @@ fn truncate(text: &str, max: usize) -> String {
     cleaned.chars().take(max).collect()
 }
 
+/// Stable key for a player, used for the preferred-player setting:
+/// "org.mpris.MediaPlayer2.firefox.instance_1_23" → "firefox".
+pub fn player_key(bus_name: &str) -> String {
+    let suffix = bus_name.strip_prefix(BUS_PREFIX).unwrap_or(bus_name);
+    id_part(suffix.split(".instance").next().unwrap_or(suffix))
+}
+
+/// The latest state of one player, as reported by its watcher.
+#[derive(Debug, Clone)]
+pub struct PlayerState {
+    pub key: String,
+    pub name: String,
+    /// What it would show, or None when stopped.
+    pub input: Option<EventInput>,
+    pub playing: bool,
+    /// Ordering stamps (monotonic counter values).
+    pub playing_since: u64,
+    pub updated: u64,
+}
+
+/// Which players are shown. `players` maps bus name → state.
+pub fn visible(players: &HashMap<String, PlayerState>, media: &MediaConfig) -> Vec<String> {
+    let showable = players.iter().filter(|(_, p)| p.input.is_some());
+    match media.mode {
+        MediaMode::All => showable.map(|(name, _)| name.clone()).collect(),
+        MediaMode::One => {
+            let preferred = media.preferred_player.as_deref();
+            let candidates: Vec<(&String, &PlayerState)> = showable.collect();
+            let pick = candidates
+                .iter()
+                .find(|(_, p)| p.playing && Some(p.key.as_str()) == preferred)
+                .or_else(|| {
+                    candidates
+                        .iter()
+                        .filter(|(_, p)| p.playing)
+                        .max_by_key(|(name, p)| (p.playing_since, (*name).clone()))
+                })
+                .or_else(|| {
+                    candidates
+                        .iter()
+                        .find(|(_, p)| Some(p.key.as_str()) == preferred)
+                })
+                .or_else(|| {
+                    candidates
+                        .iter()
+                        .max_by_key(|(name, p)| (p.updated, (*name).clone()))
+                });
+            pick.map(|(name, _)| (*name).clone()).into_iter().collect()
+        }
+    }
+}
+
 pub async fn run(hub: Arc<Hub>) -> Result<(), Stop> {
     let conn = Connection::session().await?;
     watch(hub, conn).await
+}
+
+/// One message from a player watcher to the coordinator.
+enum Report {
+    State(String, Option<Box<EventInput>>, bool),
+    Gone(String),
+}
+
+struct Coordinator {
+    hub: Arc<Hub>,
+    players: HashMap<String, PlayerState>,
+    /// What each shown player last submitted.
+    shown: HashMap<String, EventInput>,
+    clock: u64,
+}
+
+impl Coordinator {
+    fn tick(&mut self) -> u64 {
+        self.clock += 1;
+        self.clock
+    }
+
+    fn update(&mut self, name: String, input: Option<EventInput>, playing: bool) {
+        let now = self.tick();
+        let key = player_key(&name);
+        let state = self
+            .players
+            .entry(name.clone())
+            .or_insert_with(|| PlayerState {
+                key,
+                name: name.clone(),
+                input: None,
+                playing: false,
+                playing_since: 0,
+                updated: 0,
+            });
+        if playing && !state.playing {
+            state.playing_since = now;
+        }
+        state.playing = playing;
+        state.input = input;
+        state.updated = now;
+    }
+
+    /// Submits what should be visible and withdraws what should not.
+    async fn reconcile(&mut self) {
+        let config = self.hub.config();
+        let visible = visible(&self.players, &config.media);
+        let hidden: Vec<String> = self
+            .shown
+            .keys()
+            .filter(|name| !visible.contains(name))
+            .cloned()
+            .collect();
+        for name in hidden {
+            if let Some(input) = self.shown.remove(&name) {
+                let still_there = self.players.get(&name).is_some_and(|p| p.input.is_some());
+                if still_there {
+                    self.hub.withdraw(input.id.as_str()).await;
+                } else {
+                    self.hub.finish(input.id.as_str()).await;
+                }
+            }
+        }
+        for name in visible {
+            let Some(input) = self.players.get(&name).and_then(|p| p.input.clone()) else {
+                continue;
+            };
+            if self.shown.get(&name) == Some(&input) {
+                continue;
+            }
+            if let Err(e) = self.hub.submit(input.clone()).await {
+                eprintln!("Media event rejected: {e}");
+            }
+            self.shown.insert(name, input);
+        }
+        let mut list: Vec<MediaPlayer> = self
+            .players
+            .values()
+            .map(|p| MediaPlayer {
+                id: p.key.clone(),
+                name: p
+                    .input
+                    .as_ref()
+                    .map_or_else(|| p.key.clone(), |i| i.source.app.clone()),
+            })
+            .collect();
+        list.sort_by(|a, b| a.id.cmp(&b.id));
+        list.dedup_by(|a, b| a.id == b.id);
+        self.hub.set_media_players(list).await;
+    }
 }
 
 /// Watches all players on `conn` until the bus connection fails.
@@ -159,15 +304,26 @@ pub async fn watch(hub: Arc<Hub>, conn: Connection) -> Result<(), Stop> {
     let dbus = DBusProxy::new(&conn).await?;
     let mut owners = dbus.receive_name_owner_changed().await?;
     let mut actions = hub.register_actions(EVENT_PREFIX).await;
-    let mut players: HashMap<String, JoinHandle<()>> = HashMap::new();
+    let mut config = hub.watch_config();
+    let (reports_tx, mut reports) = mpsc::unbounded_channel::<Report>();
+    let mut tasks: HashMap<String, JoinHandle<()>> = HashMap::new();
+    let mut coordinator = Coordinator {
+        hub: hub.clone(),
+        players: HashMap::new(),
+        shown: HashMap::new(),
+        clock: 0,
+    };
 
     for name in dbus.list_names().await? {
         let name = name.to_string();
         if name.starts_with(BUS_PREFIX) {
-            players.insert(name.clone(), spawn_player(hub.clone(), conn.clone(), name));
+            tasks.insert(
+                name.clone(),
+                spawn_player(conn.clone(), name, reports_tx.clone()),
+            );
         }
     }
-    set_active(&hub, players.len()).await;
+    set_active(&hub, tasks.len()).await;
 
     loop {
         tokio::select! {
@@ -178,23 +334,36 @@ pub async fn watch(hub: Arc<Hub>, conn: Connection) -> Result<(), Stop> {
                 if !name.starts_with(BUS_PREFIX) {
                     continue;
                 }
-                if let Some(task) = players.remove(&name) {
+                if let Some(task) = tasks.remove(&name) {
                     task.abort();
                 }
                 if args.new_owner().is_some() {
-                    players.insert(name.clone(), spawn_player(hub.clone(), conn.clone(), name));
+                    tasks.insert(name.clone(), spawn_player(conn.clone(), name, reports_tx.clone()));
                 } else {
-                    hub.finish(&event_id(&name)).await;
+                    coordinator.players.remove(&name);
+                    coordinator.reconcile().await;
                 }
-                set_active(&hub, players.len()).await;
+                set_active(&hub, tasks.len()).await;
+            }
+            report = reports.recv() => {
+                match report {
+                    Some(Report::State(name, input, playing)) => coordinator.update(name, input.map(|b| *b), playing),
+                    Some(Report::Gone(name)) => { coordinator.players.remove(&name); }
+                    None => break,
+                }
+                coordinator.reconcile().await;
+            }
+            changed = config.changed() => {
+                if changed.is_err() { break }
+                coordinator.reconcile().await;
             }
             request = actions.recv() => {
                 let Some(request) = request else { break };
-                handle_action(&conn, &players, &request).await;
+                handle_action(&conn, &tasks, &request).await;
             }
         }
     }
-    for task in players.into_values() {
+    for task in tasks.into_values() {
         task.abort();
     }
     Err(Stop::Failed("lost the session bus".into()))
@@ -234,16 +403,25 @@ async fn handle_action(
     }
 }
 
-fn spawn_player(hub: Arc<Hub>, conn: Connection, name: String) -> JoinHandle<()> {
+fn spawn_player(
+    conn: Connection,
+    name: String,
+    reports: mpsc::UnboundedSender<Report>,
+) -> JoinHandle<()> {
     tokio::spawn(async move {
-        if let Err(e) = watch_player(&hub, &conn, &name).await {
+        if let Err(e) = watch_player(&conn, &name, &reports).await {
             eprintln!("Stopped watching a media player: {e}");
         }
+        let _ = reports.send(Report::Gone(name));
     })
 }
 
-/// Re-reads the player after every property change or seek and publishes it.
-async fn watch_player(hub: &Hub, conn: &Connection, name: &str) -> zbus::Result<()> {
+/// Re-reads the player after every property change or seek and reports it.
+async fn watch_player(
+    conn: &Connection,
+    name: &str,
+    reports: &mpsc::UnboundedSender<Report>,
+) -> zbus::Result<()> {
     let props = PropertiesProxy::builder(conn)
         .destination(name)
         .path(OBJECT_PATH)
@@ -257,8 +435,7 @@ async fn watch_player(hub: &Hub, conn: &Connection, name: &str) -> zbus::Result<
         .await
         .ok()
         .and_then(|v| String::try_from(&*v).ok());
-    let id = event_id(name);
-    // (title, playing) last published, to tell a new track or a resume
+    // (title, playing) last reported, to tell a new track or a resume
     // (sent as `started`, which also brings back a dismissed event) from
     // a plain update.
     let mut last: Option<(String, bool)> = None;
@@ -271,9 +448,12 @@ async fn watch_player(hub: &Hub, conn: &Connection, name: &str) -> zbus::Result<
             .await
             .ok()
             .and_then(|v| i64::try_from(&*v).ok());
-        match media_input(name, identity.as_deref(), &all, position) {
-            Some(mut input) => {
+        let mut input = media_input(name, identity.as_deref(), &all, position);
+        let mut playing = false;
+        match input.as_mut() {
+            Some(input) => {
                 if let Payload::Media(m) = &input.payload {
+                    playing = m.playing;
                     let now = (m.title.clone(), m.playing);
                     let fresh = match &last {
                         None => true,
@@ -284,14 +464,18 @@ async fn watch_player(hub: &Hub, conn: &Connection, name: &str) -> zbus::Result<
                     }
                     last = Some(now);
                 }
-                if let Err(e) = hub.submit(input).await {
-                    eprintln!("Media event rejected: {e}");
-                }
             }
-            None => {
-                last = None;
-                hub.finish(&id).await;
-            }
+            None => last = None,
+        }
+        if reports
+            .send(Report::State(
+                name.to_string(),
+                input.map(Box::new),
+                playing,
+            ))
+            .is_err()
+        {
+            break;
         }
         tokio::select! {
             change = changes.next() => if change.is_none() { break },
@@ -431,5 +615,84 @@ mod tests {
         assert_eq!(input.id.as_str(), "mpris:evil_player_");
         assert_eq!(media(&input).position_ms, None);
         Ok(())
+    }
+
+    fn state(key: &str, playing: bool, playing_since: u64, updated: u64) -> PlayerState {
+        let p = player(if playing { "Playing" } else { "Paused" }, vec![], true);
+        PlayerState {
+            key: key.into(),
+            name: key.into(),
+            input: media_input(&format!("org.mpris.MediaPlayer2.{key}"), None, &p, None),
+            playing,
+            playing_since,
+            updated,
+        }
+    }
+
+    fn shown(players: Vec<PlayerState>, mode: MediaMode, preferred: Option<&str>) -> Vec<String> {
+        let map: HashMap<String, PlayerState> =
+            players.into_iter().map(|p| (p.key.clone(), p)).collect();
+        let media = MediaConfig {
+            mode,
+            preferred_player: preferred.map(str::to_string),
+        };
+        let mut v = visible(&map, &media);
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn player_keys_are_stable_across_browser_instances() {
+        assert_eq!(
+            player_key("org.mpris.MediaPlayer2.firefox.instance_1_23"),
+            "firefox"
+        );
+        assert_eq!(
+            player_key("org.mpris.MediaPlayer2.chromium.instance4512"),
+            "chromium"
+        );
+        assert_eq!(player_key("org.mpris.MediaPlayer2.spotify"), "spotify");
+    }
+
+    #[test]
+    fn all_mode_shows_every_player() {
+        let v = shown(
+            vec![state("spotify", true, 1, 1), state("firefox", false, 0, 2)],
+            MediaMode::All,
+            None,
+        );
+        assert_eq!(v, ["firefox", "spotify"]);
+    }
+
+    #[test]
+    fn one_mode_prefers_the_chosen_player_while_it_plays() {
+        let players = || vec![state("spotify", true, 1, 1), state("firefox", true, 5, 5)];
+        assert_eq!(
+            shown(players(), MediaMode::One, Some("spotify")),
+            ["spotify"]
+        );
+        assert_eq!(
+            shown(players(), MediaMode::One, None),
+            ["firefox"],
+            "newest playing wins"
+        );
+    }
+
+    #[test]
+    fn one_mode_falls_back_when_preferred_is_paused() {
+        let players = vec![state("spotify", false, 1, 9), state("firefox", true, 5, 5)];
+        assert_eq!(shown(players, MediaMode::One, Some("spotify")), ["firefox"]);
+        let all_paused = vec![state("spotify", false, 1, 3), state("firefox", false, 5, 5)];
+        assert_eq!(
+            shown(all_paused, MediaMode::One, Some("spotify")),
+            ["spotify"]
+        );
+    }
+
+    #[test]
+    fn stopped_players_are_never_shown() {
+        let mut stopped = state("vlc", true, 9, 9);
+        stopped.input = None;
+        assert!(shown(vec![stopped], MediaMode::One, Some("vlc")).is_empty());
     }
 }

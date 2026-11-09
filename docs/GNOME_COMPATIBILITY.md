@@ -20,6 +20,9 @@ declares only `"51"`; add versions after testing them.
 | HiDPI | Sizes set in JS are multiplied by `St.ThemeContext.scale_factor`; CSS sizes are scaled by St | `island.js` |
 | Keyboard focus | `Main.ctrlAltTabManager.addGroup()` (removed when the actor is destroyed) | `island.js` |
 | Icons | Only symbolic icons from the current Adwaita theme (not its `legacy/` folder) | `view-model.js` |
+| Notification banners | `Main.messageTray.bannerBlocked`; the top bar resets it when the calendar menu closes, so it is set again on the date menu's `open-state-changed` | `banner-blocker.js` |
+| Audio | `Volume.getMixerControl()` from `ui/status/volume.js` (shared Gvc mixer): `state-changed`, `default-sink-changed`, `default-source-changed`, `lookup_stream_id`, `lookup_device_from_stream`, stream `notify::is-muted` | `audio-source.js` |
+| GJS | No `structuredClone` (use a JSON copy). A main loop nested inside a module still awaiting a top-level `await` does not run promise continuations | `prefs-integrations.js`, tests |
 | Settings | `getSettings()` needs a compiled `schemas/gschemas.compiled` (the install script builds it) | `extension.js` |
 
 ## Wayland notes

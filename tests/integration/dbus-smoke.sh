@@ -19,7 +19,7 @@ for _ in $(seq 50); do "$CLI" status >/dev/null 2>&1 && break; sleep 0.1; done
 "$CLI" status | grep -q "protocol 1" || fail "daemon did not start"
 sleep 0.5
 INTEGRATIONS=$("$CLI" integrations)
-for id in mpris upower bluez; do
+for id in mpris upower bluez notifications; do
     echo "$INTEGRATIONS" | grep -q "^$id " || fail "integration $id not listed"
 done
 echo "$INTEGRATIONS" | grep -q "^mpris .*active" || fail "mpris should be active on the session bus"

@@ -90,6 +90,33 @@ impl Engine {
         self.submit_input(input, now).unwrap_or(false)
     }
 
+    /// Removes an active event through the `expired` state, which (unlike
+    /// a dismissal) lets its source show it again later.
+    pub fn withdraw(&mut self, id: &str, now: Timestamp) -> bool {
+        let Some(event) = self.get(id).filter(|e| !e.state.is_terminal()) else {
+            return false;
+        };
+        let mut input = event.to_input();
+        input.state = LifecycleState::Expired;
+        self.submit_input(input, now).unwrap_or(false)
+    }
+
+    pub fn withdraw_prefix(&mut self, prefix: &str, now: Timestamp) -> bool {
+        let ids: Vec<String> = self
+            .store
+            .ordered()
+            .iter()
+            .filter(|e| e.id.as_str().starts_with(prefix))
+            .map(|e| e.id.to_string())
+            .collect();
+        let mut removed = false;
+        for id in ids {
+            // Finished events cannot be withdrawn; they disappear by themselves.
+            removed |= self.withdraw(&id, now);
+        }
+        removed
+    }
+
     pub fn get(&self, id: &str) -> Option<&Event> {
         EventId::new(id).ok().and_then(|id| self.store.get(&id))
     }

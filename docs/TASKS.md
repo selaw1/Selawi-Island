@@ -47,3 +47,23 @@
   tests against fake MPRIS/UPower/BlueZ services (stable over 10 runs),
   plus all earlier checks.
 - **Remaining:** notifications, audio; artwork; preferred player.
+
+## T-004 — Phase 4 (part 2): notifications, audio, settings
+- **Created:** 2026-11-09
+- **Status:** Done (manual check pending)
+- **Description:** Live daemon configuration (`Configuration1`, saved to
+  `daemon.json`), integrations stop/start live; media mode (all / one with
+  preferred player); notifications integration (D-Bus monitor) with GNOME
+  banner hiding; audio device and mic mute events from GNOME's mixer;
+  Integrations preferences page; battery/audio icons.
+- **Files:** `daemon/src/{config,hub,dbus,engine,main}.rs`,
+  `daemon/src/integrations/{mod,mpris,notifications}.rs`,
+  `daemon/tests/fake_services.rs`, `gnome-extension/{extension.js,prefs.js,prefs-integrations.js}`,
+  `gnome-extension/services/{audio-source,daemon-feed}.js`,
+  `gnome-extension/ui/{banner-blocker,view-model}.js`, schema, tests, docs.
+- **Dependencies added:** none.
+- **Tests:** 35 daemon unit tests, 7 fake-service integration tests
+  (stable over 10 runs), headless preferences test against the real
+  daemon, 38 JS tests, end-to-end D-Bus test — all passing. The headless
+  preferences test found that GJS has no `structuredClone`; fixed.
+- **Remaining:** manual checks on GNOME 51; Phase 5.

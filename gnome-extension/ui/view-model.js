@@ -37,6 +37,38 @@ const SEVERITY_ICON = {
     critical: 'dialog-error-symbolic',
 };
 
+/**
+ * Better icons for system events from our own integrations (battery from
+ * the daemon's `upower`, audio devices from the extension's `gnome-audio`).
+ * Returns null for anything else.
+ */
+function systemIcon(event) {
+    const p = event.payload;
+    if (event.source.integration === 'upower') {
+        if (event.id === 'upower:warning')
+            return p.severity === 'critical' ? 'battery-caution-symbolic' : 'battery-low-symbolic';
+        const percent = Number.parseInt(p.detail ?? '', 10);
+        const level = Number.isFinite(percent) ? Math.min(100, Math.max(0, Math.round(percent / 10) * 10)) : 100;
+        switch (p.title) {
+        case 'Charging':
+            return level === 100 ? 'battery-level-100-charged-symbolic' : `battery-level-${level}-charging-symbolic`;
+        case 'Plugged in':
+        case 'Fully charged':
+            return `battery-level-${level}-plugged-in-symbolic`;
+        default:
+            return `battery-level-${level}-symbolic`;
+        }
+    }
+    if (event.source.integration === 'gnome-audio') {
+        if (event.id === 'audio:output')
+            return 'audio-speakers-symbolic';
+        if (event.id === 'audio:mic-mute' && p.title === 'Microphone muted')
+            return 'microphone-disabled-symbolic';
+        return 'audio-input-microphone-symbolic';
+    }
+    return null;
+}
+
 /** Current playback position, extrapolated while playing. */
 export function mediaPosition(event, now) {
     const p = event.payload;
@@ -147,7 +179,7 @@ export function describe(event, now) {
         vm.subtitle = join(app, p.body);
         break;
     case 'system':
-        vm.iconName = SEVERITY_ICON[p.severity];
+        vm.iconName = systemIcon(event) ?? SEVERITY_ICON[p.severity];
         vm.accent = p.severity === 'info' ? 'neutral' : p.severity === 'warning' ? 'orange' : 'red';
         vm.title = p.title;
         vm.subtitle = p.detail ?? app;
