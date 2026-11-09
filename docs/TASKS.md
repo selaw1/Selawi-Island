@@ -99,4 +99,7 @@
 - **Tests:** 44 JS tests; meter checked under GJS (graceful failure with no
   sound server, 12 readings/s with a test tone, stops on demand); headless
   preferences test. Real microphone and camera untested.
-- **Remaining:** manual checks; optional mute button; Phase 6.
+- **Remaining:** manual checks; Phase 6.
+- **Follow-up (same day):** Mute/Unmute backup on the microphone event
+  (apps or whole microphone, undone after the call), with the button press
+  routed daemon → extension via `ActionInvoked`; tested end to end.

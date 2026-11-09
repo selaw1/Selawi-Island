@@ -8,6 +8,9 @@
 - Voice waves: bars that move with your voice, measured only while the
   microphone event is on screen and another app is using the microphone.
 - Integrations page: “Microphone and camera in use” and “Voice waves”.
+- Mute / Unmute on the microphone event (system-level backup): mutes the
+  recording apps, or the whole microphone; undone automatically after the
+  call so the next call starts unmuted.
 
 ## Unreleased — Phase 5
 

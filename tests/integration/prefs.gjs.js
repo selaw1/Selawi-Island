@@ -67,6 +67,10 @@ async function main() {
     ok(byTitle(Adw.SwitchRow, 'Network').active, 'Network switch is on');
     ok(byTitle(Adw.SwitchRow, 'Microphone and camera in use').active, 'Microphone and camera switch is on');
     ok(byTitle(Adw.SwitchRow, 'Voice waves').active, 'Voice waves switch is on');
+    const muteScope = byTitle(Adw.ComboRow, 'Mute button mutes');
+    ok(muteScope?.selected === 0, 'mute button mutes only the apps by default');
+    muteScope.selected = 1;
+    ok(settings.get_string('mute-scope') === 'microphone', 'choosing the whole microphone saves it');
     ok(!byTitle(Adw.SwitchRow, 'System warnings').active, 'System warnings switch is off by default');
     bluetooth.active = false;
     await sleep(500);

@@ -35,6 +35,17 @@ export class DaemonFeed extends EventEmitter {
                 this._setList(json);
             });
 
+        // Buttons pressed on events that the extension itself submitted
+        // (e.g. Mute on the microphone event) come back through this.
+        this._actionSignalId = this._bus.signal_subscribe(
+            BUS_NAME, EVENTS_IFACE, 'ActionInvoked', OBJECT_PATH, null,
+            Gio.DBusSignalFlags.NONE,
+            (_conn, _sender, _path, _iface, _signal, params) => {
+                const [id, actionId] = params.deepUnpack();
+                if (typeof id === 'string' && typeof actionId === 'string')
+                    this.emit('action-invoked', id, actionId);
+            });
+
         this._integrationsSignalId = this._bus.signal_subscribe(
             BUS_NAME, INTEGRATIONS_IFACE, 'Changed', OBJECT_PATH, null,
             Gio.DBusSignalFlags.NONE,
@@ -80,7 +91,7 @@ export class DaemonFeed extends EventEmitter {
 
     destroy() {
         this._cancellable.cancel();
-        for (const key of ['_signalId', '_integrationsSignalId']) {
+        for (const key of ['_signalId', '_integrationsSignalId', '_actionSignalId']) {
             if (this[key]) {
                 this._bus.signal_unsubscribe(this[key]);
                 this[key] = 0;

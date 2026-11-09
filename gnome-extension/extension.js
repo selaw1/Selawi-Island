@@ -74,6 +74,10 @@ export default class SelawiIslandExtension extends Extension {
             this._feed.connectObject(
                 'integrations-changed', () => this._updateBanners(),
                 'connected', () => this._privacy?.resync(),
+                'action-invoked', (_feed, id, actionId) => {
+                    if (id === 'privacy:capture')
+                        this._privacy?.handleAction(actionId);
+                },
                 this);
         }
         this._island.setFeed(this._feed);
@@ -94,7 +98,8 @@ export default class SelawiIslandExtension extends Extension {
             this._audio = new AudioSource(input => feed.submit(input));
         if (this._settings.get_boolean('privacy-events')) {
             this._privacy = new PrivacySource(
-                input => feed.submit(input), () => this._updateMeter());
+                input => feed.submit(input), () => this._updateMeter(),
+                () => this._settings.get_string('mute-scope'));
         }
         return this._updateMeter();
     }

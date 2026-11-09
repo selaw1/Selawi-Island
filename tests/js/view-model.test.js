@@ -117,3 +117,16 @@ test('microphone is orange with waves, camera is green, both run a timer', () =>
     assert.equal(describe({...base, category: 'notification', state: 'started',
         payload: {type: 'notification', title: 'x'}}, 0).waves, false);
 });
+
+test('muted microphone: no waves, crossed-out icon, still timed', () => {
+    const vm = describe({
+        ...base, id: 'privacy:capture', category: 'call', state: 'updated', created_at: 0, updated_at: 0,
+        source: {app: 'Slack', integration: 'gnome-privacy'},
+        payload: {type: 'system', title: 'Microphone muted', detail: 'Slack', severity: 'info'},
+    }, 65_000);
+    assert.equal(vm.waves, false);
+    assert.equal(vm.iconName, 'microphone-disabled-symbolic');
+    assert.equal(vm.accent, 'orange');
+    assert.equal(vm.trailing, '1:05');
+    assert.equal(vm.live, true);
+});

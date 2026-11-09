@@ -13,6 +13,14 @@
       <default>true</default>
       <summary>Show when an app is using the microphone or camera</summary>
     </key>
+    <key name="mute-scope" type="s">
+      <choices>
+        <choice value="apps"/>
+        <choice value="microphone"/>
+      </choices>
+      <default>'apps'</default>
+      <summary>What the Mute button mutes: the apps using the microphone, or the whole microphone</summary>
+    </key>
     <key name="voice-waves" type="b">
       <default>true</default>
       <summary>Show voice waves (measures microphone loudness while another app uses it)</summary>

@@ -91,9 +91,11 @@ function systemIcon(event) {
 function describePrivacy(event, now, vm) {
     const p = event.payload;
     const camera = p.title.startsWith('Camera');
-    const mic = p.title.includes('icrophone');
+    const muted = p.title.endsWith('muted');
+    const mic = p.title.includes('icrophone') && !muted;
     vm.accent = camera ? 'green' : 'orange';
-    vm.iconName = camera ? 'camera-web-symbolic' : 'audio-input-microphone-symbolic';
+    vm.iconName = camera ? 'camera-web-symbolic'
+        : muted ? 'microphone-disabled-symbolic' : 'audio-input-microphone-symbolic';
     vm.subtitle = p.detail ?? '';
     const finished = isFinished(event);
     vm.trailing = formatClock((finished ? event.updated_at : now) - event.created_at);

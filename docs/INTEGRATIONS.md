@@ -27,6 +27,7 @@ Right-click the island → **Integrations** page. Changes apply immediately.
 | Sources: Audio devices | Audio output, microphone and mute changes (watched by the extension) |
 | Sources: Microphone and camera in use | Orange while an app uses the microphone, green when the camera is on |
 | Sources: Voice waves | Bars that move with your voice while the microphone is in use |
+| Sources: Mute button mutes | Only the apps using the microphone (default), or the whole microphone |
 | Media: Players to show | **All players**, or **One player** |
 | Media: Preferred player | In one-player mode: this player wins whenever it is playing |
 | Notifications: Show notification text | Off shows only the title and app |
@@ -195,9 +196,19 @@ microphone is in use; it appears next to the real app in tools that list
 recording apps (e.g. pavucontrol). Needs `gst-plugins-good`; without it the
 bars stay still.
 
-Limits: there is no mute button yet. The camera can only be shown, not
-turned off. Camera use is reported without the app's name (GNOME does not
-say which app).
+**Mute / Unmute** (expanded island, while the microphone is in use): a
+system-level backup for apps the island cannot control directly. It mutes
+the recording apps' microphone streams (or the whole microphone, per the
+setting), so nobody hears you, but the app itself still shows you as
+unmuted. The island shows “Microphone muted” and stops the waves. Linux
+remembers per-app mute, so whatever the island muted is unmuted again
+after the call: the whole microphone as soon as no app records, and app
+streams the next time that app starts recording.
+
+Limits: the camera can only be shown, not turned off. Camera use is
+reported without the app's name (GNOME does not say which app). Apps keep
+their own mute buttons; only the browser extension (Phase 6) can press
+those for web meetings.
 
 ## Not shown on purpose
 
