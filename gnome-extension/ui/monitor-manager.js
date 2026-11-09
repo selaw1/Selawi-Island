@@ -40,25 +40,26 @@ export class MonitorManager extends EventEmitter {
     }
 
     /**
-     * The chosen monitor's rectangle and the y of the default spot.
+     * The chosen monitor's rectangle, the space the top bar takes on it,
+     * and the edge margin, all in stage pixels.
      *
-     * @returns {{x: number, y: number, width: number, height: number, defaultTop: number} | null}
+     * @returns {{x: number, y: number, width: number, height: number, topInset: number, margin: number} | null}
      */
     area() {
         const monitor = this.monitor;
         if (!monitor)
             return null;
-        let top = monitor.y + this._settings.get_int('top-margin') * this.scale;
         // The top bar only exists on the primary monitor.
-        if (this._settings.get_boolean('below-top-bar') &&
-            monitor.index === Main.layoutManager.primaryIndex)
-            top += Main.layoutManager.panelBox.height;
+        const topInset = this._settings.get_boolean('below-top-bar') &&
+            monitor.index === Main.layoutManager.primaryIndex
+            ? Main.layoutManager.panelBox.height : 0;
         return {
             x: monitor.x,
             y: monitor.y,
             width: monitor.width,
             height: monitor.height,
-            defaultTop: Math.round(top),
+            topInset,
+            margin: this._settings.get_int('top-margin') * this.scale,
         };
     }
 

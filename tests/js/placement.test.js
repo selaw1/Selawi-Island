@@ -1,41 +1,81 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 
-import {placePill, positionFromDrop} from '../../gnome-extension/ui/placement.js';
+import {
+    ANCHORS, anchorSpot, customSpot, fractionsFor, placePill, positionFromDrop,
+} from '../../gnome-extension/ui/placement.js';
 
 const mon = {x: 0, y: 0, width: 1920, height: 1080};
+const opts = {topInset: 34, margin: 6};
+const at = (anchor, w, h, o = opts) => placePill(anchorSpot(anchor, mon, o), mon, w, h);
 
-test('default is top center', () => {
-    assert.deepEqual(placePill(mon, 40, null, 320, 36), {x: 800, y: 40});
+test('top center sits below the top bar and grows downward', () => {
+    assert.deepEqual(at('top-center', 320, 36), {x: 800, y: 40});
+    assert.deepEqual(at('top-center', 440, 200), {x: 740, y: 40});
 });
 
-test('custom position keeps the center, so the pill grows around it', () => {
+test('corners keep the margin and grow away from their edges', () => {
+    assert.deepEqual(at('top-left', 320, 36), {x: 6, y: 40});
+    assert.deepEqual(at('top-right', 320, 36), {x: 1920 - 6 - 320, y: 40});
+    assert.deepEqual(at('bottom-left', 320, 36), {x: 6, y: 1080 - 6 - 36});
+    assert.deepEqual(at('bottom-right', 440, 200), {x: 1920 - 6 - 440, y: 1080 - 6 - 200});
+});
+
+test('bottom center grows upward', () => {
+    const small = at('bottom-center', 320, 36);
+    const big = at('bottom-center', 440, 200);
+    assert.equal(small.y + 36, big.y + 200);
+});
+
+test('center stays centered on both axes', () => {
+    assert.deepEqual(at('center', 200, 100), {x: 860, y: 490});
+});
+
+test('the top bar inset applies only to top anchors', () => {
+    assert.equal(at('bottom-center', 100, 10).y, 1080 - 6 - 10);
+    assert.equal(at('top-center', 100, 10, {topInset: 0, margin: 6}).y, 6);
+});
+
+test('custom default uses saved fractions', () => {
     const custom = {fx: 0.25, fy: 0.5};
-    assert.deepEqual(placePill(mon, 40, custom, 100, 20), {x: 430, y: 540});
-    assert.deepEqual(placePill(mon, 40, custom, 400, 200), {x: 280, y: 540});
+    assert.deepEqual(placePill(anchorSpot('custom', mon, {...opts, custom}), mon, 100, 20), {x: 430, y: 540});
+});
+
+test('unknown anchor falls back to top center', () => {
+    assert.deepEqual(at('nonsense', 320, 36), at('top-center', 320, 36));
+    assert.ok(ANCHORS.includes('custom'));
 });
 
 test('never leaves the monitor, even when expanding near an edge', () => {
-    assert.deepEqual(placePill(mon, 40, {fx: 1, fy: 1}, 400, 200), {x: 1520, y: 880});
-    assert.deepEqual(placePill(mon, 40, {fx: 0, fy: 0}, 400, 200), {x: 0, y: 0});
+    assert.deepEqual(placePill(customSpot(mon, {fx: 1, fy: 1}), mon, 400, 200), {x: 1520, y: 880});
+    assert.deepEqual(placePill(customSpot(mon, {fx: 0, fy: 0}), mon, 400, 200), {x: 0, y: 0});
 });
 
 test('works on a second monitor', () => {
     const right = {x: 1920, y: 0, width: 2560, height: 1440};
-    assert.deepEqual(placePill(right, 6, null, 120, 12), {x: 3140, y: 6});
+    assert.deepEqual(placePill(anchorSpot('top-center', right, {margin: 6}), right, 120, 12), {x: 3140, y: 6});
 });
 
-test('drop near the default spot snaps back', () => {
-    assert.equal(positionFromDrop(mon, 40, 800 + 20, 40 + 10, 320), null);
+test('fractions round-trip', () => {
+    const f = fractionsFor(mon, 100, 500, 320);
+    assert.deepEqual(placePill(customSpot(mon, f), mon, 320, 36), {x: 100, y: 500});
 });
 
-test('drop elsewhere is saved as fractions that round-trip', () => {
-    const pos = positionFromDrop(mon, 40, 100, 500, 320);
+test('drop near the default spot snaps back, wherever the default is', () => {
+    const topCenter = anchorSpot('top-center', mon, opts);
+    assert.equal(positionFromDrop(mon, topCenter, 820, 50, 320, 36), null);
+    const bottomRight = anchorSpot('bottom-right', mon, opts);
+    assert.equal(positionFromDrop(mon, bottomRight, 1580, 1030, 320, 36), null);
+    assert.notEqual(positionFromDrop(mon, bottomRight, 820, 50, 320, 36), null);
+});
+
+test('drop elsewhere is saved as fractions', () => {
+    const pos = positionFromDrop(mon, anchorSpot('top-center', mon, opts), 100, 500, 320, 36);
     assert.deepEqual(pos, {fx: 260 / 1920, fy: 500 / 1080});
-    assert.deepEqual(placePill(mon, 40, pos, 320, 36), {x: 100, y: 500});
 });
 
 test('snap distance follows the scale factor', () => {
-    assert.notEqual(positionFromDrop(mon, 40, 800 + 60, 40, 320, 1), null);
-    assert.equal(positionFromDrop(mon, 40, 800 + 60, 40, 320, 2), null);
+    const spot = anchorSpot('top-center', mon, opts);
+    assert.notEqual(positionFromDrop(mon, spot, 860, 40, 320, 36, 1), null);
+    assert.equal(positionFromDrop(mon, spot, 860, 40, 320, 36, 2), null);
 });

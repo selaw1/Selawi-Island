@@ -23,6 +23,79 @@ function spinRow(settings, key, title, lower, upper, step = 1, digits = 0) {
     return row;
 }
 
+// Value stored in settings → label shown. Order is the dropdown order.
+const ANCHOR_LABELS = [
+    ['top-center', 'Top center'],
+    ['top-left', 'Top left'],
+    ['top-right', 'Top right'],
+    ['center', 'Center of the screen'],
+    ['bottom-center', 'Bottom center'],
+    ['bottom-left', 'Bottom left'],
+    ['bottom-right', 'Bottom right'],
+    ['custom', 'Custom (saved from a drag)'],
+];
+
+function positionGroup(settings, window) {
+    const group = new Adw.PreferencesGroup({
+        title: 'Position',
+        description: 'Drag the island to move it. Dropping it near its default position snaps it back.',
+    });
+    const handlers = [];
+    const watch = (keys, fn) => {
+        for (const key of keys)
+            handlers.push(settings.connect(`changed::${key}`, fn));
+        fn();
+    };
+    window.connect('close-request', () => handlers.forEach(id => settings.disconnect(id)));
+
+    // Default position.
+    const anchorRow = new Adw.ComboRow({
+        title: 'Default position',
+        subtitle: 'Where the island lives until you drag it',
+        model: Gtk.StringList.new(ANCHOR_LABELS.map(([, label]) => label)),
+    });
+    let syncing = false;
+    watch(['default-anchor'], () => {
+        const index = ANCHOR_LABELS.findIndex(([value]) => value === settings.get_string('default-anchor'));
+        syncing = true;
+        anchorRow.selected = Math.max(0, index);
+        syncing = false;
+    });
+    anchorRow.connect('notify::selected', () => {
+        if (!syncing)
+            settings.set_string('default-anchor', ANCHOR_LABELS[anchorRow.selected][0]);
+    });
+    group.add(anchorRow);
+
+    // The current dragged position, with ways to keep it or drop it.
+    const current = new Adw.ActionRow({title: 'Current position'});
+    const makeDefault = new Gtk.Button({label: 'Make this the default', valign: Gtk.Align.CENTER});
+    makeDefault.connect('clicked', () => {
+        settings.set_double('default-x', settings.get_double('position-x'));
+        settings.set_double('default-y', settings.get_double('position-y'));
+        settings.set_string('default-anchor', 'custom');
+        settings.set_boolean('custom-position', false);
+    });
+    const reset = new Gtk.Button({label: 'Reset', valign: Gtk.Align.CENTER});
+    reset.connect('clicked', () => settings.set_boolean('custom-position', false));
+    current.add_suffix(makeDefault);
+    current.add_suffix(reset);
+    watch(['custom-position'], () => {
+        const dragged = settings.get_boolean('custom-position');
+        current.subtitle = dragged ? 'Moved by dragging' : 'At the default position';
+        makeDefault.sensitive = dragged;
+        reset.sensitive = dragged;
+    });
+    group.add(current);
+
+    group.add(switchRow(settings, 'allow-drag', 'Allow dragging'));
+    group.add(switchRow(settings, 'below-top-bar', 'Below the top bar',
+        'For top positions: turn off to place the island over the top bar'));
+    group.add(spinRow(settings, 'top-margin', 'Edge margin', 0, 200));
+    group.add(spinRow(settings, 'monitor-index', 'Monitor (-1 = primary)', -1, 16));
+    return group;
+}
+
 export default class SelawiIslandPreferences extends ExtensionPreferences {
     async fillPreferencesWindow(window) {
         const settings = this.getSettings();
@@ -37,29 +110,7 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
         behaviour.add(switchRow(settings, 'show-when-idle', 'Show when idle'));
         page.add(behaviour);
 
-        const position = new Adw.PreferencesGroup({
-            title: 'Position',
-            description: 'Drag the island to move it. Drop it near the top center to snap back.',
-        });
-        position.add(switchRow(settings, 'allow-drag', 'Allow dragging'));
-        const reset = new Adw.ActionRow({title: 'Dragged position'});
-        const resetButton = new Gtk.Button({label: 'Reset', valign: Gtk.Align.CENTER});
-        resetButton.connect('clicked', () => settings.set_boolean('custom-position', false));
-        reset.add_suffix(resetButton);
-        const updateReset = () => {
-            const custom = settings.get_boolean('custom-position');
-            reset.subtitle = custom ? 'Custom' : 'Top center (default)';
-            resetButton.sensitive = custom;
-        };
-        const resetId = settings.connect('changed::custom-position', updateReset);
-        window.connect('close-request', () => settings.disconnect(resetId));
-        updateReset();
-        position.add(reset);
-        position.add(switchRow(settings, 'below-top-bar', 'Below the top bar',
-            'Turn off to place the island over the top bar (covers the clock)'));
-        position.add(spinRow(settings, 'top-margin', 'Top margin', 0, 200));
-        position.add(spinRow(settings, 'monitor-index', 'Monitor (-1 = primary)', -1, 16));
-        page.add(position);
+        page.add(positionGroup(settings, window));
 
         const size = new Adw.PreferencesGroup({title: 'Size and motion'});
         size.add(switchRow(settings, 'idle-width-match-clock', 'Idle width matches the clock',

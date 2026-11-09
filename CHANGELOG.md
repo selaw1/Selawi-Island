@@ -20,6 +20,10 @@
   dragging” and “Reset” for the dragged position.
 - Clicking the idle island expands it to “Nothing to show”.
 - Right-click the island to open its preferences.
+- Choose the default position: top center/left/right, center, bottom
+  center/left/right, or a custom spot saved from a drag (“Make this the
+  default”). The island grows away from the edge it is attached to.
+  Reset and snap-back use the chosen default.
 - The idle island is as wide as the top bar clock (Preferences → “Idle
   width matches the clock”).
 

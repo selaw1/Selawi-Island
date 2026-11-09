@@ -17,7 +17,7 @@
     <key name="top-margin" type="i">
       <range min="0" max="200"/>
       <default>6</default>
-      <summary>Gap above the island, in pixels</summary>
+      <summary>Gap between the island and the screen edge it is placed at, in pixels</summary>
     </key>
     <key name="idle-width" type="i">
       <range min="40" max="400"/>
@@ -37,9 +37,33 @@
       <default>true</default>
       <summary>Allow moving the island by dragging it</summary>
     </key>
+    <key name="default-anchor" type="s">
+      <choices>
+        <choice value="top-center"/>
+        <choice value="top-left"/>
+        <choice value="top-right"/>
+        <choice value="center"/>
+        <choice value="bottom-center"/>
+        <choice value="bottom-left"/>
+        <choice value="bottom-right"/>
+        <choice value="custom"/>
+      </choices>
+      <default>'top-center'</default>
+      <summary>Default position (where Reset and snap-back put the island)</summary>
+    </key>
+    <key name="default-x" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.5</default>
+      <summary>Custom default: horizontal center as a fraction of the monitor width</summary>
+    </key>
+    <key name="default-y" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.0</default>
+      <summary>Custom default: top edge as a fraction of the monitor height</summary>
+    </key>
     <key name="custom-position" type="b">
       <default>false</default>
-      <summary>Use the dragged position instead of top center</summary>
+      <summary>Use the dragged position instead of the default position</summary>
     </key>
     <key name="position-x" type="d">
       <range min="0.0" max="1.0"/>

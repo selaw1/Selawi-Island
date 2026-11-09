@@ -71,7 +71,7 @@ are checked against `tests/fixtures/protocol-cases.json` and the demo scenario.
 | `expanded-view.js` | Detail: icon tile, title, subtitle, progress, actions, other events |
 | `view-model.js` | Pure: event → icon, text, accent, progress (unit-tested) |
 | `monitor-manager.js` | Which monitor, top offset, scale factor, fullscreen |
-| `placement.js` | Pure: where the pill goes (default or dragged), kept on screen; snap-back on drop (unit-tested) |
+| `placement.js` | Pure: default anchors (top/center/bottom × left/center/right, custom), dragged positions, keeping the pill on screen, snap-back on drop (unit-tested) |
 | `widgets.js` | Small St helpers |
 
 Design rules: actors are built once and updated in place; size and position

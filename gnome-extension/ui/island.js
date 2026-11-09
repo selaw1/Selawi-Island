@@ -16,7 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {CompactView} from './compact-view.js';
 import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
-import {placePill, positionFromDrop} from './placement.js';
+import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
 import {describe} from './view-model.js';
 
 const MORPH_MS = 420;
@@ -294,7 +294,7 @@ export class Island {
         const hidden = hiddenWhenIdle || this._monitors.fullscreenBlocked;
 
         const {width, height} = this._size();
-        const {x, y} = placePill(area, area.defaultTop, this._customPosition(), width, height);
+        const {x, y} = placePill(this._spot(area), area, width, height);
         const target = {x, y, width: Math.round(width), height: Math.round(height)};
         const duration = animate ? this._duration(MORPH_MS) : 0;
         const changed = !this._target || Object.keys(target).some(k => target[k] !== this._target[k]);
@@ -425,13 +425,26 @@ export class Island {
 
     // ---- dragging --------------------------------------------------------
 
-    _customPosition() {
+    /** The default spot chosen in preferences. */
+    _defaultSpot(area) {
+        return anchorSpot(this._settings.get_string('default-anchor'), area, {
+            topInset: area.topInset,
+            margin: area.margin,
+            custom: {
+                fx: this._settings.get_double('default-x'),
+                fy: this._settings.get_double('default-y'),
+            },
+        });
+    }
+
+    /** Where the island is now: the dragged position, or the default. */
+    _spot(area) {
         if (!this._settings.get_boolean('custom-position'))
-            return null;
-        return {
+            return this._defaultSpot(area);
+        return customSpot(area, {
             fx: this._settings.get_double('position-x'),
             fy: this._settings.get_double('position-y'),
-        };
+        });
     }
 
     _onDragBegin() {
@@ -478,8 +491,8 @@ export class Island {
             this._settings.delay();
             this._settings.set_int('monitor-index', index === this._monitors.primaryIndex ? -1 : index);
             const area = this._monitors.area();
-            const pos = area && positionFromDrop(area, area.defaultTop,
-                this._pill.x, this._pill.y, this._pill.width, this._monitors.scale);
+            const pos = area && positionFromDrop(area, this._defaultSpot(area),
+                this._pill.x, this._pill.y, this._pill.width, this._pill.height, this._monitors.scale);
             if (pos) {
                 this._settings.set_double('position-x', pos.fx);
                 this._settings.set_double('position-y', pos.fy);

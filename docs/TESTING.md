@@ -14,8 +14,9 @@
 | `core/tests/protocol_fixtures.rs` | Rust accepts/rejects every case in `tests/fixtures/protocol-cases.json` |
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
 | `daemon` unit tests (5) | Submit/list/dismiss, size limit, invalid input, expiry, snapshot file (mode 0600) survives restart, corrupt snapshot ignored |
-| `tests/js/*.test.js` (30) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, placement (default, dragged, edges, second monitor, snap-back) |
+| `tests/js/*.test.js` (36) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action) |
+| `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) and checks the Default position dropdown and the Make this the default / Reset buttons. Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
 | `node --check` | Every extension file parses |
 | `glib-compile-schemas --strict` | Settings schema is valid |
 
@@ -63,6 +64,9 @@ journalctl -f -o cat /usr/bin/gnome-shell
 8. Turn off **Show when idle**: with no events the island disappears completely.
 9. Drag fast, across windows and the top bar: the island stays under the pointer the whole way.
 10. Right-click the island: its preferences open.
+11. Preferences → Position → **Default position**: try each choice. The island moves there; at the bottom it grows upward when an event arrives; in the corners it stays the edge margin away from both edges.
+12. Drag it somewhere, then **Make this the default**: the dropdown shows Custom, and Reset or a drop near that spot puts it back there.
+13. With a bottom default, drag it away and drop it back near the bottom: it snaps into place.
 
 ### Demo (turn on “Demo events” in preferences)
 

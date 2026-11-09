@@ -30,4 +30,12 @@ else
     echo "(dbus-run-session not installed: skipped)"
 fi
 
+echo "== Preferences window (headless GTK)"
+if command -v xvfb-run >/dev/null && command -v gjs >/dev/null &&
+   gjs -c "imports.gi.versions.Gtk = '4.0'; imports.gi.Gtk; imports.gi.Adw" >/dev/null 2>&1; then
+    tests/integration/prefs-check.sh || { echo "Preferences check failed"; exit 1; }
+else
+    echo "(needs gjs, GTK 4, libadwaita and xvfb-run: skipped)"
+fi
+
 echo "All checks passed."
