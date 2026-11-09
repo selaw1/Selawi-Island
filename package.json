@@ -2,8 +2,13 @@
   "name": "selawi-island-dev",
   "private": true,
   "type": "module",
-  "description": "Development scripts only. Nothing here is installed.",
+  "description": "Development tooling: JavaScript tests and the browser extension build. Nothing here is installed.",
   "scripts": {
-    "test": "node --test tests/js/*.test.js"
+    "test": "node --test tests/js/*.test.js tests/browser/*.test.js",
+    "build:browser": "scripts/build-browser.sh"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/chrome": "0.3.7"
   }
 }

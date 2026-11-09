@@ -39,6 +39,8 @@ Three layers. Each may depend only on the layers listed after it.
 | Extension sources | `gnome-extension/services/audio-source.js`, `privacy-source.js` (+ pure `privacy-model.js`) | What only GNOME Shell can see, sent to the daemon with `Submit`: audio device changes, and microphone/camera in use. Resent when the daemon (re)starts. Buttons on these events come back from the daemon as `ActionInvoked` and are handled in the extension (Mute/Unmute) |
 | Voice waves | `services/level-meter.js`, `ui/level.js`, `ui/waves.js` | Microphone loudness → bars. The meter runs only while the island shows the microphone event and another app is recording |
 | Banner blocker | `gnome-extension/ui/banner-blocker.js` | Hides GNOME's notification banners while the daemon's notifications integration is active |
+| Browser extension | `browser-extensions/` (TypeScript) | Google Meet calls and downloads; talks to the helper by native messaging. See [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
+| Browser helper | `native-messaging/` (Rust, `selawi-island-browser-host`) | Started by the browser; checks every event (`browser:` ids only) and submits it over D-Bus; sends button presses back |
 | Preferences | `gnome-extension/prefs.js`, `prefs-integrations.js` | Island page (GSettings) and Integrations page (daemon `Configuration1` + GSettings) |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
 | Extension | `gnome-extension/` | Draws the island from a feed |

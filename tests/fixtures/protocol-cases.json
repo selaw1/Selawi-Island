@@ -1,34 +1,389 @@
 {
   "comment": "Shared by core/tests/protocol_fixtures.rs and tests/js/protocol.test.js so the Rust and JavaScript validators stay in agreement.",
   "valid": [
-    {"id": "n1", "source": {"app": "Mail", "integration": "test"}, "category": "notification", "state": "started",
-     "payload": {"type": "notification", "title": "New message"}},
-    {"id": "dl:1", "source": {"app": "Firefox", "integration": "browser"}, "category": "transfer", "state": "updated",
-     "persistent": true, "payload": {"type": "progress", "title": "a.iso", "percent": 0}},
-    {"id": "call-1", "source": {"app": "Meet", "integration": "browser"}, "category": "call", "state": "started",
-     "priority": "call", "payload": {"type": "call", "title": "Standup", "confidence": "audio_only"},
-     "actions": [{"id": "leave", "label": "Leave"}]},
-    {"id": "buds", "source": {"app": "Bluetooth", "integration": "bluez"}, "category": "device", "state": "started",
-     "ttl_ms": 5000, "payload": {"type": "device", "name": "Buds", "connected": false}},
-    {"id": "bat", "source": {"app": "Power", "integration": "upower"}, "category": "system", "state": "started",
-     "group": "power", "payload": {"type": "system", "title": "Battery low", "severity": "warning"}},
-    {"id": "song", "source": {"app": "VLC", "integration": "mpris"}, "category": "media", "state": "started",
-     "payload": {"type": "media", "title": "Song", "playing": false, "position_ms": 0, "duration_ms": 1000}}
+    {
+      "id": "n1",
+      "source": {
+        "app": "Mail",
+        "integration": "test"
+      },
+      "category": "notification",
+      "state": "started",
+      "payload": {
+        "type": "notification",
+        "title": "New message"
+      }
+    },
+    {
+      "id": "dl:1",
+      "source": {
+        "app": "Firefox",
+        "integration": "browser"
+      },
+      "category": "transfer",
+      "state": "updated",
+      "persistent": true,
+      "payload": {
+        "type": "progress",
+        "title": "a.iso",
+        "percent": 0
+      }
+    },
+    {
+      "id": "call-1",
+      "source": {
+        "app": "Meet",
+        "integration": "browser"
+      },
+      "category": "call",
+      "state": "started",
+      "priority": "call",
+      "payload": {
+        "type": "call",
+        "title": "Standup",
+        "confidence": "audio_only"
+      },
+      "actions": [
+        {
+          "id": "leave",
+          "label": "Leave"
+        }
+      ]
+    },
+    {
+      "id": "buds",
+      "source": {
+        "app": "Bluetooth",
+        "integration": "bluez"
+      },
+      "category": "device",
+      "state": "started",
+      "ttl_ms": 5000,
+      "payload": {
+        "type": "device",
+        "name": "Buds",
+        "connected": false
+      }
+    },
+    {
+      "id": "bat",
+      "source": {
+        "app": "Power",
+        "integration": "upower"
+      },
+      "category": "system",
+      "state": "started",
+      "group": "power",
+      "payload": {
+        "type": "system",
+        "title": "Battery low",
+        "severity": "warning"
+      }
+    },
+    {
+      "id": "song",
+      "source": {
+        "app": "VLC",
+        "integration": "mpris"
+      },
+      "category": "media",
+      "state": "started",
+      "payload": {
+        "type": "media",
+        "title": "Song",
+        "playing": false,
+        "position_ms": 0,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "id": "browser:meet:7",
+      "source": {
+        "app": "Google Meet",
+        "integration": "browser"
+      },
+      "category": "call",
+      "state": "updated",
+      "persistent": true,
+      "payload": {
+        "type": "call",
+        "title": "Weekly sync",
+        "confidence": "confirmed",
+        "muted": true
+      },
+      "actions": [
+        {
+          "id": "unmute",
+          "label": "Unmute"
+        },
+        {
+          "id": "leave",
+          "label": "Leave"
+        }
+      ]
+    }
   ],
   "invalid": [
-    {"why": "empty id", "event": {"id": "", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "t"}}},
-    {"why": "space in id", "event": {"id": "a b", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "t"}}},
-    {"why": "unknown field", "event": {"id": "a", "exec": "rm -rf /", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "t"}}},
-    {"why": "unknown payload field", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "t", "html": "<b>"}}},
-    {"why": "unknown category", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "spam", "state": "started", "payload": {"type": "notification", "title": "t"}}},
-    {"why": "blank title", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "  "}}},
-    {"why": "control character", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "a\u0007"}}},
-    {"why": "percent over 100", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "transfer", "state": "started", "payload": {"type": "progress", "title": "t", "percent": 100.5}}},
-    {"why": "battery over 100", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "device", "state": "started", "payload": {"type": "device", "name": "x", "connected": true, "battery_percent": 101}}},
-    {"why": "call payload in notification category", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "call", "title": "t", "confidence": "confirmed"}}},
-    {"why": "zero ttl", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "ttl_ms": 0, "payload": {"type": "notification", "title": "t"}}},
-    {"why": "duplicate action", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "payload": {"type": "notification", "title": "t"}, "actions": [{"id": "x", "label": "X"}, {"id": "x", "label": "Y"}]}},
-    {"why": "persistent not boolean", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "persistent": "yes", "payload": {"type": "notification", "title": "t"}}},
-    {"why": "unknown priority", "event": {"id": "a", "source": {"app": "A", "integration": "b"}, "category": "notification", "state": "started", "priority": "urgent", "payload": {"type": "notification", "title": "t"}}}
+    {
+      "why": "empty id",
+      "event": {
+        "id": "",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "space in id",
+      "event": {
+        "id": "a b",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "unknown field",
+      "event": {
+        "id": "a",
+        "exec": "rm -rf /",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "unknown payload field",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t",
+          "html": "<b>"
+        }
+      }
+    },
+    {
+      "why": "unknown category",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "spam",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "blank title",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "  "
+        }
+      }
+    },
+    {
+      "why": "control character",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "a\u0007"
+        }
+      }
+    },
+    {
+      "why": "percent over 100",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "transfer",
+        "state": "started",
+        "payload": {
+          "type": "progress",
+          "title": "t",
+          "percent": 100.5
+        }
+      }
+    },
+    {
+      "why": "battery over 100",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "device",
+        "state": "started",
+        "payload": {
+          "type": "device",
+          "name": "x",
+          "connected": true,
+          "battery_percent": 101
+        }
+      }
+    },
+    {
+      "why": "call payload in notification category",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "call",
+          "title": "t",
+          "confidence": "confirmed"
+        }
+      }
+    },
+    {
+      "why": "zero ttl",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "ttl_ms": 0,
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "duplicate action",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        },
+        "actions": [
+          {
+            "id": "x",
+            "label": "X"
+          },
+          {
+            "id": "x",
+            "label": "Y"
+          }
+        ]
+      }
+    },
+    {
+      "why": "persistent not boolean",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "persistent": "yes",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "unknown priority",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "notification",
+        "state": "started",
+        "priority": "urgent",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "muted not boolean",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "call",
+        "state": "started",
+        "payload": {
+          "type": "call",
+          "title": "t",
+          "confidence": "confirmed",
+          "muted": "yes"
+        }
+      }
+    }
   ]
 }

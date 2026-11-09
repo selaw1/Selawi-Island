@@ -2,3 +2,4 @@
 node_modules/
 gnome-extension/schemas/gschemas.compiled
 *.zip
+browser-extensions/build/

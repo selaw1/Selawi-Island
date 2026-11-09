@@ -103,3 +103,23 @@
 - **Follow-up (same day):** Mute/Unmute backup on the microphone event
   (apps or whole microphone, undone after the call), with the button press
   routed daemon → extension via `ActionInvoked`; tested end to end.
+
+## T-007 — Phase 6 (part 1): browser helper, Meet, downloads
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** Native messaging helper (Rust) with strict checks;
+  Chrome/Firefox MV3 extension in strict TypeScript; Google Meet call with
+  mute state, Mute/Unmute and Leave pressing Meet's buttons; downloads
+  with progress and Cancel; `muted` added to call payloads; the mic
+  bubble folds into a confirmed call; install/uninstall of the helper,
+  browser registrations and the built extension.
+- **Files:** `native-messaging/**`, `browser-extensions/**`,
+  `core/src/events.rs`, `gnome-extension/services/protocol.js`,
+  `gnome-extension/ui/{view-model,island}.js`, `scripts/*.sh`,
+  `tests/browser/**`, `tests/integration/browser-*`, fixtures, docs.
+- **Dependencies added:** dev-only `typescript` 7 and `@types/chrome`
+  (npm, `package-lock.json`).
+- **Tests:** helper unit tests (6), extension model tests (4), helper
+  against the daemon, and the built extension in real Chromium with a
+  stand-in Meet page — all passing.
+- **Remaining:** check on the real Meet; per-tab media and ads; Zoom/Teams web.

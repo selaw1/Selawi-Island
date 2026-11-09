@@ -15,9 +15,14 @@ if command -v systemctl >/dev/null; then
     systemctl --user disable --now selawi-islandd.service 2>/dev/null || true
 fi
 rm -f "$HOME/.local/bin/selawi-islandd" "$HOME/.local/bin/selawi-island" \
+      "$HOME/.local/bin/selawi-island-browser-host" \
+      "$HOME/.mozilla/native-messaging-hosts/io.selawi.island.json" \
       "$CONFIG/systemd/user/selawi-islandd.service" \
       "$DATA/dbus-1/services/com.selawi.Island.service"
-rm -rf "$DATA/doc/selawi-island"
+rm -rf "$DATA/doc/selawi-island" "$DATA/selawi-island/browser"
+for dir in google-chrome google-chrome-beta google-chrome-unstable chromium BraveSoftware/Brave-Browser; do
+    rm -f "$CONFIG/$dir/NativeMessagingHosts/io.selawi.island.json"
+done
 command -v systemctl >/dev/null && systemctl --user daemon-reload 2>/dev/null || true
 
 if [ "${1:-}" = "--purge" ]; then

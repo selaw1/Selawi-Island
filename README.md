@@ -17,7 +17,8 @@ no hosting.
 | CLI `selawi-island` (notify, progress, list, dismiss, send, status) | Implemented, tested |
 | Demo events | Simulated, off by default |
 | Automatic detection: music players, battery, Bluetooth, notifications, audio devices, network/VPN, USB drives, opt-in system warnings | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
-| Browser extensions, calls | Not started (see [ROADMAP](docs/ROADMAP.md)) |
+| Browser extension: Google Meet calls (mute, leave), downloads | Implemented ([BROWSER_INTEGRATIONS](docs/BROWSER_INTEGRATIONS.md)) |
+| Per-tab browser media, other web meetings | Next (see [ROADMAP](docs/ROADMAP.md)) |
 
 ## Requirements (all free)
 
@@ -25,6 +26,7 @@ no hosting.
 - Rust to build the daemon and CLI: `sudo pacman -S --needed base-devel git rust`
 - Node.js only to run the JavaScript unit tests: `sudo pacman -S --needed nodejs`
 - For voice waves: `gst-plugins-good` (normally already installed with GNOME)
+- To build the browser extension: `sudo pacman -S --needed nodejs npm`
 
 ## Install or update
 
@@ -72,6 +74,8 @@ What to check is in [docs/TESTING.md](docs/TESTING.md#manual-checks-on-gnome).
 core/               Rust: platform-independent event model and engine
 daemon/             Rust: selawi-islandd, the D-Bus service
 cli/                Rust: selawi-island command-line client
+native-messaging/   Rust: helper the browser extension talks to
+browser-extensions/ TypeScript: Chrome and Firefox extension
 packaging/          systemd user service and D-Bus activation file
 gnome-extension/    GNOME Shell extension (the island UI)
   ui/               pill, compact/expanded views, monitor placement

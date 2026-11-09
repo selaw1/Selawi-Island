@@ -130,3 +130,29 @@ test('muted microphone: no waves, crossed-out icon, still timed', () => {
     assert.equal(vm.trailing, '1:05');
     assert.equal(vm.live, true);
 });
+
+test('a confirmed call absorbs the microphone event and takes its waves', async () => {
+    const {foldMicIntoCalls} = await import('../../gnome-extension/ui/view-model.js');
+    const call = (muted, state = 'started') => ({...base, id: 'browser:meet:1', category: 'call', state,
+        source: {app: 'Google Meet', integration: 'browser'},
+        payload: {type: 'call', title: 'Weekly sync', confidence: 'confirmed', muted}});
+    const mic = (title = 'Microphone') => ({...base, id: 'privacy:capture', category: 'call', state: 'started',
+        source: {app: 'Google Chrome', integration: 'gnome-privacy'},
+        payload: {type: 'system', title, detail: 'Google Chrome', severity: 'info'}});
+    const note = {...base, id: 'n', category: 'notification', state: 'started',
+        payload: {type: 'notification', title: 'x'}};
+
+    let r = foldMicIntoCalls([call(false), mic(), note]);
+    assert.deepEqual(r.events.map(e => e.id), ['browser:meet:1', 'n']);
+    assert.equal(r.wavesFor, 'browser:meet:1');
+    assert.equal(foldMicIntoCalls([call(true), mic()]).wavesFor, null, 'muted in Meet: no waves');
+    assert.equal(foldMicIntoCalls([call(false), mic('Microphone muted')]).wavesFor, null, 'muted by the island: no waves');
+    r = foldMicIntoCalls([mic(), note]);
+    assert.equal(r.events.length, 2, 'no call: the microphone event stays');
+    r = foldMicIntoCalls([call(false, 'ended'), mic()]);
+    assert.equal(r.events.length, 2, 'ended call: the microphone event shows again');
+
+    const muted = describe(call(true), 60_000);
+    assert.match(muted.subtitle, /Muted/);
+    assert.doesNotMatch(describe(call(undefined), 0).subtitle, /Muted/, 'unknown mute state is not shown');
+});

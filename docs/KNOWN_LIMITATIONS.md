@@ -5,6 +5,13 @@
 - **Automatic detection covers media, battery, Bluetooth, notifications,
   audio devices, network/VPN, USB drives and (opt-in) memory and CPU
   temperature.** Calls and per-tab browser media come later.
+- **Google Meet detection depends on Meet's page** (its leave button and
+  microphone toggle). Tested with a stand-in page built like Meet, not
+  yet on the real site. If Meet changes, the call simply stops showing.
+- **Firefox needs a signed add-on** to keep it after a restart; until then
+  it is a temporary add-on (docs/BROWSER_INTEGRATIONS.md).
+- **Chrome shows a “developer mode” extension** because it is loaded
+  unpacked.
 - **Microphone/camera in use is not a call.** The island shows which app
   records, not whether you are in a meeting; camera use has no app name.
 - **The island's Mute is system-level**: nobody hears you, but the app

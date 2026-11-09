@@ -18,7 +18,7 @@ import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
 import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
 import {smooth} from './level.js';
-import {describe} from './view-model.js';
+import {describe, foldMicIntoCalls} from './view-model.js';
 
 const MORPH_MS = 420;
 const FADE_MS = 180;
@@ -161,8 +161,12 @@ export class Island {
 
     // ---- state -----------------------------------------------------------
 
+    // During a confirmed call the "microphone in use" event is shown as
+    // part of the call (see foldMicIntoCalls).
     _events() {
-        return this._feed?.events() ?? [];
+        const folded = foldMicIntoCalls(this._feed?.events() ?? []);
+        this._wavesFor = folded.wavesFor;
+        return folded.events;
     }
 
     _focusedEvent(events) {
@@ -212,6 +216,8 @@ export class Island {
         const now = Date.now();
         const focused = this._focusedEvent(events);
         const focusedVm = focused ? describe(focused, now) : null;
+        if (focusedVm && focused.id === this._wavesFor)
+            focusedVm.waves = true;
         let live = focusedVm?.live ?? false;
 
         this._compact.update(focusedVm, events.length);

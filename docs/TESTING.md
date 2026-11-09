@@ -18,6 +18,10 @@
 | `tests/js/*.test.js` (49) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, battery/audio/network icons, microphone (orange, waves) and camera (green) view, muted state, microphone event model (titles, Mute/Unmute buttons), loudness parsing and wave bar math, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action, and a Mute press on an extension-submitted event coming back as `action-invoked`) |
 | `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) against a real daemon on a private bus: Default position dropdown, Make this the default / Reset, and the Integrations page (service status, turning Bluetooth off, one-player mode, notification text, audio switch). Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
+| `tests/browser/*.test.js` (4) | The browser extension's event building (Meet titles, mute state only when known, buttons, download progress and names), every event validated by the island's validator. Runs after `scripts/build-browser.sh` (strict TypeScript) |
+| `native-messaging` unit tests (6) | Message framing, size limit, refusing events that pose as other integrations or carry unknown fields, rate limit |
+| `tests/integration/browser-host.sh` | The real helper against the real daemon: a Meet call arrives, spoofed and unknown messages are refused, Mute pressed in the island reaches the browser, closing the browser ends the call |
+| `tests/integration/browser-e2e.sh` | The built extension in real Chromium (Playwright, Xvfb) with a stand-in Meet page using Meet's button markup: call appears with its name, Mute/Unmute press the page's microphone button, Leave presses the leave button and ends the call, a download appears and finishes |
 | `node --check` | Every extension file parses |
 | `glib-compile-schemas --strict` | Settings schema is valid |
 
@@ -87,6 +91,16 @@ journalctl -f -o cat /usr/bin/gnome-shell
 8. Expand the island during a call → **Mute**: it shows “Microphone muted”, the bars stop, and the other side can't hear you (the app still shows unmuted). **Unmute** brings your voice back.
 9. Mute, then leave the call, then start a new one in the same app: the new call starts **unmuted**.
 10. Integrations → **Mute button mutes** → The whole microphone: Mute also mutes GNOME's microphone (top-bar volume menu shows it muted); leaving the call unmutes it again.
+
+### Browser (Google Meet, downloads)
+
+1. Load the extension (docs/BROWSER_INTEGRATIONS.md).
+2. Join a Google Meet: a **green** call with the meeting name and a timer; the orange microphone bubble disappears into it and the call shows the voice waves.
+3. Mute in Meet: the island shows “Muted”. Press **Unmute** in the island: Meet unmutes (its own button changes).
+4. Press **Leave** in the island: you leave the meeting and the call ends.
+5. Download a file: its name and progress, then “Downloaded”. Start another and press **Cancel**: “Cancelled”.
+6. Close Chrome during a call: the call ends in the island.
+7. If nothing shows on Meet, the page may have changed: open Meet, press F12 → Console, and report any “Selawi” messages.
 
 ### Idle and position
 

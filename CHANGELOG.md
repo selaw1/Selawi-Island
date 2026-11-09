@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Phase 6 (part 1)
+
+### Added
+- Browser extension for Chrome/Chromium/Brave and Firefox, with a native
+  messaging helper (`selawi-island-browser-host`) that checks every event.
+- Google Meet: green call with the meeting name and timer, “Muted” when
+  Meet says so, Mute/Unmute and Leave that press Meet's own buttons.
+- Browser downloads: name, progress, Done/Cancelled/Failed, Cancel button.
+- Event protocol: optional `muted` on call payloads (only when known).
+- During a confirmed call, the microphone bubble is folded into the call,
+  which shows the voice waves.
+
 ## Unreleased — microphone and camera
 
 ### Added

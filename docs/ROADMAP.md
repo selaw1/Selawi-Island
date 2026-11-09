@@ -8,8 +8,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 2 | GNOME extension: pill, compact/expanded, animation, hover/click, simulated events | **Done** (checked on GNOME 51) |
 | 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
 | 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** (checked on GNOME 51) |
-| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** — awaiting manual check; brightness and GPU left out on purpose |
-| 6 | Browser extensions (Chromium, Firefox) + native messaging | **Next** |
+| 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** (checked on GNOME 51); brightness and GPU left out on purpose |
+| 6 | Browser extensions (Chromium, Firefox) + native messaging | **In progress** — Meet calls and downloads done; per-tab media next |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | Planned |
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
@@ -52,10 +52,11 @@ Status key: **Done** · **In progress** · **Next** · Planned
 - Left out on purpose: brightness and keyboard backlight (GNOME's own
   display), low disk space (GNOME's notification), GPU usage (unreliable).
 
-## Phase 6 plan (proposed)
+## Phase 6 status
 
-A Chromium and a Firefox extension (TypeScript, minimal permissions) plus a
-native messaging host that forwards validated events to the daemon:
-per-tab media (several tabs in one browser, ad detection on YouTube),
-browser downloads with progress, and Google Meet / browser Zoom / Teams
-calls with confirmed in-call state.
+Done: native messaging helper, Chrome/Firefox extension, Google Meet (call,
+mute state, Mute/Unmute and Leave pressing Meet's buttons, mic bubble
+folded into the call), downloads with progress and Cancel.
+
+Next: per-tab media (several tabs in one browser), keeping the song name
+during YouTube ads, browser Zoom / Teams, Slack huddles in the browser.

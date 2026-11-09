@@ -1,0 +1,21 @@
+[package]
+name = "selawi-island-browser-host"
+description = "Native messaging host: connects the Selawi Island browser extensions to the daemon"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "selawi-island-browser-host"
+path = "src/main.rs"
+
+[dependencies]
+selawi-core = { path = "../core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures-util = { version = "0.3", default-features = false }
+tokio = { version = "1", features = ["rt", "macros", "io-std", "io-util", "sync", "time"] }
+zbus = { version = "6", default-features = false, features = ["tokio", "proxy"] }
+
+[lints]
+workspace = true

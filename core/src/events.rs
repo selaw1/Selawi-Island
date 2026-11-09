@@ -157,6 +157,10 @@ pub struct CallPayload {
     /// Meeting or caller name.
     pub title: String,
     pub confidence: Confidence,
+    /// Whether the user's microphone is muted in the call. Only set when
+    /// the source really knows (never guessed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub muted: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -498,6 +502,7 @@ mod tests {
         input.payload = Payload::Call(CallPayload {
             title: "Standup".into(),
             confidence: Confidence::Confirmed,
+            muted: None,
         });
         assert_eq!(
             input.validate(),

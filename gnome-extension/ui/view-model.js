@@ -103,6 +103,30 @@ function describePrivacy(event, now, vm) {
     vm.waves = mic && !finished;
 }
 
+/**
+ * During a confirmed call (e.g. Google Meet through the browser
+ * extension) the separate "Microphone / camera in use" event is folded
+ * into the call: it is hidden, and the call shows the voice waves while
+ * the microphone is live and the call is not muted.
+ *
+ * @param {object[]} events - ordered events
+ * @returns {{events: object[], wavesFor: string|null}} the list to show,
+ *   and the id of the call that should show waves (or null)
+ */
+export function foldMicIntoCalls(events) {
+    const call = events.find(e => e.payload.type === 'call' &&
+        e.payload.confidence === 'confirmed' && !isFinished(e));
+    const mic = events.find(e => e.id === 'privacy:capture');
+    if (!call || !mic)
+        return {events, wavesFor: null};
+    const title = mic.payload.title ?? '';
+    const micLive = title.includes('icrophone') && !title.endsWith('muted') && !isFinished(mic);
+    return {
+        events: events.filter(e => e !== mic),
+        wavesFor: micLive && call.payload.muted !== true ? call.id : null,
+    };
+}
+
 /** Current playback position, extrapolated while playing. */
 export function mediaPosition(event, now) {
     const p = event.payload;
@@ -155,7 +179,7 @@ export function describe(event, now) {
             vm.trailing = formatClock(event.updated_at - event.created_at);
         } else {
             vm.accent = p.confidence === 'confirmed' ? 'green' : 'orange';
-            vm.subtitle = join(app, CONFIDENCE_NOTE[p.confidence]);
+            vm.subtitle = join(app, CONFIDENCE_NOTE[p.confidence], p.muted === true ? 'Muted' : '');
             vm.trailing = formatClock(now - event.created_at);
             vm.live = true;
         }

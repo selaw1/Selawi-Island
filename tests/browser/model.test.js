@@ -1,0 +1,81 @@
+// Tests the browser extension's pure logic (compiled by
+// scripts/build-browser.sh) and checks that every event it builds is valid
+// for the island's own protocol validator.
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+
+import {
+    downloadEvent, fileName, formatBytes, meetEvent, meetTitle,
+} from '../../browser-extensions/build/js/model.js';
+import {validateInput} from '../../gnome-extension/services/protocol.js';
+
+const valid = event => {
+    const r = validateInput(event);
+    assert.ok(r.ok, r.error);
+};
+
+test('meeting titles', () => {
+    assert.equal(meetTitle('Meet - Weekly sync'), 'Weekly sync');
+    assert.equal(meetTitle('Meet – abc-defg-hij'), 'abc-defg-hij');
+    assert.equal(meetTitle('(2) Meet - Design review'), 'Design review');
+    assert.equal(meetTitle('Google Meet'), 'Google Meet');
+    assert.equal(meetTitle(''), 'Google Meet');
+});
+
+test('Meet call: confirmed, mute state only when known, Leave', () => {
+    const unmuted = meetEvent(7, {inCall: true, title: 'Weekly sync', muted: false}, 'started');
+    assert.equal(unmuted.id, 'browser:meet:7');
+    assert.equal(unmuted.payload.confidence, 'confirmed');
+    assert.equal(unmuted.payload.muted, false);
+    assert.deepEqual(unmuted.actions.map(a => a.id), ['mute', 'leave']);
+    valid(unmuted);
+
+    const muted = meetEvent(7, {inCall: true, title: 'Weekly sync', muted: true}, 'updated');
+    assert.deepEqual(muted.actions.map(a => a.id), ['unmute', 'leave']);
+    valid(muted);
+
+    const unknown = meetEvent(7, {inCall: true, title: 'x', muted: null}, 'updated');
+    assert.equal('muted' in unknown.payload, false, 'unknown mute state is not invented');
+    assert.deepEqual(unknown.actions.map(a => a.id), ['leave']);
+    valid(unknown);
+
+    const ended = meetEvent(7, {inCall: true, title: 'x', muted: false}, 'ended');
+    assert.deepEqual(ended.actions, []);
+    valid(ended);
+});
+
+test('downloads: progress, done, cancelled, only the file name', () => {
+    const item = {id: 3, filename: '/home/yousef/Downloads/archlinux-x86_64.iso', bytesReceived: 512 * 1024 * 1024,
+        totalBytes: 1200 * 1024 * 1024, state: 'in_progress'};
+    const running = downloadEvent(item, 'started');
+    assert.equal(running.id, 'browser:download:3');
+    assert.equal(running.payload.title, 'archlinux-x86_64.iso');
+    assert.equal(running.payload.detail, '512 MB of 1.2 GB');
+    assert.equal(running.payload.percent, 42.7);
+    assert.deepEqual(running.actions.map(a => a.id), ['cancel']);
+    assert.equal(running.persistent, true);
+    valid(running);
+
+    const done = downloadEvent({...item, state: 'complete'}, 'ended');
+    assert.equal(done.payload.percent, 100);
+    assert.equal(done.persistent, false);
+    valid(done);
+
+    const cancelled = downloadEvent({...item, state: 'interrupted', error: 'USER_CANCELED'}, 'failed');
+    assert.equal(cancelled.payload.detail, 'Cancelled');
+    valid(cancelled);
+
+    const unknownSize = downloadEvent({...item, totalBytes: 0}, 'updated');
+    assert.equal(unknownSize.payload.percent, undefined);
+    assert.equal(unknownSize.payload.detail, '512 MB');
+    valid(unknownSize);
+});
+
+test('helpers', () => {
+    assert.equal(formatBytes(0), '0 B');
+    assert.equal(formatBytes(1536), '1.5 KB');
+    assert.equal(formatBytes(-1), '');
+    assert.equal(fileName('C:\\Users\\me\\file.zip'), 'file.zip');
+    assert.equal(fileName(''), 'Download');
+    assert.equal(fileName('/tmp/a\u0007b.txt'), 'a b.txt');
+});

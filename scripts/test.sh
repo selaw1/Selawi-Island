@@ -8,6 +8,10 @@ cargo fmt --check
 cargo clippy --all-targets -q -- -D warnings
 cargo test -q
 
+echo "== Browser extension: type check, build, unit tests"
+./scripts/build-browser.sh >/dev/null
+node --test tests/browser/*.test.js
+
 echo "== JavaScript: unit tests"
 node --test tests/js/*.test.js
 
@@ -19,13 +23,29 @@ glib-compile-schemas --strict --dry-run gnome-extension/schemas
 
 echo "== End-to-end over a private D-Bus session"
 if command -v dbus-run-session >/dev/null; then
-    cargo build -q -p selawi-islandd -p selawi-island
+    cargo build -q --workspace
     if ! out=$(dbus-run-session -- cargo test -q -p selawi-islandd --test fake_services 2>&1); then
         echo "$out"
         echo "Integration tests against fake services failed"
         exit 1
     fi
     echo "$out" | grep -E "test result"
+    if ! out=$(dbus-run-session -- tests/integration/browser-host.sh 2>&1); then
+        echo "$out"
+        echo "Browser helper test failed"
+        exit 1
+    fi
+    echo "$out" | grep "^ok:"
+    if command -v xvfb-run >/dev/null && node -e "require('playwright')" >/dev/null 2>&1; then
+        if ! out=$(dbus-run-session -- tests/integration/browser-e2e.sh 2>&1); then
+            echo "$out"
+            echo "Browser end-to-end test failed"
+            exit 1
+        fi
+        echo "$out" | grep "^ok:"
+    else
+        echo "(Chromium end-to-end test skipped: needs xvfb-run and Playwright)"
+    fi
     if ! out=$(dbus-run-session -- tests/integration/dbus-smoke.sh 2>&1); then
         echo "$out"
         echo "End-to-end test failed"

@@ -51,6 +51,7 @@ fn call(name: &str) -> EventInput {
         payload: Payload::Call(CallPayload {
             title: "Standup".into(),
             confidence: Confidence::Confirmed,
+            muted: None,
         }),
         actions: vec![Action {
             id: "end".into(),
