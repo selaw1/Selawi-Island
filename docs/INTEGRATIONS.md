@@ -25,6 +25,8 @@ Right-click the island → **Integrations** page. Changes apply immediately.
 |---|---|
 | Sources: Media players / Battery / Bluetooth / Notifications / Network / USB drives / System warnings | Turn each daemon integration on or off. Off removes its events right away. System warnings is off by default |
 | Sources: Audio devices | Audio output, microphone and mute changes (watched by the extension) |
+| Sources: Microphone and camera in use | Orange while an app uses the microphone, green when the camera is on |
+| Sources: Voice waves | Bars that move with your voice while the microphone is in use |
 | Media: Players to show | **All players**, or **One player** |
 | Media: Preferred player | In one-player mode: this player wins whenever it is playing |
 | Notifications: Show notification text | Off shows only the title and app |
@@ -168,6 +170,34 @@ Each warning is shown once and again only after the value has recovered
 (memory above 15 %, CPU below 80 °C). There is no signal for these values,
 so this is the only integration that checks on a timer (every 15 s, two
 small file reads); that is why it is off by default.
+
+## Microphone and camera in use — `gnome-privacy` (implemented, in the extension)
+
+Sources: recording streams in GNOME's mixer and `Shell.CameraMonitor`, the
+same ones behind GNOME's own top-bar privacy icons.
+
+| When | Shows |
+|---|---|
+| An app uses the microphone | 🟠 Microphone · app name · running time · voice waves |
+| The camera is on (with or without the microphone) | 🟢 Camera / Camera and microphone · app name · running time |
+
+One event (`privacy:capture`, call priority) that stays while the
+microphone or camera is in use. It names the apps that record; it never
+claims you are in a call (a real call bubble needs the browser extension).
+
+**Voice waves:** while the microphone event is on screen and another app
+is using the microphone, the extension measures the microphone's loudness
+(8 kHz mono, 12 readings a second) with GStreamer and moves the bars.
+No sound is stored or sent. It stops the moment the microphone is released,
+the island hides (fullscreen), or another event is shown instead. Its own
+stream is named “Selawi Island” and is ignored when deciding whether the
+microphone is in use; it appears next to the real app in tools that list
+recording apps (e.g. pavucontrol). Needs `gst-plugins-good`; without it the
+bars stay still.
+
+Limits: there is no mute button yet. The camera can only be shown, not
+turned off. Camera use is reported without the app's name (GNOME does not
+say which app).
 
 ## Not shown on purpose
 

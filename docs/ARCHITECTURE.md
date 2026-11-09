@@ -36,7 +36,8 @@ Three layers. Each may depend only on the layers listed after it.
 | Shared core | `core/` | Event types, validation, lifecycle, priority, expiry, grouping, snapshot/restore. No platform code |
 | Daemon | `daemon/` | Owns the one `EventStore` behind a `Hub`, serves D-Bus, arms one expiry timer, saves persistent events, runs the integrations. systemd user service `selawi-islandd` |
 | Integrations | `daemon/src/integrations/` | MPRIS media, UPower battery, BlueZ Bluetooth, notifications (as a D-Bus monitor), NetworkManager network/VPN, UDisks2 USB drives, opt-in system warnings. Each turns D-Bus signals into events, owns the event ids `"<id>:…"`, reports its status, follows the live configuration (turned off → stopped and its events withdrawn), and is restarted after failures. See [INTEGRATIONS.md](INTEGRATIONS.md) |
-| Extension sources | `gnome-extension/services/audio-source.js` | What only GNOME Shell can see: audio device and microphone changes from GNOME's mixer, sent to the daemon with `Submit` |
+| Extension sources | `gnome-extension/services/audio-source.js`, `privacy-source.js` | What only GNOME Shell can see, sent to the daemon with `Submit`: audio device changes, and microphone/camera in use. Resent when the daemon (re)starts |
+| Voice waves | `services/level-meter.js`, `ui/level.js`, `ui/waves.js` | Microphone loudness → bars. The meter runs only while the island shows the microphone event and another app is recording |
 | Banner blocker | `gnome-extension/ui/banner-blocker.js` | Hides GNOME's notification banners while the daemon's notifications integration is active |
 | Preferences | `gnome-extension/prefs.js`, `prefs-integrations.js` | Island page (GSettings) and Integrations page (daemon `Configuration1` + GSettings) |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |

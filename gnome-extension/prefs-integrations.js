@@ -83,6 +83,19 @@ export function integrationsPage(settings, window) {
     });
     settings.bind('audio-events', audioRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     sources.add(audioRow);
+    const privacyRow = new Adw.SwitchRow({
+        title: 'Microphone and camera in use',
+        subtitle: 'Orange for the microphone, green when the camera is on',
+    });
+    settings.bind('privacy-events', privacyRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    sources.add(privacyRow);
+    const wavesRow = new Adw.SwitchRow({
+        title: 'Voice waves',
+        subtitle: 'Bars that move when you talk. Measures loudness only, while another app already uses the microphone',
+    });
+    settings.bind('voice-waves', wavesRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    settings.bind('privacy-events', wavesRow, 'sensitive', Gio.SettingsBindFlags.GET);
+    sources.add(wavesRow);
     page.add(sources);
 
     // ---- media

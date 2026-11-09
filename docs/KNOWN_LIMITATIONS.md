@@ -5,6 +5,12 @@
 - **Automatic detection covers media, battery, Bluetooth, notifications,
   audio devices, network/VPN, USB drives and (opt-in) memory and CPU
   temperature.** Calls and per-tab browser media come later.
+- **Microphone/camera in use is not a call.** The island shows which app
+  records, not whether you are in a meeting; no mute button yet; camera
+  use has no app name.
+- **Voice waves add a second recording stream** (“Selawi Island”) while
+  they are on screen. They were tested with a test tone, not yet with a
+  real microphone.
 - **Only USB drives are shown**, not other USB devices (no desktop signal
   for those).
 - **Warning limits are fixed** (memory 10 %, CPU 90 °C) for now.

@@ -15,7 +15,7 @@
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
 | `daemon` unit tests (47) | Engine (submit/list/dismiss, limits, expiry, snapshot 0600, corrupt snapshot), config, safe reading of D-Bus values, MPRIS event building (controls only when supported, paused ttl, stopped, hostile metadata), battery rules (quiet at startup, plug/unplug, low once, critical persistent, cleared by charger), Bluetooth (names, kinds, battery only when reported, never on disconnect), configuration (defaults, round trip, typos rejected, saved 0600), player keys and which player is shown in each media mode, notifications (markup, hidden text, urgency, timeouts, app keys), network changes (switch, offline, portal, VPN), USB drive naming, memory/temperature parsing and warning margins against fake /proc and /sys files |
 | `daemon/tests/fake_services.rs` (10) | Each integration against a fake service on a private bus: fake MPRIS players (appears, Pause reaches it, closes → ended; dismissed then resumed comes back; one-player mode follows the preferred player and switches back to all), fake UPower (quiet at start, Charging, Battery low), fake BlueZ (connect, battery added a moment later, disconnect without battery), a fake notification server (Notify observed while the real server still answers; markup cleaned), turning an integration off and on live, a fake NetworkManager (quiet start, VPN up, Wi-Fi → Ethernet, portal, offline with VPN down), a fake UDisks2 (internal disk ignored, USB drive in and out), and the warnings integration reading a fake /proc |
-| `tests/js/*.test.js` (39) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, battery/audio icons, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
+| `tests/js/*.test.js` (44) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, battery/audio/network icons, microphone (orange, waves) and camera (green) view, loudness parsing and wave bar math, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action) |
 | `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) against a real daemon on a private bus: Default position dropdown, Make this the default / Reset, and the Integrations page (service status, turning Bluetooth off, one-player mode, notification text, audio switch). Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
 | `node --check` | Every extension file parses |
@@ -74,6 +74,16 @@ journalctl -f -o cat /usr/bin/gnome-shell
 3. Plug in a USB stick: “<brand model> · USB drive connected”; remove it: “… removed”.
 4. Integrations → turn on **System warnings**; `selawi-island integrations` shows `health active — checks memory and CPU temperature every 15 s` (or only what your machine has).
 5. Optional stress check: run something heavy until the CPU passes 90 °C, or fill memory: one warning, not repeated while it stays high.
+
+### Microphone, camera and voice waves
+
+1. Join a Google Meet (or any app that uses the microphone): an **orange** “Microphone · <app>” appears with a running timer and bars on the right.
+2. Talk: the bars move with your voice; stay quiet: they sit flat.
+3. Turn the camera on: it turns **green** (“Camera and microphone”). Camera only (mic muted in the app may still count as microphone in use; that is the app's choice).
+4. Leave the meeting: it ends and disappears; `pactl list source-outputs short` no longer lists “Selawi Island”.
+5. While it shows, go fullscreen or let another event take over the pill: the “Selawi Island” recording stream disappears (waves are only measured while visible).
+6. Integrations → turn off **Voice waves**: bars stop and the extra stream never appears. Turn off **Microphone and camera in use**: the event disappears.
+7. `systemctl --user restart selawi-islandd` during a call: the microphone event comes back by itself.
 
 ### Idle and position
 

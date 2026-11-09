@@ -91,3 +91,29 @@ test('network, drive and warning icons', () => {
     assert.equal(icon('storage:x', 'storage', 'SanDisk', 'USB drive removed'), 'media-removable-symbolic');
     assert.equal(icon('health:temperature', 'health', 'High temperature', 'CPU at 93 °C'), 'dialog-warning-symbolic');
 });
+
+test('microphone is orange with waves, camera is green, both run a timer', () => {
+    const ev = (title, state = 'started') => describe({
+        ...base, id: 'privacy:capture', category: 'call', state, created_at: 0, updated_at: 0,
+        source: {app: 'Google Chrome', integration: 'gnome-privacy'},
+        payload: {type: 'system', title, detail: 'Google Chrome', severity: 'info'},
+    }, 192_000);
+    const mic = ev('Microphone');
+    assert.equal(mic.accent, 'orange');
+    assert.equal(mic.iconName, 'audio-input-microphone-symbolic');
+    assert.equal(mic.trailing, '3:12');
+    assert.equal(mic.subtitle, 'Google Chrome');
+    assert.ok(mic.live && mic.waves);
+    const both = ev('Camera and microphone');
+    assert.equal(both.accent, 'green');
+    assert.equal(both.iconName, 'camera-web-symbolic');
+    assert.ok(both.waves);
+    const cam = ev('Camera');
+    assert.equal(cam.accent, 'green');
+    assert.equal(cam.waves, false, 'no microphone, no waves');
+    const ended = ev('Microphone', 'ended');
+    assert.equal(ended.waves, false);
+    assert.equal(ended.live, false);
+    assert.equal(describe({...base, category: 'notification', state: 'started',
+        payload: {type: 'notification', title: 'x'}}, 0).waves, false);
+});

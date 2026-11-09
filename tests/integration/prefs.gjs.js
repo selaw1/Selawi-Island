@@ -65,6 +65,8 @@ async function main() {
     const bluetooth = byTitle(Adw.SwitchRow, 'Bluetooth');
     ok(bluetooth.active && bluetooth.sensitive, 'Bluetooth switch is on');
     ok(byTitle(Adw.SwitchRow, 'Network').active, 'Network switch is on');
+    ok(byTitle(Adw.SwitchRow, 'Microphone and camera in use').active, 'Microphone and camera switch is on');
+    ok(byTitle(Adw.SwitchRow, 'Voice waves').active, 'Voice waves switch is on');
     ok(!byTitle(Adw.SwitchRow, 'System warnings').active, 'System warnings switch is off by default');
     bluetooth.active = false;
     await sleep(500);

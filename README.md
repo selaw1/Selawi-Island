@@ -24,6 +24,7 @@ no hosting.
 - Arch Linux with GNOME 51
 - Rust to build the daemon and CLI: `sudo pacman -S --needed base-devel git rust`
 - Node.js only to run the JavaScript unit tests: `sudo pacman -S --needed nodejs`
+- For voice waves: `gst-plugins-good` (normally already installed with GNOME)
 
 ## Install or update
 

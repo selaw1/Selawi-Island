@@ -9,6 +9,14 @@
       <default>true</default>
       <summary>Show audio output, microphone and microphone mute changes</summary>
     </key>
+    <key name="privacy-events" type="b">
+      <default>true</default>
+      <summary>Show when an app is using the microphone or camera</summary>
+    </key>
+    <key name="voice-waves" type="b">
+      <default>true</default>
+      <summary>Show voice waves (measures microphone loudness while another app uses it)</summary>
+    </key>
     <key name="hide-gnome-banners" type="b">
       <default>true</default>
       <summary>Hide GNOME's notification banners while the island shows notifications</summary>

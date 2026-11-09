@@ -17,6 +17,7 @@ import {CompactView} from './compact-view.js';
 import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
 import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
+import {smooth} from './level.js';
 import {describe} from './view-model.js';
 
 const MORPH_MS = 420;
@@ -47,6 +48,10 @@ export class Island {
         this._collapseTimer = 0;
         this._tickTimer = 0;
         this._drag = null; // {startX, startY, pointerX, pointerY} while dragging
+        this._level = 0;
+        this._wavesWanted = false;
+        /** Called with true/false when voice waves appear on or leave the screen. */
+        this.onWavesWanted = null;
 
         this._monitors = new MonitorManager(settings);
         this._monitors.connectObject('changed', () => {
@@ -140,6 +145,7 @@ export class Island {
     }
 
     destroy() {
+        this.onWavesWanted = null;
         this._releaseGrab();
         this._clearCollapseTimer();
         this._stopTicking();
@@ -223,6 +229,29 @@ export class Island {
             this._startTicking();
         else
             this._stopTicking();
+        this._updateWavesWanted();
+    }
+
+    /** Microphone loudness 0…1 from the level meter. */
+    setLevel(level) {
+        this._level = smooth(this._level, level);
+        if (this._mode === Mode.COMPACT)
+            this._compact.setLevel(this._level);
+        else if (this._mode === Mode.EXPANDED)
+            this._expanded.setLevel(this._level);
+    }
+
+    // Waves are measured only while they are actually on screen.
+    _updateWavesWanted() {
+        const visibleView = this._mode === Mode.COMPACT ? this._compact
+            : this._mode === Mode.EXPANDED ? this._expanded : null;
+        const wanted = Boolean(visibleView?.showsWaves) && !this._hidden;
+        if (wanted === this._wavesWanted)
+            return;
+        this._wavesWanted = wanted;
+        if (!wanted)
+            this._level = 0;
+        this.onWavesWanted?.(wanted);
     }
 
     _setMode(mode, by = null) {
@@ -349,6 +378,7 @@ export class Island {
         if (hidden === this._hidden)
             return;
         this._hidden = hidden;
+        this._updateWavesWanted();
         if (!hidden)
             this._pill.show();
         this._pill.ease({

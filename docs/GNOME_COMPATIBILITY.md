@@ -22,6 +22,8 @@ declares only `"51"`; add versions after testing them.
 | Icons | Only symbolic icons from the current Adwaita theme (not its `legacy/` folder) | `view-model.js` |
 | Notification banners | `Main.messageTray.bannerBlocked`; the top bar resets it when the calendar menu closes, so it is set again on the date menu's `open-state-changed` | `banner-blocker.js` |
 | Audio | `Volume.getMixerControl()` from `ui/status/volume.js` (shared Gvc mixer): `state-changed`, `default-sink-changed`, `default-source-changed`, `lookup_stream_id`, `lookup_device_from_stream`, stream `notify::is-muted` | `audio-source.js` |
+| Mic / camera in use | Mixer `get_source_outputs()` with `stream-added` / `stream-removed` (as `status/volume.js` does, skipping level-meter apps) and `Shell.CameraMonitor` `cameras-in-use` (as `status/camera.js`) | `privacy-source.js` |
+| Voice level | GStreamer loaded on demand (`gi://Gst`): `pulsesrc ! … ! level`; level messages arrive as `rms=(GValueArray)< dB >` | `level-meter.js` |
 | GJS | No `structuredClone` (use a JSON copy). A main loop nested inside a module still awaiting a top-level `await` does not run promise continuations | `prefs-integrations.js`, tests |
 | Settings | `getSettings()` needs a compiled `schemas/gschemas.compiled` (the install script builds it) | `extension.js` |
 

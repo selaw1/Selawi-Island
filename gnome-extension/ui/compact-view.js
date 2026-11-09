@@ -4,6 +4,7 @@ import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
+import {Waves} from './waves.js';
 import {label, setAccent, setIcon, setText} from './widgets.js';
 
 // Layout: the "+N" count sits at the left edge and the trailing value
@@ -34,11 +35,23 @@ class CompactView extends St.Widget {
         this._center.add_child(this._title);
 
         this._badge = label('selawi-badge', {x_align: Clutter.ActorAlign.START, x_expand: true, y_expand: true});
-        this._trailing = label('selawi-compact-trailing', {x_align: Clutter.ActorAlign.END, x_expand: true, y_expand: true});
+        // Right edge: voice waves (microphone only) and the trailing value.
+        this._right = new St.BoxLayout({
+            style_class: 'selawi-compact-right',
+            x_align: Clutter.ActorAlign.END,
+            y_align: Clutter.ActorAlign.CENTER,
+            x_expand: true,
+            y_expand: true,
+        });
+        this._waves = new Waves();
+        this._waves.visible = false;
+        this._trailing = label('selawi-compact-trailing');
+        this._right.add_child(this._waves);
+        this._right.add_child(this._trailing);
 
         this.add_child(this._center);
         this.add_child(this._badge);
-        this.add_child(this._trailing);
+        this.add_child(this._right);
         this._centered = true;
         this._style = '';
     }
@@ -48,7 +61,8 @@ class CompactView extends St.Widget {
         const gap = 8 * scale;
         const width = actor => (actor.visible ? actor.get_preferred_width(-1)[1] : 0);
         const left = width(this._badge) > 0 ? width(this._badge) + gap : 0;
-        const right = width(this._trailing) > 0 ? width(this._trailing) + gap : 0;
+        const rightWidth = width(this._trailing) + width(this._waves);
+        const right = rightWidth > 0 ? rightWidth + gap : 0;
         const side = Math.max(left, right);
 
         const available = this.width - this.get_theme_node().get_horizontal_padding();
@@ -79,6 +93,7 @@ class CompactView extends St.Widget {
             setText(this._trailing, '');
             setText(this._badge, '');
             this._icon.visible = false;
+            this._waves.visible = false;
             this._updateClearance();
             return;
         }
@@ -89,6 +104,18 @@ class CompactView extends St.Widget {
         setText(this._title, vm.title);
         setText(this._trailing, vm.trailing);
         setText(this._badge, total > 1 ? `+${total - 1}` : '');
+        this._waves.visible = vm.waves;
+        this._waves.setAccent(vm.accent);
         this._updateClearance();
+    }
+
+    /** Whether voice waves are on screen right now. */
+    get showsWaves() {
+        return this._waves.visible;
+    }
+
+    setLevel(level) {
+        if (this._waves.visible)
+            this._waves.setLevel(level);
     }
 });

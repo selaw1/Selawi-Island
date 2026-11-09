@@ -83,6 +83,24 @@ function systemIcon(event) {
     return null;
 }
 
+/**
+ * Microphone / camera in use (from the extension's privacy source):
+ * orange for the microphone only, green when the camera is on, a running
+ * timer, and voice waves while the microphone is part of it.
+ */
+function describePrivacy(event, now, vm) {
+    const p = event.payload;
+    const camera = p.title.startsWith('Camera');
+    const mic = p.title.includes('icrophone');
+    vm.accent = camera ? 'green' : 'orange';
+    vm.iconName = camera ? 'camera-web-symbolic' : 'audio-input-microphone-symbolic';
+    vm.subtitle = p.detail ?? '';
+    const finished = isFinished(event);
+    vm.trailing = formatClock((finished ? event.updated_at : now) - event.created_at);
+    vm.live = !finished;
+    vm.waves = mic && !finished;
+}
+
 /** Current playback position, extrapolated while playing. */
 export function mediaPosition(event, now) {
     const p = event.payload;
@@ -107,7 +125,8 @@ function isFinished(event) {
  *   trailing: string, progress: number|null, live: boolean}}
  *   accent is one of: neutral, green, blue, pink, orange, red.
  *   progress is 0..1 or null. live means the view changes with time and
- *   must be refreshed every second while visible.
+ *   must be refreshed every second while visible. waves means the view
+ *   shows microphone voice bars.
  */
 export function describe(event, now) {
     const p = event.payload;
@@ -120,6 +139,7 @@ export function describe(event, now) {
         trailing: '',
         progress: null,
         live: false,
+        waves: false,
     };
 
     switch (p.type) {
@@ -199,6 +219,9 @@ export function describe(event, now) {
         vm.subtitle = p.detail ?? app;
         break;
     }
+
+    if (event.source.integration === 'gnome-privacy' && p.type === 'system')
+        describePrivacy(event, now, vm);
 
     if (vm.progress !== null)
         vm.progress = Math.min(1, Math.max(0, vm.progress));

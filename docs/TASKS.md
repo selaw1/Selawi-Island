@@ -83,3 +83,20 @@
   (stable over 10 runs), headless preferences test, 39 JS tests,
   end-to-end D-Bus test — all passing.
 - **Remaining:** manual checks; Phase 6 (browser extensions).
+
+## T-006 — Microphone/camera in use and voice waves
+- **Created:** 2026-11-09
+- **Status:** Done (manual check pending)
+- **Description:** Extension privacy source (mixer recording streams +
+  Shell.CameraMonitor) → `privacy:capture` event; orange/green view with
+  timer; GStreamer level meter gated on "waves on screen and microphone in
+  use"; wave bars in compact and expanded views; two settings.
+- **Files:** `gnome-extension/services/{privacy-source,level-meter,daemon-feed}.js`,
+  `gnome-extension/ui/{level,waves,view-model,compact-view,expanded-view,island}.js`,
+  `extension.js`, `prefs-integrations.js`, schema, stylesheet, tests, docs.
+- **Dependencies added:** none in the repo; uses GStreamer's `pulsesrc`
+  and `level` at runtime (gst-plugins-good), optional.
+- **Tests:** 44 JS tests; meter checked under GJS (graceful failure with no
+  sound server, 12 readings/s with a test tone, stops on demand); headless
+  preferences test. Real microphone and camera untested.
+- **Remaining:** manual checks; optional mute button; Phase 6.

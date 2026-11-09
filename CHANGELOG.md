@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — microphone and camera
+
+### Added
+- “Microphone in use” (orange) and “Camera in use” (green) with the app
+  name and a running timer, from GNOME's own mixer and camera monitor.
+- Voice waves: bars that move with your voice, measured only while the
+  microphone event is on screen and another app is using the microphone.
+- Integrations page: “Microphone and camera in use” and “Voice waves”.
+
 ## Unreleased — Phase 5
 
 ### Added

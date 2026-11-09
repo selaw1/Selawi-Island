@@ -45,6 +45,19 @@
   font-weight: 600;
 }
 
+.selawi-compact-right { spacing: 8px; }
+
+/* ---- voice waves ------------------------------------------------------ */
+
+.selawi-waves { spacing: 2px; }
+
+.selawi-wave-bar {
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background-color: #f5f5f7;
+}
+
 /* ---- expanded --------------------------------------------------------- */
 
 .selawi-empty {
@@ -158,6 +171,9 @@
 .selawi-other-icon.accent-orange, .selawi-trailing.accent-orange { color: #ff9f0a; }
 .selawi-compact-icon.accent-red, .selawi-compact-trailing.accent-red,
 .selawi-other-icon.accent-red, .selawi-trailing.accent-red { color: #ff453a; }
+
+.selawi-wave-bar.accent-green { background-color: #30d158; }
+.selawi-wave-bar.accent-orange { background-color: #ff9f0a; }
 
 .selawi-icon-tile.accent-neutral, .selawi-progress-fill.accent-neutral { background-color: #f5f5f7; }
 .selawi-icon-tile.accent-green, .selawi-progress-fill.accent-green { background-color: #30d158; }

@@ -94,6 +94,8 @@ export class DaemonFeed extends EventEmitter {
 
     _onAppeared() {
         this._connected = true;
+        // Lets extension-side sources send their current state again.
+        this.emit('connected');
         this._call('List', null, reply => {
             const [json] = reply.deepUnpack();
             this._setList(json);

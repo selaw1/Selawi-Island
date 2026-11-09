@@ -6,6 +6,7 @@ import GObject from 'gi://GObject';
 import Graphene from 'gi://Graphene';
 import St from 'gi://St';
 
+import {Waves} from './waves.js';
 import {label, setAccent, setIcon, setText} from './widgets.js';
 
 const MAX_OTHER_ROWS = 3;
@@ -45,8 +46,11 @@ export const ExpandedView = GObject.registerClass({
         text.add_child(this._title);
         text.add_child(this._subtitle);
         this._trailing = label('selawi-trailing');
+        this._waves = new Waves();
+        this._waves.visible = false;
         header.add_child(this._iconTile);
         header.add_child(text);
+        header.add_child(this._waves);
         header.add_child(this._trailing);
         this.add_child(header);
 
@@ -97,6 +101,7 @@ export const ExpandedView = GObject.registerClass({
         this._actions.visible = !empty;
         if (empty) {
             this._track.visible = false;
+            this._waves.visible = false;
             this._rebuildActions([]);
             this._rebuildOthers([]);
             return;
@@ -108,9 +113,21 @@ export const ExpandedView = GObject.registerClass({
         setText(this._subtitle, vm.subtitle);
         setText(this._trailing, vm.trailing);
         setAccent(this._trailing, vm.accent);
+        this._waves.visible = vm.waves;
+        this._waves.setAccent(vm.accent);
         this._updateProgress(vm, animationMs);
         this._rebuildActions(event.actions);
         this._rebuildOthers(others);
+    }
+
+    /** Whether voice waves are on screen right now. */
+    get showsWaves() {
+        return this._waves.visible;
+    }
+
+    setLevel(level) {
+        if (this._waves.visible)
+            this._waves.setLevel(level);
     }
 
     _updateProgress(vm, animationMs) {
