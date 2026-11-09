@@ -6,10 +6,11 @@ import St from 'gi://St';
 
 import {label, setAccent, setIcon, setText} from './widgets.js';
 
-// Layout: the icon and title are centered in the pill as one group. The
-// "+N" count sits at the left edge and the trailing value (timer, percent)
-// at the right edge. The centered group keeps the same clearance on both
-// sides, so it stays centered and never runs under either edge item.
+// Layout: the "+N" count sits at the left edge and the trailing value
+// (timer, percent) at the right edge. The icon and title are centered when
+// they fit between the two with equal clearance; when the title is too
+// long for that, they start at the left instead, so the title gets all the
+// room up to the trailing value.
 export const CompactView = GObject.registerClass(
 class CompactView extends St.Widget {
     constructor() {
@@ -38,16 +39,33 @@ class CompactView extends St.Widget {
         this.add_child(this._center);
         this.add_child(this._badge);
         this.add_child(this._trailing);
-        this._clearance = -1;
+        this._centered = true;
+        this._style = '';
     }
 
     _updateClearance() {
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const gap = 8 * scale;
         const width = actor => (actor.visible ? actor.get_preferred_width(-1)[1] : 0);
-        const side = Math.max(width(this._badge), width(this._trailing));
-        const clearance = side > 0 ? Math.ceil(side) + 8 : 0;
-        if (clearance !== this._clearance) {
-            this._clearance = clearance;
-            this._center.set_style(`padding: 0 ${clearance}px;`);
+        const left = width(this._badge) > 0 ? width(this._badge) + gap : 0;
+        const right = width(this._trailing) > 0 ? width(this._trailing) + gap : 0;
+        const side = Math.max(left, right);
+
+        const available = this.width - this.get_theme_node().get_horizontal_padding();
+        const content = this._center.get_preferred_width(-1)[1] -
+            this._center.get_theme_node().get_horizontal_padding();
+        // A little hysteresis so a ticking timer doesn't flip the layout.
+        const centeredRoom = available - 2 * side;
+        const centered = this._centered ? content <= centeredRoom : content <= centeredRoom - 12 * scale;
+
+        const [padLeft, padRight] = centered ? [side, side] : [left, right];
+        // St scales CSS pixels by the scale factor; these are stage pixels.
+        const style = `padding: 0 ${Math.ceil(padRight / scale)}px 0 ${Math.ceil(padLeft / scale)}px;`;
+        if (centered !== this._centered || style !== this._style) {
+            this._centered = centered;
+            this._style = style;
+            this._center.x_align = centered ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START;
+            this._center.set_style(style);
         }
     }
 

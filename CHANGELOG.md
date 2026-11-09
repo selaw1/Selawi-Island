@@ -11,8 +11,10 @@
 - `~/.config/selawi-island/daemon.json` to turn integrations off.
 
 ### Changed
-- Compact island: icon and title are centered; “+N” sits at the left
-  edge and the time/percent at the right.
+- Compact island: icon and title are centered when they fit; a long
+  title starts at the left instead, using the full width up to the
+  time/percent on the right. “+N” sits at the left edge.
+- Paused media with no known length no longer shows a frozen “0:00”.
 - The daemon is a library plus a small binary, so integrations can be
   tested against fake services.
 

@@ -98,7 +98,11 @@ export function describe(event, now) {
         vm.iconName = p.playing ? 'media-playback-start-symbolic' : 'media-playback-pause-symbolic';
         vm.title = p.title;
         vm.subtitle = join(p.artist, p.album) || app;
-        const pos = mediaPosition(event, now);
+        let pos = mediaPosition(event, now);
+        // Some players (often browsers) report position 0 and no length
+        // when they don't know; a frozen 0:00 would be misleading.
+        if (pos === 0 && !p.duration_ms && !p.playing)
+            pos = null;
         if (pos !== null && p.duration_ms)
             vm.progress = pos / p.duration_ms;
         if (pos !== null)

@@ -51,3 +51,12 @@ test('media position extrapolates only while playing', () => {
     assert.equal(describe(ev(false), 6000).trailing, '0:10');
     assert.equal(describe(ev(true), 999_999).progress, 1);
 });
+
+test('paused media with unknown position shows no frozen 0:00', () => {
+    const ev = {...base, category: 'media', state: 'updated',
+        payload: {type: 'media', title: 'Clip', playing: false, position_ms: 0}};
+    assert.equal(describe(ev, 5000).trailing, '');
+    assert.equal(describe(ev, 5000).progress, null);
+    const known = {...ev, payload: {...ev.payload, duration_ms: 60_000}};
+    assert.equal(describe(known, 5000).trailing, '0:00', 'with a length, 0:00 is real');
+});
