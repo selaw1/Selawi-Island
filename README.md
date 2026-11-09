@@ -9,44 +9,49 @@ no hosting.
 
 ## Status
 
-**Milestone 1 (Phases 1–2): foundation and island UI, using simulated events.**
-
 | Part | Status |
 |---|---|
 | Shared Rust core (event model, lifecycle, priority, expiry, grouping) | Implemented, tested |
-| GNOME Shell extension (GNOME 51): pill, compact/expanded views, animation, hover, click, keyboard | Implemented, needs manual check on your machine |
-| Demo events (call, music, download, Bluetooth, notification, battery) | Simulated |
-| Daemon, D-Bus, real integrations, CLI, settings app, browser extensions | Not started (see [ROADMAP](docs/ROADMAP.md)) |
+| GNOME Shell extension (GNOME 51): pill, compact/expanded views, animation, hover, click, keyboard | Implemented, checked on GNOME 51 |
+| Daemon `selawi-islandd` on D-Bus + systemd user service | Implemented, tested on a private bus |
+| CLI `selawi-island` (notify, progress, list, dismiss, send, status) | Implemented, tested |
+| Demo events | Simulated, off by default |
+| Automatic detection (music, Bluetooth, battery, notifications, calls) | Not started — Phase 4 (see [ROADMAP](docs/ROADMAP.md)) |
 
 ## Requirements (all free)
 
 - Arch Linux with GNOME 51
-- For building and testing the Rust core: `sudo pacman -S --needed base-devel git rust`
-- Node.js is only needed to run the JavaScript unit tests: `sudo pacman -S --needed nodejs`
+- Rust to build the daemon and CLI: `sudo pacman -S --needed base-devel git rust`
+- Node.js only to run the JavaScript unit tests: `sudo pacman -S --needed nodejs`
 
-## Try it
+## Install or update
 
 ```bash
 ./scripts/install-local.sh
 ```
 
-Then log out and back in (GNOME on Wayland only loads extension code at
-login) and enable it if it is not already:
+This builds and installs the daemon and CLI into `~/.local/bin`, starts the
+`selawi-islandd` user service, and installs the GNOME extension. The first
+time (and after extension updates), log out and back in: GNOME on Wayland
+loads extension code only at login.
 
 ```bash
 gnome-extensions enable selawi-island@selawi
 ```
 
-To try it without logging out, use a nested GNOME Shell window:
+Then try it:
 
 ```bash
-./scripts/dev.sh
+selawi-island notify "Hello from the terminal"
 ```
 
-Preferences: `gnome-extensions prefs selawi-island@selawi`.
-Remove: `./scripts/uninstall.sh`.
+More in [docs/CLI.md](docs/CLI.md). To see the demo instead, turn on
+**Demo events** in `gnome-extensions prefs selawi-island@selawi`.
 
-What you should see is described in [docs/TESTING.md](docs/TESTING.md#manual-checks-on-gnome).
+Remove everything: `./scripts/uninstall.sh` (add `--purge` to also delete
+settings and saved events).
+
+What to check is in [docs/TESTING.md](docs/TESTING.md#manual-checks-on-gnome).
 
 ## Run the automated checks
 
@@ -58,11 +63,15 @@ What you should see is described in [docs/TESTING.md](docs/TESTING.md#manual-che
 
 ```text
 core/               Rust: platform-independent event model and engine
+daemon/             Rust: selawi-islandd, the D-Bus service
+cli/                Rust: selawi-island command-line client
+packaging/          systemd user service and D-Bus activation file
 gnome-extension/    GNOME Shell extension (the island UI)
   ui/               pill, compact/expanded views, monitor placement
   services/         protocol validation, event store, simulator
   data/             demo scenario played by the simulator
 tests/js/           JavaScript unit tests (run with Node)
+tests/integration/  end-to-end test on a private D-Bus bus
 tests/fixtures/     protocol cases shared by Rust and JavaScript tests
 platform/           notes for future Windows/macOS ports
 scripts/            install, dev, test, uninstall

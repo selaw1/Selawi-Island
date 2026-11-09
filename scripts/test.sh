@@ -12,9 +12,22 @@ echo "== JavaScript: unit tests"
 node --test tests/js/*.test.js
 
 echo "== JavaScript: syntax of every extension file"
-find gnome-extension -name '*.js' -print0 | xargs -0 -n1 node --check
+find gnome-extension tests/integration -name '*.js' -print0 | xargs -0 -n1 node --check
 
 echo "== GSettings schema"
 glib-compile-schemas --strict --dry-run gnome-extension/schemas
+
+echo "== End-to-end over a private D-Bus session"
+if command -v dbus-run-session >/dev/null; then
+    cargo build -q -p selawi-islandd -p selawi-island
+    if ! out=$(dbus-run-session -- tests/integration/dbus-smoke.sh 2>&1); then
+        echo "$out"
+        echo "End-to-end test failed"
+        exit 1
+    fi
+    echo "$out" | grep -v "fd limit"
+else
+    echo "(dbus-run-session not installed: skipped)"
+fi
 
 echo "All checks passed."

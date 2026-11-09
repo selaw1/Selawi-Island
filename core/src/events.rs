@@ -28,6 +28,15 @@ pub const MAX_TTL_MS: u64 = 24 * 60 * 60 * 1000;
 pub struct Timestamp(pub u64);
 
 impl Timestamp {
+    /// Current wall-clock time. Falls back to 0 if the clock is before 1970.
+    pub fn now() -> Timestamp {
+        let ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        Timestamp(u64::try_from(ms).unwrap_or(u64::MAX))
+    }
+
     pub fn plus_ms(self, ms: u64) -> Timestamp {
         Timestamp(self.0.saturating_add(ms))
     }

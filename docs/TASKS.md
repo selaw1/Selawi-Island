@@ -11,3 +11,20 @@
 - **Tests:** `./scripts/test.sh` — 33 Rust tests, 20 JS tests, syntax and
   schema checks, all passing. UI not run on GNOME (see KNOWN_LIMITATIONS).
 - **Remaining:** manual checks in `docs/TESTING.md`; Phase 3.
+
+## T-002 — Phase 3: daemon, D-Bus, CLI
+- **Created:** 2026-11-09
+- **Status:** Done (manual GNOME check pending)
+- **Description:** Rust daemon `selawi-islandd` serving `com.selawi.Island`
+  (`Core1`, `Events1`), persistence with restore grace period, systemd user
+  service + D-Bus activation, CLI `selawi-island`, extension `DaemonFeed`
+  (default; demo now opt-in).
+- **Files:** `daemon/**`, `cli/**`, `core/src/{events,store}.rs`,
+  `gnome-extension/{extension.js,prefs.js,services/daemon-feed.js,services/protocol.js,schemas/*}`,
+  `packaging/**`, `scripts/*.sh`, `tests/integration/**`,
+  `tests/js/stored-events.test.js`, docs.
+- **Dependencies added:** `zbus` 6 (D-Bus), `tokio` 1 (async runtime),
+  `clap` 4 (CLI arguments).
+- **Tests:** `./scripts/test.sh` — 38 Rust tests, 23 JS tests, end-to-end
+  D-Bus test (daemon + CLI + DaemonFeed under GJS), all passing.
+- **Remaining:** manual checks in `docs/TESTING.md`; Phase 4 integrations.

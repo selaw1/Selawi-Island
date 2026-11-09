@@ -1,0 +1,5 @@
+[D-BUS Service]
+Name=com.selawi.Island
+# Started through systemd so there is only ever one instance.
+Exec=/bin/false
+SystemdService=selawi-islandd.service

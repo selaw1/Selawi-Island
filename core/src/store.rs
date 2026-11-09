@@ -260,9 +260,18 @@ impl EventStore {
 
     /// Rebuilds a store from a snapshot. Entries that are invalid, finished
     /// or not persistent are dropped rather than trusted.
-    pub fn restore(config: EngineConfig, snapshot: Vec<Event>) -> Self {
+    ///
+    /// Restored events expire after `grace_ms` unless their source updates
+    /// them, so an event whose source is gone (for example after a reboot)
+    /// cannot stay on screen forever. Any update makes it persistent again.
+    pub fn restore(
+        config: EngineConfig,
+        snapshot: Vec<Event>,
+        now: Timestamp,
+        grace_ms: u64,
+    ) -> Self {
         let mut store = Self::new(config);
-        for event in snapshot {
+        for mut event in snapshot {
             if !event.persistent
                 || event.state.is_terminal()
                 || to_input(&event).validate().is_err()
@@ -272,6 +281,7 @@ impl EventStore {
             if store.events.len() >= store.config.max_events {
                 break;
             }
+            event.expires_at = Some(now.plus_ms(grace_ms));
             store.events.insert(
                 event.id.clone(),
                 Stored {
@@ -349,9 +359,9 @@ impl EventStore {
             && event.payload == input.payload
             && event.actions == input.actions;
         if unchanged {
-            if event.expires_at.is_some() {
-                event.expires_at = expires_at;
-            }
+            // Refreshes the ttl of non-persistent events and clears the
+            // grace expiry of restored persistent ones.
+            event.expires_at = expires_at;
             return None;
         }
 

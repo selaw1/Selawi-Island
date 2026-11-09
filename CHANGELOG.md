@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased — Phase 3
+
+### Added
+- `selawi-islandd` daemon: event engine on the session bus as
+  `com.selawi.Island` with `Core1` (versions) and `Events1` (Submit, List,
+  Dismiss, InvokeAction, Changed, ActionInvoked). One expiry timer, no
+  polling. Persistent events saved to `~/.local/state/selawi-island/` and
+  restored with a 60 s grace period.
+- systemd user service `selawi-islandd` and D-Bus activation.
+- `selawi-island` CLI: notify, progress start/update/finish, list,
+  dismiss, send, status.
+- Extension `DaemonFeed`: the island now shows the daemon's events.
+- End-to-end test on a private D-Bus bus, including the extension's
+  daemon feed under GJS.
+
+### Changed
+- Demo events are now off by default (Preferences → Demo events).
+- `EventStore::restore` takes the current time and a grace period.
+- `install-local.sh` builds and installs the daemon, CLI and service too;
+  `uninstall.sh` removes them (`--purge` also removes settings and data).
+
 ## Unreleased — Milestone 1 (Phases 1–2)
 
 ### Fixed

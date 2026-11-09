@@ -1,10 +1,11 @@
 // Selawi Island GNOME Shell extension entry point.
 //
-// The extension only draws the island. Events come from a feed: for now
-// the built-in simulator; from Phase 3 the Selawi Island daemon over D-Bus.
+// The extension only draws the island. Events come from a feed: the
+// Selawi Island daemon over D-Bus, or the built-in demo simulator.
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import {DaemonFeed} from './services/daemon-feed.js';
 import {SimulatedFeed} from './services/simulated-feed.js';
 import {Island} from './ui/island.js';
 
@@ -34,6 +35,8 @@ export default class SelawiIslandExtension extends Extension {
             const scenario = this.dir.get_child('data').get_child('demo-scenario.json');
             this._feed = new SimulatedFeed(scenario, this._logger);
             this._feed.start().catch(e => this._logger.error(`Simulator failed: ${e.message}`));
+        } else {
+            this._feed = new DaemonFeed(this._logger);
         }
         this._island.setFeed(this._feed);
     }

@@ -10,12 +10,17 @@
 |---|---|
 | `cargo fmt --check`, `cargo clippy -D warnings` | Style; bans `unwrap`/`expect` outside tests, forbids `unsafe` |
 | `core` unit tests (14) | ID and text validation, ranges, payload/category rules, JSON shape, unknown fields, lifecycle transitions, priority order |
-| `core/tests/engine.rs` (17) | Create, update, dedup, expiry, ttl refresh, linger, stale updates, priority (calls are never displaced), stable order, user overrides, dismissal, grouping, capacity, 10 000-event flood, snapshot/restore |
+| `core/tests/engine.rs` (18) | Create, update, dedup, expiry, ttl refresh, linger, stale updates, priority (calls are never displaced), stable order, user overrides, dismissal, grouping, capacity, 10 000-event flood, snapshot/restore, restore grace period |
 | `core/tests/protocol_fixtures.rs` | Rust accepts/rejects every case in `tests/fixtures/protocol-cases.json` |
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
-| `tests/js/*.test.js` (20) | JS validator on the same shared cases, JS event store (same rules as Rust), view model (durations, progress, no invented battery, unconfirmed calls not shown as calls) |
+| `daemon` unit tests (5) | Submit/list/dismiss, size limit, invalid input, expiry, snapshot file (mode 0600) survives restart, corrupt snapshot ignored |
+| `tests/js/*.test.js` (23) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries |
+| `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action) |
 | `node --check` | Every extension file parses |
 | `glib-compile-schemas --strict` | Settings schema is valid |
+
+The end-to-end test needs `dbus-run-session` (package `dbus`) and, for the
+`DaemonFeed` part, `gjs` (installed with GNOME).
 
 Simulated events are the test source: `gnome-extension/data/demo-scenario.json`.
 
@@ -29,6 +34,24 @@ Install (`./scripts/install-local.sh`, then log out/in) or run
 ```bash
 journalctl -f -o cat /usr/bin/gnome-shell
 ```
+
+### Real events from the daemon (Phase 3)
+
+1. `systemctl --user status selawi-islandd` shows **active (running)**.
+2. `selawi-island status` prints the version and event count.
+3. `selawi-island notify "Hello" --body "From the terminal"` — the island expands with it, then it disappears after ~8 s.
+4. Progress: run the three `progress` commands from `docs/CLI.md`; the bar moves, then shows Done and goes away.
+5. Click **Dismiss** on an event in the island; `selawi-island list` no longer shows it.
+6. `systemctl --user stop selawi-islandd` — the island goes back to the empty pill. `selawi-island notify hi` starts the daemon again by itself (D-Bus activation) and shows it.
+7. Restart survival: send a persistent event, then restart the daemon. It is still there, and disappears about 60 s later because nothing updates it:
+   ```bash
+   selawi-island send '{"id":"t","source":{"app":"Test","integration":"cli"},"category":"call","state":"started","persistent":true,"payload":{"type":"call","title":"Test call","confidence":"confirmed"}}'
+   ```
+   ```bash
+   systemctl --user restart selawi-islandd
+   ```
+
+### Demo (turn on “Demo events” in preferences)
 
 The demo loops about every 55 seconds. Check each item:
 

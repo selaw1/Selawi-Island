@@ -346,12 +346,47 @@ fn snapshot_restores_only_active_persistent_events() -> TestResult {
     store.apply(download("d", LifecycleState::Ended, 100.0), Timestamp(1))?;
 
     let json = serde_json::to_string(&store.snapshot())?;
-    let restored = EventStore::restore(EngineConfig::default(), serde_json::from_str(&json)?);
+    let restored = EventStore::restore(
+        EngineConfig::default(),
+        serde_json::from_str(&json)?,
+        Timestamp(1_000),
+        60_000,
+    );
     assert_eq!(ordered_ids(&restored), ["call"]);
     assert_eq!(
         restored.get(&id("call")).map(|e| e.created_at),
         Some(Timestamp(0))
     );
+    Ok(())
+}
+
+#[test]
+fn restored_event_expires_unless_its_source_updates_it() -> TestResult {
+    let mut store = EventStore::default();
+    store.apply(call("a"), Timestamp(0))?;
+    store.apply(call("b"), Timestamp(0))?;
+    let mut restored = EventStore::restore(
+        EngineConfig::default(),
+        store.snapshot(),
+        Timestamp(1_000),
+        60_000,
+    );
+    assert_eq!(restored.next_deadline(), Some(Timestamp(61_000)));
+
+    // The source of "a" is still alive and repeats its state.
+    let mut again = call("a");
+    again.state = LifecycleState::Updated;
+    assert!(restored.apply(again, Timestamp(30_000))?.is_empty());
+
+    assert_eq!(
+        restored.tick(Timestamp(61_000)),
+        vec![Change::Removed(id("b"))]
+    );
+    assert!(
+        restored.get(&id("a")).is_some(),
+        "updated event is persistent again"
+    );
+    assert_eq!(restored.next_deadline(), None);
     Ok(())
 }
 

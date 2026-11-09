@@ -1,0 +1,15 @@
+[package]
+name = "selawi-islandd"
+description = "Selawi Island daemon: event engine on the D-Bus session bus"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+selawi-core = { path = "../core" }
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "macros", "time", "signal", "sync", "fs"] }
+zbus = { version = "6", default-features = false, features = ["tokio", "service"] }
+
+[lints]
+workspace = true

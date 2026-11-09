@@ -30,7 +30,7 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
 
         const behaviour = new Adw.PreferencesGroup({title: 'Behaviour'});
         behaviour.add(switchRow(settings, 'simulation-enabled', 'Demo events',
-            'Play simulated calls, music, downloads and devices'));
+            'Play simulated events instead of real ones from the Selawi Island service'));
         behaviour.add(switchRow(settings, 'auto-expand', 'Expand for new events',
             'Briefly expand when a new most-important event arrives'));
         behaviour.add(spinRow(settings, 'auto-expand-ms', 'Expansion time (ms)', 1000, 30000, 250));

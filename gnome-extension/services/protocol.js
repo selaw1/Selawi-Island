@@ -236,3 +236,73 @@ export function validateInput(raw) {
         throw e;
     }
 }
+
+const STORED_ONLY_KEYS = ['priority', 'created_at', 'updated_at', 'expires_at'];
+
+/**
+ * Validates one stored event as sent by the daemon (an event input plus
+ * resolved priority and timestamps). Returns {ok: true, event} with
+ * `expires_at` and `group` normalized to null when absent, or
+ * {ok: false, error}. Never throws.
+ *
+ * @param {unknown} raw - untrusted parsed JSON
+ * @returns {{ok: true, event: object} | {ok: false, error: string}}
+ */
+export function validateEvent(raw) {
+    if (!isObject(raw))
+        return {ok: false, error: 'event: must be an object'};
+    const inputPart = {};
+    for (const [key, value] of Object.entries(raw)) {
+        if (!STORED_ONLY_KEYS.includes(key))
+            inputPart[key] = value;
+    }
+    const result = validateInput(inputPart);
+    if (!result.ok)
+        return result;
+    if (!PRIORITIES.includes(raw.priority))
+        return {ok: false, error: 'priority: missing or unknown'};
+    const isTime = v => Number.isSafeInteger(v) && v >= 0;
+    if (!isTime(raw.created_at) || !isTime(raw.updated_at))
+        return {ok: false, error: 'created_at/updated_at: must be timestamps'};
+    if (raw.expires_at !== undefined && raw.expires_at !== null && !isTime(raw.expires_at))
+        return {ok: false, error: 'expires_at: must be a timestamp'};
+    return {
+        ok: true,
+        event: {
+            ...result.input,
+            priority: raw.priority,
+            created_at: raw.created_at,
+            updated_at: raw.updated_at,
+            expires_at: raw.expires_at ?? null,
+            group: result.input.group ?? null,
+        },
+    };
+}
+
+/**
+ * Parses the JSON event list the daemon sends. Invalid entries are dropped
+ * and reported, so one bad event cannot blank the island.
+ *
+ * @param {string} json
+ * @returns {{events: object[], errors: string[]}}
+ */
+export function parseEventList(json) {
+    let raw;
+    try {
+        raw = JSON.parse(json);
+    } catch (e) {
+        return {events: [], errors: [`list: ${e.message}`]};
+    }
+    if (!Array.isArray(raw))
+        return {events: [], errors: ['list: must be an array']};
+    const events = [];
+    const errors = [];
+    for (const item of raw) {
+        const r = validateEvent(item);
+        if (r.ok)
+            events.push(r.event);
+        else
+            errors.push(r.error);
+    }
+    return {events, errors};
+}

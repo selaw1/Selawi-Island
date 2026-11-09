@@ -11,25 +11,34 @@ Three layers. Each may depend only on the layers listed after it.
 ## What exists today
 
 ```text
- gnome-extension/
- ┌──────────────────────────────────────────────────────────┐
- │ extension.js ── creates Island and a feed                │
- │                                                          │
- │ SimulatedFeed ──► EventStore ──► events() ──► Island     │
- │ (plays data/      (services/      ordered      (ui/)     │
- │  demo-scenario)    event-store)                │         │
- │        ▲                                       │         │
- │        └──── dismiss() / invokeAction() ◄──────┘         │
- └──────────────────────────────────────────────────────────┘
-
- core/  (Rust, not yet used at runtime)
- events.rs  lifecycle.rs  priority.rs  store.rs
+  scripts, terminal            other programs (Phase 4+)
+  selawi-island (CLI) ─┐      ┌─ any D-Bus client
+                       ▼      ▼
+             ┌─────────────────────────────────────┐
+             │ selawi-islandd (daemon, Rust)        │
+             │  D-Bus: com.selawi.Island            │
+             │   Core1   Events1                    │
+             │  Engine ─ selawi-core EventStore     │
+             │  snapshot: ~/.local/state/…/events.json
+             └─────────────────────────────────────┘
+                       │ Changed(json) signal / List()
+                       ▼
+ gnome-extension/  DaemonFeed ──► Island (ui/)
+                   SimulatedFeed ─┘  (demo, when enabled in preferences)
 ```
+
+| Part | Where | Job |
+|---|---|---|
+| Shared core | `core/` | Event types, validation, lifecycle, priority, expiry, grouping, snapshot/restore. No platform code |
+| Daemon | `daemon/` | Owns the one `EventStore`, serves D-Bus, arms one expiry timer, saves persistent events. systemd user service `selawi-islandd` |
+| CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
+| Extension | `gnome-extension/` | Draws the island from a feed |
+
+The D-Bus contract is in [DBUS.md](DBUS.md); the CLI in [CLI.md](CLI.md).
 
 ### The feed boundary
 
-The island never creates or changes events. It talks to a **feed** with
-this interface:
+The island never creates or changes events. It talks to a **feed**:
 
 | Member | Meaning |
 |---|---|
@@ -39,17 +48,19 @@ this interface:
 | `'changed'` signal | `events()` changed |
 | `destroy()` | Stop everything |
 
-Today the only feed is `SimulatedFeed`. In Phase 3 a `DaemonFeed` with the
-same interface will read the daemon over D-Bus, and the island will not
-change.
+- `DaemonFeed` (default) mirrors the daemon: it watches the bus name, calls
+  `List()` when the daemon appears, follows `Changed`, and shows an empty
+  island when the daemon is gone. Every event is validated again
+  (`protocol.js` `parseEventList`) before the UI sees it.
+- `SimulatedFeed` plays `data/demo-scenario.json` through the JavaScript
+  copy of the engine (`services/event-store.js`). It is used only when
+  “Demo events” is on in preferences.
 
 ### Rust core and JavaScript store
 
-`core/src/store.rs` is the authoritative engine and will run inside the
-daemon. Until the daemon exists, `gnome-extension/services/event-store.js`
-applies the same rules inside the extension so the UI can be built against
-realistic behaviour. Both sides are checked against the same test cases
-(`tests/fixtures/protocol-cases.json`) and the same demo scenario.
+`core/src/store.rs` is authoritative and runs inside the daemon. The
+JavaScript `event-store.js` follows the same rules for the demo only. Both
+are checked against `tests/fixtures/protocol-cases.json` and the demo scenario.
 
 ### Island internals (`gnome-extension/ui/`)
 
@@ -65,17 +76,14 @@ realistic behaviour. Both sides are checked against the same test cases
 Design rules: actors are built once and updated in place; size and position
 are eased together with the same curve so the pill stays centered and new
 targets interrupt smoothly; no polling (a 1-second timer runs only while a
-call duration or playing media is on screen, and one timer is armed for the
-next expiry).
+call duration or playing media is on screen).
 
 ## Planned (not built yet)
 
-- **Daemon** (Rust, systemd user service) owning a `selawi-core` `EventStore`.
-- **D-Bus** name `com.selawi.Island` with versioned interfaces `Core1`,
-  `Events1`, `Integrations1`, `Plugins1`, `Configuration1`, `Diagnostics1`.
-- **Adapters** under `platform/linux/` for notifications, MPRIS, BlueZ,
-  power, audio.
-- **CLI**, **settings app**, **browser extensions**, **plugins** — see the roadmap.
+- Interfaces `Integrations1`, `Plugins1`, `Configuration1`, `Diagnostics1`.
+- Linux adapters under `platform/linux/`: notifications, MPRIS, BlueZ,
+  power, audio (Phase 4).
+- Settings app, browser extensions, plugins — see the roadmap.
 
 ## Other platforms
 

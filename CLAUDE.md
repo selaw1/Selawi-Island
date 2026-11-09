@@ -12,6 +12,10 @@ The full project specification is the master plan the owner provided
 ## Rules
 - Rust: no `unwrap()`/`expect()` outside tests (clippy denies them), no
   `unsafe` (forbidden), keep `core/` free of any platform API.
+- zbus is version 6: check its API in the cargo registry source, not memory.
+- D-Bus interfaces are versioned (`Events1`); never change one
+  incompatibly. Update `docs/DBUS.md` with any change.
+- The daemon must not log event contents.
 - JavaScript: GNOME 45+ ES modules only. Files in `gnome-extension/services/`
   `protocol.js`, `event-store.js` and `ui/view-model.js` must stay free of
   `gi://` imports so Node can test them.
@@ -31,5 +35,6 @@ tested in CI; list what needs manual checking in the milestone report.
 
 ## Docs to keep current
 `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
-`docs/KNOWN_LIMITATIONS.md`, `docs/TASKS.md`, `CHANGELOG.md`.
+`docs/KNOWN_LIMITATIONS.md`, `docs/TASKS.md`, `docs/DBUS.md`, `docs/CLI.md`,
+`CHANGELOG.md`.
 Describe what exists, not what is planned, except in the roadmap.

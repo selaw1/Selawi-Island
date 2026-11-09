@@ -2,8 +2,8 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.selawi-island" path="/org/gnome/shell/extensions/selawi-island/">
     <key name="simulation-enabled" type="b">
-      <default>true</default>
-      <summary>Play simulated demo events</summary>
+      <default>false</default>
+      <summary>Play simulated demo events instead of showing events from the daemon</summary>
     </key>
     <key name="monitor-index" type="i">
       <range min="-1" max="16"/>
