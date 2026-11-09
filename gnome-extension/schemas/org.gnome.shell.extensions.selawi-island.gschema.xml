@@ -24,6 +24,29 @@
       <default>120</default>
       <summary>Width when there are no events</summary>
     </key>
+    <key name="idle-height" type="i">
+      <range min="4" max="80"/>
+      <default>12</default>
+      <summary>Height when there are no events (grows under the pointer)</summary>
+    </key>
+    <key name="allow-drag" type="b">
+      <default>true</default>
+      <summary>Allow moving the island by dragging it</summary>
+    </key>
+    <key name="custom-position" type="b">
+      <default>false</default>
+      <summary>Use the dragged position instead of top center</summary>
+    </key>
+    <key name="position-x" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.5</default>
+      <summary>Dragged position: horizontal center as a fraction of the monitor width</summary>
+    </key>
+    <key name="position-y" type="d">
+      <range min="0.0" max="1.0"/>
+      <default>0.0</default>
+      <summary>Dragged position: top edge as a fraction of the monitor height</summary>
+    </key>
     <key name="compact-width" type="i">
       <range min="160" max="800"/>
       <default>320</default>

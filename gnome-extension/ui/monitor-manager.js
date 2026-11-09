@@ -35,17 +35,41 @@ export class MonitorManager extends EventEmitter {
         return monitors[index] ?? Main.layoutManager.primaryMonitor ?? monitors[0] ?? null;
     }
 
-    /** @returns {{x: number, y: number, width: number} | null} */
+    /**
+     * The chosen monitor's rectangle and the y of the default spot.
+     *
+     * @returns {{x: number, y: number, width: number, height: number, defaultTop: number} | null}
+     */
     area() {
         const monitor = this.monitor;
         if (!monitor)
             return null;
-        let y = monitor.y + this._settings.get_int('top-margin') * this.scale;
+        let top = monitor.y + this._settings.get_int('top-margin') * this.scale;
         // The top bar only exists on the primary monitor.
         if (this._settings.get_boolean('below-top-bar') &&
             monitor.index === Main.layoutManager.primaryIndex)
-            y += Main.layoutManager.panelBox.height;
-        return {x: monitor.x, y: Math.round(y), width: monitor.width};
+            top += Main.layoutManager.panelBox.height;
+        return {
+            x: monitor.x,
+            y: monitor.y,
+            width: monitor.width,
+            height: monitor.height,
+            defaultTop: Math.round(top),
+        };
+    }
+
+    /** Index of the monitor an actor is mostly on. */
+    monitorIndexFor(actor) {
+        return Main.layoutManager.findIndexForActor(actor);
+    }
+
+    /** Monitor object for an index (primary when out of range). */
+    monitorAt(index) {
+        return Main.layoutManager.monitors[index] ?? Main.layoutManager.primaryMonitor ?? null;
+    }
+
+    get primaryIndex() {
+        return Main.layoutManager.primaryIndex;
     }
 
     /** Same rule GNOME uses for its own chrome. */

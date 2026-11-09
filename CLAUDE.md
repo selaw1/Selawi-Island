@@ -17,7 +17,7 @@ The full project specification is the master plan the owner provided
   incompatibly. Update `docs/DBUS.md` with any change.
 - The daemon must not log event contents.
 - JavaScript: GNOME 45+ ES modules only. Files in `gnome-extension/services/`
-  `protocol.js`, `event-store.js` and `ui/view-model.js` must stay free of
+  `protocol.js`, `event-store.js`, `ui/view-model.js` and `ui/placement.js` must stay free of
   `gi://` imports so Node can test them.
 - No shell execution as a shortcut for integrations. No telemetry. No cloud.
 - Show only what a source actually reports; never invent data (battery,

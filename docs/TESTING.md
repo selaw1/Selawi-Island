@@ -14,7 +14,7 @@
 | `core/tests/protocol_fixtures.rs` | Rust accepts/rejects every case in `tests/fixtures/protocol-cases.json` |
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
 | `daemon` unit tests (5) | Submit/list/dismiss, size limit, invalid input, expiry, snapshot file (mode 0600) survives restart, corrupt snapshot ignored |
-| `tests/js/*.test.js` (23) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries |
+| `tests/js/*.test.js` (30) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, placement (default, dragged, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action) |
 | `node --check` | Every extension file parses |
 | `glib-compile-schemas --strict` | Settings schema is valid |
@@ -50,6 +50,17 @@ journalctl -f -o cat /usr/bin/gnome-shell
    ```bash
    systemctl --user restart selawi-islandd
    ```
+
+### Idle and position
+
+1. With no events the island is a thin bar. Hovering makes it taller; moving away makes it thin again.
+2. Click it: it expands and says **Nothing to show**. Click again (or Escape) to close.
+3. Drag it somewhere else and let go: it stays there. Send `selawi-island notify hi`: it grows in place, never off the screen edge.
+4. Log out and in: it is still where you left it.
+5. Drag it back near the top center: it snaps into the default spot. Preferences → Position → **Reset** does the same.
+6. With two monitors, drag it onto the other one: it stays on that monitor.
+7. Turn off **Allow dragging**: dragging does nothing, clicking still works.
+8. Turn off **Show when idle**: with no events the island disappears completely.
 
 ### Demo (turn on “Demo events” in preferences)
 

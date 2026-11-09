@@ -37,7 +37,24 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
         behaviour.add(switchRow(settings, 'show-when-idle', 'Show when idle'));
         page.add(behaviour);
 
-        const position = new Adw.PreferencesGroup({title: 'Position'});
+        const position = new Adw.PreferencesGroup({
+            title: 'Position',
+            description: 'Drag the island to move it. Drop it near the top center to snap back.',
+        });
+        position.add(switchRow(settings, 'allow-drag', 'Allow dragging'));
+        const reset = new Adw.ActionRow({title: 'Dragged position'});
+        const resetButton = new Gtk.Button({label: 'Reset', valign: Gtk.Align.CENTER});
+        resetButton.connect('clicked', () => settings.set_boolean('custom-position', false));
+        reset.add_suffix(resetButton);
+        const updateReset = () => {
+            const custom = settings.get_boolean('custom-position');
+            reset.subtitle = custom ? 'Custom' : 'Top center (default)';
+            resetButton.sensitive = custom;
+        };
+        const resetId = settings.connect('changed::custom-position', updateReset);
+        window.connect('close-request', () => settings.disconnect(resetId));
+        updateReset();
+        position.add(reset);
         position.add(switchRow(settings, 'below-top-bar', 'Below the top bar',
             'Turn off to place the island over the top bar (covers the clock)'));
         position.add(spinRow(settings, 'top-margin', 'Top margin', 0, 200));
@@ -46,6 +63,7 @@ export default class SelawiIslandPreferences extends ExtensionPreferences {
 
         const size = new Adw.PreferencesGroup({title: 'Size and motion'});
         size.add(spinRow(settings, 'idle-width', 'Idle width', 40, 400));
+        size.add(spinRow(settings, 'idle-height', 'Idle height', 4, 80));
         size.add(spinRow(settings, 'compact-width', 'Compact width', 160, 800));
         size.add(spinRow(settings, 'compact-height', 'Height', 24, 80));
         size.add(spinRow(settings, 'expanded-width', 'Expanded width', 280, 1000));

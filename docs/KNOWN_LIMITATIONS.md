@@ -13,8 +13,9 @@
 - **The CLI is stateless.** `progress update/finish` read the current event
   from the daemon first; if it already expired, they fail with a message.
 - **Demo uses the JavaScript engine copy**, not the daemon.
-- **Default position is below the top bar.** Placing it over the top bar
-  covers the clock.
+- **Default position is below the top bar.** It can be dragged anywhere,
+  including over the top bar (which covers the clock there).
+- **Dragging is mouse/touchpad only**; there is no keyboard way to move it.
 - **Code updates need a re-login** on Wayland for the extension (the daemon
   is restarted by the install script).
 - **Monitor choice is by index** (-1 = primary), not by name.

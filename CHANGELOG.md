@@ -15,7 +15,14 @@
 - End-to-end test on a private D-Bus bus, including the extension's
   daemon feed under GJS.
 
+- Drag the island anywhere (any monitor); the position is remembered.
+  Dropping it near the top center snaps it back. Preferences: “Allow
+  dragging” and “Reset” for the dragged position.
+- Clicking the idle island expands it to “Nothing to show”.
+
 ### Changed
+- The idle island is a slim 12 px bar that grows under the pointer
+  (Preferences → Idle height). Turn off “Show when idle” to hide it.
 - Demo events are now off by default (Preferences → Demo events).
 - `EventStore::restore` takes the current time and a grace period.
 - `install-local.sh` builds and installs the daemon, CLI and service too;

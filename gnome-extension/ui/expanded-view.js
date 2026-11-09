@@ -25,8 +25,13 @@ export const ExpandedView = GObject.registerClass({
             y_align: Clutter.ActorAlign.START,
         });
 
+        // Shown instead of everything else when there are no events.
+        this._empty = label('selawi-empty', {text: 'Nothing to show', x_align: Clutter.ActorAlign.CENTER});
+        this.add_child(this._empty);
+
         // Header: icon tile, title + subtitle, trailing value.
         const header = new St.BoxLayout({style_class: 'selawi-expanded-header'});
+        this._header = header;
         this._iconTile = new St.Bin({style_class: 'selawi-icon-tile', y_align: Clutter.ActorAlign.CENTER});
         this._icon = new St.Icon({style_class: 'selawi-expanded-icon'});
         this._iconTile.set_child(this._icon);
@@ -86,7 +91,12 @@ export const ExpandedView = GObject.registerClass({
      */
     update(event, vm, others, animationMs) {
         this._eventId = event?.id ?? null;
-        if (!event || !vm) {
+        const empty = !event || !vm;
+        this._empty.visible = empty;
+        this._header.visible = !empty;
+        this._actions.visible = !empty;
+        if (empty) {
+            this._track.visible = false;
             this._rebuildActions([]);
             this._rebuildOthers([]);
             return;

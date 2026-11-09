@@ -16,6 +16,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {CompactView} from './compact-view.js';
 import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
+import {placePill, positionFromDrop} from './placement.js';
 import {describe} from './view-model.js';
 
 const MORPH_MS = 420;
@@ -39,9 +40,13 @@ export class Island {
         this._target = null;
         this._collapseTimer = 0;
         this._tickTimer = 0;
+        this._drag = null; // {startX, startY, pointerX, pointerY} while dragging
 
         this._monitors = new MonitorManager(settings);
-        this._monitors.connectObject('changed', () => this._relayout(false), this);
+        this._monitors.connectObject('changed', () => {
+            if (!this._savingDrop)
+                this._relayout(false);
+        }, this);
 
         this._pill = new St.Widget({
             style_class: 'selawi-island',
@@ -71,6 +76,15 @@ export class Island {
         this._click = new Clutter.ClickGesture({required_button: Clutter.BUTTON_PRIMARY});
         this._click.connect('recognize', () => this._onClick());
         this._pill.add_action(this._click);
+        // Dragging starts only after the pointer moves 16 px, so clicks are
+        // unaffected; once it starts it cancels the click.
+        this._pan = new Clutter.PanGesture({required_button: Clutter.BUTTON_PRIMARY});
+        this._pan.connect('recognize', () => this._onDragBegin());
+        this._pan.connect('pan-update', () => this._onDragUpdate());
+        this._pan.connect('end', () => this._onDragEnd());
+        this._pan.connect('cancel', () => this._onDragCancel());
+        this._pill.add_action(this._pan);
+        this._pan.enabled = settings.get_boolean('allow-drag');
         this._keys = new Clutter.KeyController();
         this._keys.connect('key-press', () => this._onKeyPress());
         this._pill.add_action(this._keys);
@@ -85,7 +99,9 @@ export class Island {
         });
 
         this._settings.connectObject('changed', (_s, key) => {
-            if (key !== 'simulation-enabled')
+            if (key === 'allow-drag')
+                this._pan.enabled = this._settings.get_boolean('allow-drag');
+            else if (key !== 'simulation-enabled' && !this._savingDrop)
                 this._relayout(true);
         }, this);
 
@@ -152,8 +168,11 @@ export class Island {
 
         if (events.length === 0) {
             this._selectedId = null;
-            this._expandedBy = null;
-            this._mode = Mode.IDLE;
+            // A user-opened island stays open and says "Nothing to show".
+            if (!(this._mode === Mode.EXPANDED && this._expandedBy === 'user')) {
+                this._expandedBy = null;
+                this._mode = Mode.IDLE;
+            }
         } else if (this._mode === Mode.IDLE) {
             this._mode = Mode.COMPACT;
         }
@@ -195,8 +214,6 @@ export class Island {
 
     _setMode(mode, by = null) {
         this._clearCollapseTimer();
-        if (mode === Mode.EXPANDED && this._events().length === 0)
-            return;
         this._mode = mode;
         this._expandedBy = mode === Mode.EXPANDED ? by : null;
         if (mode !== Mode.EXPANDED)
@@ -207,9 +224,13 @@ export class Island {
 
     _toggle() {
         if (this._mode === Mode.EXPANDED)
-            this._setMode(Mode.COMPACT);
-        else if (this._mode === Mode.COMPACT)
+            this._collapse();
+        else
             this._setMode(Mode.EXPANDED, 'user');
+    }
+
+    _collapse() {
+        this._setMode(this._events().length > 0 ? Mode.COMPACT : Mode.IDLE);
     }
 
     // ---- geometry and animation -----------------------------------------
@@ -222,7 +243,8 @@ export class Island {
     _size() {
         const s = this._monitors.scale;
         const height = this._settings.get_int('compact-height') * s;
-        const grow = this._pill.hover && this._mode === Mode.COMPACT ? HOVER_GROW * s : 0;
+        const hovered = this._pill.hover && !this._drag;
+        const grow = hovered && this._mode !== Mode.EXPANDED ? HOVER_GROW * s : 0;
         switch (this._mode) {
         case Mode.EXPANDED: {
             const width = this._settings.get_int('expanded-width') * s;
@@ -231,8 +253,12 @@ export class Island {
         }
         case Mode.COMPACT:
             return {width: this._settings.get_int('compact-width') * s + grow, height: height + grow / 4};
-        default:
-            return {width: this._settings.get_int('idle-width') * s, height};
+        default: {
+            // Slim when idle; grows to normal height under the pointer so it
+            // is easy to click.
+            const idleHeight = Math.min(height, this._settings.get_int('idle-height') * s);
+            return {width: this._settings.get_int('idle-width') * s + grow, height: hovered ? height : idleHeight};
+        }
         }
     }
 
@@ -253,20 +279,18 @@ export class Island {
         const hidden = hiddenWhenIdle || this._monitors.fullscreenBlocked;
 
         const {width, height} = this._size();
-        const target = {
-            x: Math.round(area.x + (area.width - width) / 2),
-            y: area.y,
-            width: Math.round(width),
-            height: Math.round(height),
-        };
+        const {x, y} = placePill(area, area.defaultTop, this._customPosition(), width, height);
+        const target = {x, y, width: Math.round(width), height: Math.round(height)};
         const duration = animate ? this._duration(MORPH_MS) : 0;
         const changed = !this._target || Object.keys(target).some(k => target[k] !== this._target[k]);
         this._target = target;
 
         if (changed) {
             // Same duration and curve for position and size keeps it centered.
+            // While dragging, the pointer owns the position.
+            const props = this._drag ? {width: target.width, height: target.height} : target;
             this._pill.ease({
-                ...target,
+                ...props,
                 duration,
                 mode: Clutter.AnimationMode.EASE_OUT_EXPO,
             });
@@ -369,7 +393,7 @@ export class Island {
             return Clutter.EVENT_STOP;
         case Clutter.KEY_Escape:
             if (this._mode === Mode.EXPANDED) {
-                this._setMode(Mode.COMPACT);
+                this._collapse();
                 return Clutter.EVENT_STOP;
             }
             return Clutter.EVENT_PROPAGATE;
@@ -384,6 +408,76 @@ export class Island {
         }
     }
 
+    // ---- dragging --------------------------------------------------------
+
+    _customPosition() {
+        if (!this._settings.get_boolean('custom-position'))
+            return null;
+        return {
+            fx: this._settings.get_double('position-x'),
+            fy: this._settings.get_double('position-y'),
+        };
+    }
+
+    _onDragBegin() {
+        const pointer = this._pan.get_centroid_abs();
+        this._pill.remove_transition('x');
+        this._pill.remove_transition('y');
+        this._drag = {startX: this._pill.x, startY: this._pill.y, pointerX: pointer.x, pointerY: pointer.y};
+        this._clearCollapseTimer();
+        this._pill.add_style_pseudo_class('dragging');
+        this._relayout(true);
+    }
+
+    _onDragUpdate() {
+        if (!this._drag)
+            return;
+        const pointer = this._pan.get_centroid_abs();
+        this._pill.set_position(
+            Math.round(this._drag.startX + pointer.x - this._drag.pointerX),
+            Math.round(this._drag.startY + pointer.y - this._drag.pointerY));
+    }
+
+    _onDragEnd() {
+        if (!this._drag)
+            return;
+        this._drag = null;
+        this._pill.remove_style_pseudo_class('dragging');
+
+        // The monitor it was dropped on becomes the island's monitor.
+        const index = this._monitors.monitorIndexFor(this._pill);
+        const monitor = this._monitors.monitorAt(index);
+        if (monitor) {
+            // Write all keys at once, without relayouts in between.
+            this._savingDrop = true;
+            this._settings.delay();
+            this._settings.set_int('monitor-index', index === this._monitors.primaryIndex ? -1 : index);
+            const area = this._monitors.area();
+            const pos = area && positionFromDrop(area, area.defaultTop,
+                this._pill.x, this._pill.y, this._pill.width, this._monitors.scale);
+            if (pos) {
+                this._settings.set_double('position-x', pos.fx);
+                this._settings.set_double('position-y', pos.fy);
+            }
+            this._settings.set_boolean('custom-position', pos !== null);
+            this._settings.apply();
+            this._savingDrop = false;
+        }
+        this._target = null; // force a fresh ease from where it was dropped
+        this._relayout(true);
+        if (this._mode === Mode.EXPANDED && !this._pill.hover)
+            this._scheduleCollapse(LEAVE_COLLAPSE_MS);
+    }
+
+    _onDragCancel() {
+        if (!this._drag)
+            return;
+        this._drag = null;
+        this._pill.remove_style_pseudo_class('dragging');
+        this._target = null;
+        this._relayout(true);
+    }
+
     _scheduleCollapse(ms) {
         this._clearCollapseTimer();
         if (this._expandedBy === 'auto')
@@ -391,8 +485,8 @@ export class Island {
         this._collapseTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
             this._collapseTimer = 0;
             // Never collapse under the pointer; leaving will reschedule.
-            if (this._mode === Mode.EXPANDED && !this._pill.hover)
-                this._setMode(Mode.COMPACT);
+            if (this._mode === Mode.EXPANDED && !this._pill.hover && !this._drag)
+                this._collapse();
             return GLib.SOURCE_REMOVE;
         });
     }

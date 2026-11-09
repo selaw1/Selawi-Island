@@ -10,6 +10,7 @@ declares only `"51"`; add versions after testing them.
 | Extension format | ES modules, `export default class … extends Extension` | `extension.js`, `prefs.js` |
 | Vertical boxes | `St.BoxLayout` has no `vertical` property any more; use `orientation: Clutter.Orientation.VERTICAL` | views |
 | Clicks | `Clutter.ClickGesture` added with `add_action()`. The shell no longer uses `button-release-event` | `island.js` |
+| Dragging | `Clutter.PanGesture` (`recognize`, `pan-update`, `end`, `cancel`, `get_centroid_abs()`); it starts after 16 px of movement and then cancels the click | `island.js` |
 | Keys | `Clutter.KeyController` (`key-press`, `get_key()`) | `island.js` |
 | Nested buttons | Innermost gesture recognizes first and cancels outer ones; `island.js` also skips the toggle when the click lands on an `St.Button` | `island.js` |
 | Chrome | `Main.layoutManager.addTopChrome(actor, {trackFullscreen})`. The only accepted options are `trackFullscreen` and `affectsStruts`; `affectsInputRegion` was removed (any other key throws). Visible reactive actors receive input automatically | `island.js` |
