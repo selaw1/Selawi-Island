@@ -105,17 +105,14 @@ and case levels are not exposed by BlueZ, so they are not shown.
 Sources, so that every notification GNOME would show reaches the island:
 
 - `org.freedesktop.Notifications.Notify` calls (most apps: Slack,
-  Discord, Chrome…) and `org.gtk.Notifications.AddNotification` calls
-  (GNOME's own apps such as Files, Software, Clocks, Calendar, and Flatpak
-  apps through the notification portal), both watched by the daemon as a
-  D-Bus **monitor**. For GNOME-route notifications the app's name comes
-  from its desktop entry (“Files” for `org.gnome.Nautilus`); “urgent”
-  ones are shown like critical ones.
-- GNOME Shell's own notifications (“Screenshot captured”, network
-  sign-in, drives…), which never go over D-Bus: while GNOME's banners
-  are hidden, the extension passes them to the island
-  (`notifications:gnome-shell:…`, same text setting, dropped when this
-  integration is off).
+  Discord, Chrome…), watched by the daemon as a D-Bus **monitor**.
+- Everything else GNOME shows, passed on by the extension from GNOME's
+  message tray while GNOME's banners are hidden: apps using GNOME's own
+  notification route (GNotification — Clocks, Files, Software, Calendar,
+  Flatpak apps — often through the notification portal), with the app's
+  name and logo, and GNOME Shell's own notifications (“Screenshot
+  captured”, network sign-in, drives…). Ids `notifications:gnome-shell:…`,
+  same text setting, dropped when this integration is off.
 
 GNOME stays the notification server: notifications still go to GNOME's
 list, with their buttons.

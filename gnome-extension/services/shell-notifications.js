@@ -1,8 +1,11 @@
-// GNOME Shell's own notifications ("Screenshot captured", network
-// sign-in, drives…) never go over D-Bus, so the daemon cannot see them.
-// While the island hides GNOME's banners they would show nowhere, so they
-// are passed to the island here. Notifications from apps (both D-Bus
-// routes) are left to the daemon.
+// Notifications the daemon cannot see, passed to the island while it hides
+// GNOME's banners (otherwise they would show nowhere):
+// - GNOME Shell's own ("Screenshot captured", network sign-in, drives…),
+//   which never go over D-Bus;
+// - apps using GNOME's notification route (GNotification: Clocks, Files,
+//   Software…), which may arrive through the notification portal.
+// Notifications sent the common way (org.freedesktop.Notifications) are
+// left to the daemon.
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {FdoNotificationDaemonSource, GtkNotificationDaemonAppSource} from 'resource:///org/gnome/shell/ui/notificationDaemon.js';
@@ -25,7 +28,7 @@ export class ShellNotifications {
     }
 
     _watch(source) {
-        if (source instanceof FdoNotificationDaemonSource || source instanceof GtkNotificationDaemonAppSource)
+        if (source instanceof FdoNotificationDaemonSource)
             return;
         this._sources.add(source);
         source.connectObject(
@@ -39,6 +42,8 @@ export class ShellNotifications {
         this._getShowBody(showBody => {
             const input = shellNotificationInput({
                 app: source.title,
+                // GNOME's app sources know the app's id (for its logo).
+                appId: source instanceof GtkNotificationDaemonAppSource ? source.policy?.id ?? null : null,
                 title: notification.title,
                 body: notification.body,
                 urgency: notification.urgency,

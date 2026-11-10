@@ -368,3 +368,17 @@ Remind the owner about these when they ask what to test or what is next:
 - **Tests:** core unit tests (manifests, sealing, declared kinds, rate),
   daemon end to end over D-Bus, both helpers end to end, settings Apps
   group headless.
+
+## T-020 — Fixes after testing (2)
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** `BannerBlocker` had no `active` getter, so the mirror of
+  GNOME Shell notifications never started; the extension now mirrors every
+  message-tray source except `FdoNotificationDaemonSource` (GNOME-app
+  sources with the app id from `source.policy.id`), and the daemon no
+  longer monitors `org.gtk.Notifications` (portal deliveries bypass it;
+  avoids duplicates). Tile icons get `success/warning/error-color` so
+  multi-colour symbolic icons stay visible. `selawii.com` → “Selawigram”.
+- **Files:** `gnome-extension/{ui/banner-blocker.js,services/shell-notifications.js,services/shell-model.js,stylesheet.css}`,
+  `daemon/src/integrations/notifications.rs`, `daemon/tests/fake_services.rs`,
+  `browser-extensions/src/model.ts`, tests, docs.

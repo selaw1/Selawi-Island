@@ -1,5 +1,7 @@
-// What the island shows for things only GNOME Shell sees: its own
-// notifications (e.g. "Screenshot captured") and copying to the clipboard.
+// What the island shows for things only GNOME Shell sees: notifications
+// from GNOME Shell itself ("Screenshot captured") and from apps using
+// GNOME's notification route (Clocks, Files, Software…, also through the
+// portal), and copying to the clipboard.
 // Pure (no GNOME imports) so it is unit-tested with Node.
 
 const MAX_TITLE = 256;
@@ -16,14 +18,15 @@ function clean(text, max) {
  * Notifications integration is off.
  *
  * @param {object} n
- * @param {string} n.app - the notification source's title ("Screenshot")
+ * @param {string} n.app - the notification source's title ("Screen Capture", "Clocks")
+ * @param {string|null} [n.appId] - the app's id for apps ("org.gnome.clocks"): logo and grouping
  * @param {string} n.title
  * @param {string} [n.body]
  * @param {number} n.urgency - GNOME's 0 low … 3 critical
  * @param {number} n.seq - makes each id unique
  * @param {boolean} n.showBody - the "Show notification text" setting
  */
-export function shellNotificationInput({app, title, body, urgency, seq, showBody}) {
+export function shellNotificationInput({app, appId = null, title, body, urgency, seq, showBody}) {
     const cleanTitle = clean(title, MAX_TITLE);
     if (!cleanTitle)
         return null;
@@ -31,13 +34,18 @@ export function shellNotificationInput({app, title, body, urgency, seq, showBody
     const payload = {type: 'notification', title: cleanTitle};
     if (cleanBody)
         payload.body = cleanBody;
+    const validApp = typeof appId === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(appId) ? appId : null;
+    const key = validApp ? validApp.split('.').pop().toLowerCase().replace(/[^a-z0-9_-]/g, '_') : 'gnome-shell';
+    const source = {app: clean(app, 64) || 'GNOME', integration: 'gnome-shell'};
+    if (validApp)
+        source.icon = `app:${validApp}`;
     const input = {
         id: `notifications:gnome-shell:${seq}`,
-        source: {app: clean(app, 64) || 'GNOME', integration: 'gnome-shell'},
+        source,
         category: 'notification',
         persistent: false,
         ttl_ms: urgency >= 3 ? 15000 : 6000,
-        group: 'notifications:gnome-shell',
+        group: `notifications:${key}`,
         payload,
         actions: [],
     };

@@ -23,6 +23,14 @@ test('GNOME Shell notifications', () => {
     assert.equal(critical.priority, 'critical');
     valid(critical);
     assert.equal(shellNotificationInput({app: 'X', title: ' <b></b> ', urgency: 1, seq: 3, showBody: true}), null);
+    const clocks = shellNotificationInput({app: 'Clocks', appId: 'org.gnome.clocks', title: 'Timer is up',
+        urgency: 2, seq: 5, showBody: true});
+    valid(clocks);
+    assert.equal(clocks.source.app, 'Clocks');
+    assert.equal(clocks.source.icon, 'app:org.gnome.clocks', 'GNOME app notifications carry the app logo');
+    assert.equal(clocks.group, 'notifications:clocks');
+    assert.equal(shellNotificationInput({app: 'X', appId: '../x', title: 'T', urgency: 1, seq: 6, showBody: true}).source.icon,
+        undefined, 'odd app ids are not used');
 });
 
 test('Copied: the kind of data only, and quiet', () => {

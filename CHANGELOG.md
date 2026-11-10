@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — fixes after testing (2)
+
+### Fixed
+- GNOME Shell's own notifications (screenshots) and notifications from
+  GNOME apps (Clocks, Files…) now really show in the island: the code
+  that passes them on never started (it asked the banner blocker a
+  question it could not answer), and GNOME apps' notifications often
+  arrive through the portal, which the daemon cannot see. The extension
+  now passes on everything GNOME shows except the common route the daemon
+  already watches, so nothing shows twice.
+- A colored icon tile (green while charging) draws its icon in one solid
+  color: the battery's green charge no longer disappears on the green tile.
+- Calls on chat.selawii.com are named “Selawigram”.
+
 ## Unreleased — Phase 9: plugins
 
 ### Added

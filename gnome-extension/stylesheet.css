@@ -90,6 +90,11 @@
 .selawi-expanded-icon {
   icon-size: 20px;
   color: #000;
+  /* Multi-colour symbolic icons (battery charge, warnings) are drawn in
+     one colour on the tile, or the green part vanishes on a green tile. */
+  success-color: #000;
+  warning-color: #000;
+  error-color: #000;
 }
 
 /* A logo fills its tile instead of sitting on the accent colour. */

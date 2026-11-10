@@ -17,6 +17,10 @@ export class BannerBlocker {
         }, this);
     }
 
+    get active() {
+        return this._active;
+    }
+
     set active(active) {
         if (active === this._active)
             return;
