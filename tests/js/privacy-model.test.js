@@ -36,3 +36,12 @@ test('several apps are listed', () => {
     assert.equal(input.payload.detail, 'Slack, Google Chrome');
     assert.equal(input.source.app, 'Slack');
 });
+
+test('app names drop the "input" suffix apps give their audio connection', async () => {
+    const {appName} = await import('../../gnome-extension/services/privacy-model.js');
+    assert.equal(appName('Google Chrome input'), 'Google Chrome');
+    assert.equal(appName('Chromium input'), 'Chromium');
+    assert.equal(appName('Slack'), 'Slack');
+    assert.equal(appName(''), 'An app');
+    assert.equal(appName(null), 'An app');
+});

@@ -4,11 +4,17 @@
 
 export const PRIVACY_EVENT_ID = 'privacy:capture';
 
+/** "Google Chrome input" → "Google Chrome" (apps name their audio connection). */
+export function appName(raw) {
+    const name = String(raw ?? '').replace(/\s+(input|output|recording|capture)$/i, '').trim();
+    return name.slice(0, 60) || 'An app';
+}
+
 /**
  * @param {object} state
  * @param {string[]} state.apps - apps recording from the microphone
  * @param {boolean} state.camera - a camera is in use
- * @param {boolean} state.muted - those apps can't be heard (muted)
+ * @param {boolean} state.muted - the microphone is muted (nobody hears you)
  * @returns {object|null} event input without `state`, or null when nothing is in use
  */
 export function privacyInput({apps, camera, muted}) {

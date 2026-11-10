@@ -81,16 +81,15 @@ journalctl -f -o cat /usr/bin/gnome-shell
 
 ### Microphone, camera and voice waves
 
-1. Join a Google Meet (or any app that uses the microphone): an **orange** “Microphone · <app>” appears with a running timer and bars on the right.
+1. Use an app that records (e.g. the Slack desktop app in a huddle): an **orange** “Microphone · <app>” appears (app name without “input”), with a running timer and bars on the right.
 2. Talk: the bars move with your voice; stay quiet: they sit flat.
 3. Turn the camera on: it turns **green** (“Camera and microphone”). Camera only (mic muted in the app may still count as microphone in use; that is the app's choice).
 4. Leave the meeting: it ends and disappears; `pactl list source-outputs short` no longer lists “Selawi Island”.
 5. While it shows, go fullscreen or let another event take over the pill: the “Selawi Island” recording stream disappears (waves are only measured while visible).
 6. Integrations → turn off **Voice waves**: bars stop and the extra stream never appears. Turn off **Microphone and camera in use**: the event disappears.
 7. `systemctl --user restart selawi-islandd` during a call: the microphone event comes back by itself.
-8. Expand the island during a call → **Mute**: it shows “Microphone muted”, the bars stop, and the other side can't hear you (the app still shows unmuted). **Unmute** brings your voice back.
-9. Mute, then leave the call, then start a new one in the same app: the new call starts **unmuted**.
-10. Integrations → **Mute button mutes** → The whole microphone: Mute also mutes GNOME's microphone (top-bar volume menu shows it muted); leaving the call unmutes it again.
+8. Expand the island during a call → **Mute**: it shows “Microphone muted”, the bars stop, GNOME's volume menu shows the microphone muted, and the other side can't hear you. **Unmute** brings your voice back.
+9. Mute the microphone from GNOME's volume menu (or the mic key) during a call: the bubble shows “Microphone muted”; **Unmute** in the bubble turns it back on.
 
 ### Browser (Google Meet, downloads)
 

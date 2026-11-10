@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — fixes after testing
+
+### Changed
+- The microphone bubble's Mute is now GNOME's own microphone mute: Linux
+  shows the microphone as muted, and muting from GNOME shows in the
+  bubble. The “Mute button mutes” setting is gone.
+- Compact island: icon and title always on the left; “+N”, waves and the
+  time on the right, for every kind of event.
+- App names in the microphone bubble without “input” (e.g. “Google Chrome”).
+
+### Fixed
+- Unmute could fail when an app's own microphone connection had been left
+  muted; Unmute now clears that too.
+- No extra “Microphone muted” popup while the microphone bubble shows it.
+
 ## Unreleased — Phase 6 (part 2)
 
 ### Added

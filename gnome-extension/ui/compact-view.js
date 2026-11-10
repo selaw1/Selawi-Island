@@ -7,11 +7,9 @@ import St from 'gi://St';
 import {Waves} from './waves.js';
 import {label, setAccent, setIcon, setText} from './widgets.js';
 
-// Layout: the "+N" count sits at the left edge and the trailing value
-// (timer, percent) at the right edge. The icon and title are centered when
-// they fit between the two with equal clearance; when the title is too
-// long for that, they start at the left instead, so the title gets all the
-// room up to the trailing value.
+// Layout: icon and title on the left; on the right the "+N" count, voice
+// waves (microphone only) and the trailing value (timer, percent). The
+// title stops before the right side and ends with "…" when too long.
 export const CompactView = GObject.registerClass(
 class CompactView extends St.Widget {
     constructor() {
@@ -24,7 +22,7 @@ class CompactView extends St.Widget {
 
         this._center = new St.BoxLayout({
             style_class: 'selawi-compact-center',
-            x_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.START,
             y_align: Clutter.ActorAlign.CENTER,
             x_expand: true,
             y_expand: true,
@@ -34,8 +32,6 @@ class CompactView extends St.Widget {
         this._center.add_child(this._icon);
         this._center.add_child(this._title);
 
-        this._badge = label('selawi-badge', {x_align: Clutter.ActorAlign.START, x_expand: true, y_expand: true});
-        // Right edge: voice waves (microphone only) and the trailing value.
         this._right = new St.BoxLayout({
             style_class: 'selawi-compact-right',
             x_align: Clutter.ActorAlign.END,
@@ -43,42 +39,27 @@ class CompactView extends St.Widget {
             x_expand: true,
             y_expand: true,
         });
+        this._badge = label('selawi-badge');
         this._waves = new Waves();
         this._waves.visible = false;
         this._trailing = label('selawi-compact-trailing');
+        this._right.add_child(this._badge);
         this._right.add_child(this._waves);
         this._right.add_child(this._trailing);
 
         this.add_child(this._center);
-        this.add_child(this._badge);
         this.add_child(this._right);
-        this._centered = true;
         this._style = '';
     }
 
+    // Keeps the title clear of the right side.
     _updateClearance() {
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        const gap = 8 * scale;
-        const width = actor => (actor.visible ? actor.get_preferred_width(-1)[1] : 0);
-        const left = width(this._badge) > 0 ? width(this._badge) + gap : 0;
-        const rightWidth = width(this._trailing) + width(this._waves);
-        const right = rightWidth > 0 ? rightWidth + gap : 0;
-        const side = Math.max(left, right);
-
-        const available = this.width - this.get_theme_node().get_horizontal_padding();
-        const content = this._center.get_preferred_width(-1)[1] -
-            this._center.get_theme_node().get_horizontal_padding();
-        // A little hysteresis so a ticking timer doesn't flip the layout.
-        const centeredRoom = available - 2 * side;
-        const centered = this._centered ? content <= centeredRoom : content <= centeredRoom - 12 * scale;
-
-        const [padLeft, padRight] = centered ? [side, side] : [left, right];
-        // St scales CSS pixels by the scale factor; these are stage pixels.
-        const style = `padding: 0 ${Math.ceil(padRight / scale)}px 0 ${Math.ceil(padLeft / scale)}px;`;
-        if (centered !== this._centered || style !== this._style) {
-            this._centered = centered;
+        const right = this._right.get_preferred_width(-1)[1];
+        const padRight = right > 0 ? Math.ceil((right + 10 * scale) / scale) : 0;
+        const style = `padding-right: ${padRight}px;`;
+        if (style !== this._style) {
             this._style = style;
-            this._center.x_align = centered ? Clutter.ActorAlign.CENTER : Clutter.ActorAlign.START;
             this._center.set_style(style);
         }
     }

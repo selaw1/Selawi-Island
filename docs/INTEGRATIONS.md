@@ -27,7 +27,6 @@ Right-click the island → **Integrations** page. Changes apply immediately.
 | Sources: Audio devices | Audio output, microphone and mute changes (watched by the extension) |
 | Sources: Microphone and camera in use | Orange while an app uses the microphone, green when the camera is on |
 | Sources: Voice waves | Bars that move with your voice while the microphone is in use |
-| Sources: Mute button mutes | Only the apps using the microphone (default), or the whole microphone |
 | Media: Players to show | **All players**, or **One player** |
 | Media: Preferred player | In one-player mode: this player wins whenever it is playing |
 | Notifications: Show notification text | Off shows only the title and app |
@@ -125,7 +124,7 @@ part lives in the extension and sends its events to the daemon.
 |---|---|---|
 | Default output device changes | Device name · Audio output | 4 s |
 | Default microphone changes | Device name · Microphone | 4 s |
-| Microphone muted / unmuted | Microphone muted / on | 3 s |
+| Microphone muted / unmuted (while no app uses it; otherwise the microphone bubble shows it) | Microphone muted / on | 3 s |
 
 Volume changes are not shown: GNOME already shows its own volume display.
 Nothing is shown for the devices in use at startup.
@@ -196,14 +195,15 @@ microphone is in use; it appears next to the real app in tools that list
 recording apps (e.g. pavucontrol). Needs `gst-plugins-good`; without it the
 bars stay still.
 
-**Mute / Unmute** (expanded island, while the microphone is in use): a
-system-level backup for apps the island cannot control directly. It mutes
-the recording apps' microphone streams (or the whole microphone, per the
-setting), so nobody hears you, but the app itself still shows you as
-unmuted. The island shows “Microphone muted” and stops the waves. Linux
-remembers per-app mute, so whatever the island muted is unmuted again
-after the call: the whole microphone as soon as no app records, and app
-streams the next time that app starts recording.
+**Mute / Unmute** (expanded island, while the microphone is in use) is
+GNOME's own microphone mute, the same switch as the volume menu and the
+microphone key. Linux shows the microphone as muted, nobody hears you, and
+the bubble says “Microphone muted” (crossed-out icon, no waves). Muting
+from GNOME or with the microphone key shows in the bubble too. Unmute turns
+the microphone back on and also clears any mute an app's own audio
+connection was left with, so it always means “they can hear you again”.
+The app itself (Slack, Discord…) does not know and keeps its own mute
+button as it was.
 
 Limits: the camera can only be shown, not turned off. Camera use is
 reported without the app's name (GNOME does not say which app). Apps keep

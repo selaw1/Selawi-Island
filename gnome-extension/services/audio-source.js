@@ -13,9 +13,14 @@ import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 const SOURCE = {app: 'Sound', integration: 'gnome-audio'};
 
 export class AudioSource {
-    /** @param {(input: object) => void} submit - sends one event input */
-    constructor(submit) {
+    /**
+     * @param {(input: object) => void} submit - sends one event input
+     * @param {() => boolean} micBubbleShown - true while the microphone
+     *   bubble already shows the mute state (then no extra popup)
+     */
+    constructor(submit, micBubbleShown = () => false) {
         this._submit = submit;
+        this._micBubbleShown = micBubbleShown;
         this._control = Volume.getMixerControl();
         this._ready = false;
         this._sinkId = null;
@@ -79,6 +84,8 @@ export class AudioSource {
         this._mic?.disconnectObject(this);
         this._mic = stream ?? null;
         this._mic?.connectObject('notify::is-muted', () => {
+            if (this._micBubbleShown())
+                return;
             const muted = this._mic.is_muted;
             this._send('audio:mic-mute', muted ? 'Microphone muted' : 'Microphone on',
                 this._describe(this._mic), 3000);

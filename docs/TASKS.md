@@ -153,3 +153,14 @@
   manifests (https sites), build script, tests, docs.
 - **Tests:** a real WebRTC call with Chromium's fake microphone on a
   stand-in Slack page; a microphone-less connection is not a call.
+
+## T-010 — Fixes after first real tests
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** microphone Mute/Unmute switched to GNOME's system
+  microphone mute (reflected in GNOME, state follows it, Unmute also clears
+  app-level mutes; scope setting removed); compact text always left with
+  time on the right; app names without "input"; no duplicate mute popup.
+- **Files:** `gnome-extension/services/{privacy-source,privacy-model,audio-source}.js`,
+  `gnome-extension/{extension.js,prefs-integrations.js,ui/compact-view.js}`,
+  schema, tests, docs.

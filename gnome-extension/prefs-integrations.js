@@ -96,24 +96,6 @@ export function integrationsPage(settings, window) {
     settings.bind('voice-waves', wavesRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     settings.bind('privacy-events', wavesRow, 'sensitive', Gio.SettingsBindFlags.GET);
     sources.add(wavesRow);
-    const muteRow = new Adw.ComboRow({
-        title: 'Mute button mutes',
-        subtitle: 'They will not hear you, but the app still shows you as unmuted',
-        model: Gtk.StringList.new(['Only the apps using the microphone', 'The whole microphone']),
-    });
-    const syncMute = () => {
-        muteRow.selected = settings.get_string('mute-scope') === 'microphone' ? 1 : 0;
-    };
-    const muteId = settings.connect('changed::mute-scope', syncMute);
-    cleanups.push(() => settings.disconnect(muteId));
-    syncMute();
-    muteRow.connect('notify::selected', () => {
-        const value = muteRow.selected === 1 ? 'microphone' : 'apps';
-        if (settings.get_string('mute-scope') !== value)
-            settings.set_string('mute-scope', value);
-    });
-    settings.bind('privacy-events', muteRow, 'sensitive', Gio.SettingsBindFlags.GET);
-    sources.add(muteRow);
     page.add(sources);
 
     // ---- media

@@ -95,11 +95,10 @@ export default class SelawiIslandExtension extends Extension {
         if (!(feed instanceof DaemonFeed))
             return this._updateMeter();
         if (this._settings.get_boolean('audio-events'))
-            this._audio = new AudioSource(input => feed.submit(input));
+            this._audio = new AudioSource(input => feed.submit(input), () => Boolean(this._privacy?.micInUse));
         if (this._settings.get_boolean('privacy-events')) {
             this._privacy = new PrivacySource(
-                input => feed.submit(input), () => this._updateMeter(),
-                () => this._settings.get_string('mute-scope'));
+                input => feed.submit(input), () => this._updateMeter());
         }
         return this._updateMeter();
     }

@@ -22,8 +22,9 @@
   unpacked.
 - **Microphone/camera in use is not a call.** The island shows which app
   records, not whether you are in a meeting; camera use has no app name.
-- **The island's Mute is system-level**: nobody hears you, but the app
-  still shows you as unmuted.
+- **The microphone bubble's Mute is GNOME's microphone mute**: nobody
+  hears you and GNOME shows it, but the app keeps its own mute button as
+  it was.
 - **Voice waves add a second recording stream** (“Selawi Island”) while
   they are on screen. They were tested with a test tone, not yet with a
   real microphone.
