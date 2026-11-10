@@ -19,6 +19,7 @@ import {MonitorManager} from './monitor-manager.js';
 import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
 import {smooth} from './level.js';
 import {describe, foldBrowserMedia, foldBrowserMic, foldMicIntoCalls, playingFirst} from './view-model.js';
+import {isQuiet} from '../services/shell-model.js';
 
 const MORPH_MS = 420;
 const FADE_MS = 180;
@@ -189,7 +190,8 @@ export class Island {
         // briefly expands the island. Lower-priority arrivals stay quiet,
         // so nothing interrupts an active call.
         const top = events[0];
-        const isNewTop = top && this._seen.get(top.id) !== top.created_at;
+        // Quiet events ("Copied") show in the closed island only.
+        const isNewTop = top && !isQuiet(top) && this._seen.get(top.id) !== top.created_at;
         this._seen = new Map(events.map(e => [e.id, e.created_at]));
 
         if (events.length === 0) {

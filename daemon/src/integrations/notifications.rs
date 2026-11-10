@@ -1,9 +1,13 @@
 //! Desktop notifications, observed without replacing GNOME's notification
 //! server: a dedicated session-bus connection becomes a D-Bus *monitor*
-//! for `org.freedesktop.Notifications.Notify` calls only, and each one is
-//! shown as a short event. GNOME keeps handling the notification itself
-//! (history, actions); the extension can hide GNOME's own banner so it is
-//! not shown twice.
+//! for the two ways apps send them, and each one is shown as a short event:
+//! - `org.freedesktop.Notifications.Notify` (most apps), and
+//! - `org.gtk.Notifications.AddNotification` (GNOME's own apps such as
+//!   Files, Software, Clocks, Calendar, and Flatpak apps through the
+//!   notification portal).
+//!
+//! GNOME keeps handling the notification itself (history, actions); the
+//! extension can hide GNOME's own banner so it is not shown twice.
 //!
 //! - Text markup is stripped. The body is shown only if
 //!   `notifications.show_body` is on.
@@ -13,6 +17,7 @@
 //!   deliver them back to the app.
 
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use futures_util::StreamExt;
@@ -22,6 +27,7 @@ use selawi_core::events::{
 use selawi_core::Priority;
 use zbus::fdo::MonitoringProxy;
 use zbus::message::Type as MessageType;
+
 use zbus::{MatchRule, MessageStream, OwnedVariant};
 
 use super::variant::{self, Props};
@@ -124,6 +130,88 @@ pub fn clean(text: &str, max: usize) -> String {
     decoded.trim().chars().take(max).collect()
 }
 
+/// A notification sent GNOME's way (`org.gtk.Notifications`), as the same
+/// shape as a `Notify` call. `app_name` is the app's display name.
+pub fn gtk_notification(
+    app_id: &str,
+    app_name: Option<String>,
+    fields: &Props,
+) -> Option<Notification> {
+    let title = variant::string(fields, "title")?;
+    let body = variant::string(fields, "body")
+        .or_else(|| variant::string(fields, "markup-body"))
+        .unwrap_or_default();
+    let urgency: u8 = match variant::string(fields, "priority").as_deref() {
+        Some("low") => 0,
+        Some("urgent") => 2,
+        _ => 1,
+    };
+    let mut hints = Props::new();
+    if let Ok(v) = zbus::Variant::from(app_id.to_string()).try_into_owned() {
+        hints.insert("desktop-entry".into(), v);
+    }
+    if let Ok(v) = zbus::Variant::U8(urgency).try_into_owned() {
+        hints.insert("urgency".into(), v);
+    }
+    let fallback = app_id.rsplit('.').next().unwrap_or(app_id).to_string();
+    Some(Notification {
+        app_name: app_name.unwrap_or(fallback),
+        summary: title,
+        body,
+        hints,
+        expire_timeout: -1,
+    })
+}
+
+/// The `Name=` of a desktop entry's main group.
+pub fn desktop_entry_name(contents: &str) -> Option<String> {
+    let mut in_main = false;
+    for line in contents.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_main = line == "[Desktop Entry]";
+        } else if in_main {
+            if let Some(name) = line.strip_prefix("Name=") {
+                let name = clean(name, 64);
+                return (!name.is_empty()).then_some(name);
+            }
+        }
+    }
+    None
+}
+
+/// Where desktop entries live (XDG data dirs, plus Flatpak's exports).
+fn desktop_dirs() -> Vec<PathBuf> {
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    match std::env::var_os("XDG_DATA_HOME") {
+        Some(d) => dirs.push(PathBuf::from(d)),
+        None => dirs.extend(home.as_ref().map(|h| h.join(".local/share"))),
+    }
+    let system =
+        std::env::var("XDG_DATA_DIRS").unwrap_or_else(|_| "/usr/local/share:/usr/share".into());
+    dirs.extend(
+        system
+            .split(':')
+            .filter(|d| !d.is_empty())
+            .map(PathBuf::from),
+    );
+    dirs.extend(home.map(|h| h.join(".local/share/flatpak/exports/share")));
+    dirs.push(PathBuf::from("/var/lib/flatpak/exports/share"));
+    dirs.into_iter().map(|d| d.join("applications")).collect()
+}
+
+/// An installed app's display name ("org.gnome.Nautilus" → "Files").
+/// Only plain desktop ids are looked up.
+pub fn desktop_name(app_id: &str, dirs: &[PathBuf]) -> Option<String> {
+    let id = super::app_icon(app_id)?.strip_prefix("app:")?.to_string();
+    dirs.iter().find_map(|dir| {
+        let file: PathBuf = Path::new(dir).join(format!("{id}.desktop"));
+        let contents = std::fs::read_to_string(file).ok()?;
+        desktop_entry_name(&contents)
+    })
+}
+
 type NotifyArgs = (
     String,
     u32,
@@ -141,42 +229,72 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), Stop> {
     watch(hub, conn).await
 }
 
-/// Turns `conn` into a monitor for Notify calls and follows them.
+type GtkArgs = (String, String, HashMap<String, OwnedVariant>);
+
+/// Turns `conn` into a monitor for both kinds of notification calls and
+/// follows them.
 pub async fn watch(hub: Arc<Hub>, conn: zbus::Connection) -> Result<(), Stop> {
-    let rule = MatchRule::builder()
+    let fdo = MatchRule::builder()
         .msg_type(MessageType::MethodCall)
         .interface("org.freedesktop.Notifications")
         .member("Notify")
         .build()?;
+    let gtk = MatchRule::builder()
+        .msg_type(MessageType::MethodCall)
+        .interface("org.gtk.Notifications")
+        .member("AddNotification")
+        .build()?;
     MonitoringProxy::new(&conn)
         .await?
-        .become_monitor(&[rule], 0)
+        .become_monitor(&[fdo, gtk], 0)
         .await
         .map_err(|e| Stop::Unavailable(format!("the session bus refused monitoring: {e}")))?;
     hub.set_status(ID, NAME, Status::Active("watching notifications".into()))
         .await;
 
+    let dirs = desktop_dirs();
     let mut messages = MessageStream::from(&conn);
     let mut seq: u64 = 0;
     while let Some(message) = messages.next().await {
         let Ok(message) = message else { continue };
         let header = message.header();
-        if header.message_type() != MessageType::MethodCall
-            || header.member().map(|m| m.as_str()) != Some("Notify")
-        {
+        if header.message_type() != MessageType::MethodCall {
             continue;
         }
-        let Ok((app_name, _replaces, _icon, summary, body, _actions, hints, expire_timeout)) =
-            message.body().deserialize::<NotifyArgs>()
-        else {
-            continue;
-        };
-        let n = Notification {
-            app_name,
-            summary,
-            body,
-            hints,
-            expire_timeout,
+        let n = match header.member().map(|m| m.as_str()) {
+            Some("Notify") => {
+                let Ok((
+                    app_name,
+                    _replaces,
+                    _icon,
+                    summary,
+                    body,
+                    _actions,
+                    hints,
+                    expire_timeout,
+                )) = message.body().deserialize::<NotifyArgs>()
+                else {
+                    continue;
+                };
+                Notification {
+                    app_name,
+                    summary,
+                    body,
+                    hints,
+                    expire_timeout,
+                }
+            }
+            Some("AddNotification") => {
+                let Ok((app_id, _id, fields)) = message.body().deserialize::<GtkArgs>() else {
+                    continue;
+                };
+                let name = desktop_name(&app_id, &dirs);
+                let Some(n) = gtk_notification(&app_id, name, &fields) else {
+                    continue;
+                };
+                n
+            }
+            _ => continue,
         };
 
         // A media player's own "now playing" popup duplicates the media event.
@@ -281,6 +399,73 @@ mod tests {
     #[test]
     fn empty_title_shows_nothing() {
         assert!(notification_input(&note("A", "  <b></b> ", "body"), 1, true).is_none());
+    }
+
+    fn fields(pairs: &[(&str, &str)]) -> Props {
+        let mut props = Props::new();
+        for (k, v) in pairs {
+            if let Ok(o) = Variant::from(*v).try_into_owned() {
+                props.insert((*k).into(), o);
+            }
+        }
+        props
+    }
+
+    #[test]
+    fn gnome_route_notifications() -> Result<(), &'static str> {
+        let n = gtk_notification(
+            "org.gnome.Nautilus",
+            Some("Files".into()),
+            &fields(&[
+                ("title", "File Operations"),
+                ("body", "All file operations have been completed"),
+            ]),
+        )
+        .ok_or("none")?;
+        let input = notification_input(&n, 3, true).ok_or("none")?;
+        assert_eq!(input.id.as_str(), "notifications:nautilus:3");
+        assert_eq!(input.source.app, "Files");
+        assert_eq!(input.source.icon.as_deref(), Some("app:org.gnome.Nautilus"));
+        assert_eq!(
+            payload(&input),
+            (
+                "File Operations",
+                Some("All file operations have been completed")
+            )
+        );
+
+        let alarm = gtk_notification(
+            "org.gnome.clocks",
+            None,
+            &fields(&[("title", "Alarm"), ("priority", "urgent")]),
+        )
+        .ok_or("none")?;
+        let input = notification_input(&alarm, 1, true).ok_or("none")?;
+        assert_eq!(
+            input.priority,
+            Some(Priority::Critical),
+            "urgent like a critical notification"
+        );
+        assert_eq!(
+            input.source.app, "clocks",
+            "no desktop entry: the id's last part"
+        );
+        assert!(gtk_notification("x", None, &fields(&[("body", "no title")])).is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn desktop_entry_names() {
+        let entry = "[Desktop Entry]\nType=Application\nName=Files\nName[de]=Dateien\n\n[Desktop Action new]\nName=New Window\n";
+        assert_eq!(desktop_entry_name(entry).as_deref(), Some("Files"));
+        assert_eq!(desktop_entry_name("[Desktop Action x]\nName=Nope\n"), None);
+        assert_eq!(
+            desktop_name(
+                "../../etc/passwd",
+                &[PathBuf::from("/usr/share/applications")]
+            ),
+            None
+        );
     }
 
     #[test]

@@ -97,6 +97,12 @@ export function integrationsPage(settings, window) {
     settings.bind('voice-waves', wavesRow, 'active', Gio.SettingsBindFlags.DEFAULT);
     settings.bind('privacy-events', wavesRow, 'sensitive', Gio.SettingsBindFlags.GET);
     sources.add(wavesRow);
+    const clipboardRow = new Adw.SwitchRow({
+        title: 'Copied',
+        subtitle: 'A short bubble when you copy text, an image or files. Never shows what you copied',
+    });
+    settings.bind('clipboard-events', clipboardRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+    sources.add(clipboardRow);
     page.add(sources);
 
     // ---- media

@@ -21,6 +21,8 @@
 | `tests/browser/*.test.js` (6) | The browser extension's event building (mute state only when the site reports it, buttons, call controls from hostile input, media tabs with only the controls the page offers and no timer during ads, site names for calls on any site, download progress and names), every event validated by the island's validator. Runs after `scripts/build-browser.sh` (strict TypeScript) |
 | `native-messaging` unit tests (6) | Message framing, size limit, refusing events that pose as other integrations or carry unknown fields, rate limit |
 | `tests/integration/dbus-smoke.sh` (run and pacman part) | `selawi-island run` passes output and exit codes through and shows Running → Done / Failed (exit 3); a missing program exits 127; the pacman hook shows “Updating 2 packages” → “Updated 2 packages”, rejects odd package names, and nothing is shown while System updates is off. The root → user hand-off and the “Did not finish” watcher were checked by hand with a throwaway user (not in CI: needs root and a user session) |
+| `daemon/tests/fake_services.rs` (notifications) | A `Notify` call and a GNOME-route `AddNotification` call (Files) to fake servers both reach the island |
+| `tests/js/shell-model.test.js` | GNOME Shell notifications (text setting, urgency, empty titles), “Copied” kinds and that it never opens the island |
 | `tests/integration/browser-host.sh` | The real helper against the real daemon: a call arrives, spoofed and unknown messages are refused, Mute pressed in the island reaches the browser, closing the browser ends the call |
 | `tests/integration/browser-e2e.sh` | The built extension in real Chromium (Playwright, Xvfb) with stand-in pages: Meet as a plain WebRTC call with standard call controls (“Google Meet”, logo, camera, Mute/Unmute and Leave through the page's handlers, the call goes on while muted with the microphone dropped from the connection), a download (appears, finishes), YouTube (song and artist, Pause/Play reach the page, a paused tab stays, the song title stays during an ad, Next presses the page's button), SoundCloud playing at the same time with its time read from the page, closing a tab ends its media, a real WebRTC call with the fake microphone on a stand-in Slack page shows as a green “Slack” call and ends on hang-up, and a connection without microphone is not a call. Stable over repeated runs |
 | `node --check` | Every extension file parses |
@@ -157,6 +159,19 @@ The demo loops about every 55 seconds. Check each item:
 17. **Monitors** — with two monitors, set Monitor to 1; plug/unplug a monitor: the island repositions.
 
 Report anything that looks wrong with the step number and any log lines.
+
+### Notifications from GNOME and copying
+
+1. With “Hide GNOME's notification banners” on: take a screenshot (Print Screen) → the island shows “Screenshot captured”, no GNOME banner.
+2. Set a 1-minute timer in GNOME Clocks: when it rings, the island shows it (with the Clocks logo).
+3. Copy a big folder in Files and switch to another window: when it finishes, “Files · File Operations”.
+4. Ctrl+C some text → “Copied” for a moment, the island stays closed; copy an image → “Copied image”; copy files in Files → “Copied files”. Close the app you copied from: no new “Copied”.
+5. Integrations → turn off Copied: no bubble.
+
+### Battery
+
+1. Plug in the charger: green “Charging” with the battery percentage on the right, also when the island is closed; the icon matches GNOME's own battery icon in the top bar.
+2. Unplug: “On battery”, white, with the percentage. When full: green “Fully charged” with the full-battery icon.
 
 ### Commands and system updates
 

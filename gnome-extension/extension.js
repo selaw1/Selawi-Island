@@ -7,9 +7,11 @@
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {AudioSource} from './services/audio-source.js';
+import {ClipboardSource} from './services/clipboard-source.js';
 import {DaemonFeed} from './services/daemon-feed.js';
 import {LevelMeter} from './services/level-meter.js';
 import {PrivacySource} from './services/privacy-source.js';
+import {ShellNotifications} from './services/shell-notifications.js';
 import {SimulatedFeed} from './services/simulated-feed.js';
 import {BannerBlocker} from './ui/banner-blocker.js';
 import {Island} from './ui/island.js';
@@ -32,6 +34,7 @@ export default class SelawiIslandExtension extends Extension {
             'changed::simulation-enabled', () => this._resetFeed(),
             'changed::audio-events', () => this._resetAudio(),
             'changed::privacy-events', () => this._resetAudio(),
+            'changed::clipboard-events', () => this._resetAudio(),
             'changed::voice-waves', () => this._updateMeter(),
             'changed::hide-gnome-banners', () => this._updateBanners(),
             this);
@@ -46,6 +49,10 @@ export default class SelawiIslandExtension extends Extension {
         this._audio = null;
         this._privacy?.destroy();
         this._privacy = null;
+        this._clipboard?.destroy();
+        this._clipboard = null;
+        this._shellNotifications?.destroy();
+        this._shellNotifications = null;
         this._feed?.disconnectObject(this);
         this._feed?.destroy();
         this._feed = null;
@@ -62,6 +69,10 @@ export default class SelawiIslandExtension extends Extension {
         this._audio = null;
         this._privacy?.destroy();
         this._privacy = null;
+        this._clipboard?.destroy();
+        this._clipboard = null;
+        this._shellNotifications?.destroy();
+        this._shellNotifications = null;
         this._feed?.disconnectObject(this);
         this._feed?.destroy();
         this._feed = null;
@@ -91,9 +102,13 @@ export default class SelawiIslandExtension extends Extension {
         this._audio = null;
         this._privacy?.destroy();
         this._privacy = null;
+        this._clipboard?.destroy();
+        this._clipboard = null;
         const feed = this._feed;
         if (!(feed instanceof DaemonFeed))
             return this._updateMeter();
+        if (this._settings.get_boolean('clipboard-events'))
+            this._clipboard = new ClipboardSource(input => feed.submit(input));
         if (this._settings.get_boolean('audio-events'))
             this._audio = new AudioSource(input => feed.submit(input), () => Boolean(this._privacy?.micInUse));
         if (this._settings.get_boolean('privacy-events')) {
@@ -117,5 +132,15 @@ export default class SelawiIslandExtension extends Extension {
         const feed = this._feed;
         this._banners.active = this._settings.get_boolean('hide-gnome-banners') &&
             feed instanceof DaemonFeed && feed.integrationActive('notifications');
+        // While GNOME's banners are hidden, GNOME Shell's own notifications
+        // (which the daemon cannot see) are shown in the island instead.
+        if (this._banners.active && !this._shellNotifications) {
+            this._shellNotifications = new ShellNotifications(
+                input => feed.submit(input),
+                callback => feed.getConfig(config => callback(config?.notifications?.show_body ?? true)));
+        } else if (!this._banners.active && this._shellNotifications) {
+            this._shellNotifications.destroy();
+            this._shellNotifications = null;
+        }
     }
 }

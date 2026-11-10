@@ -10,6 +10,10 @@ Remind the owner about these when they ask what to test or what is next:
 - **System updates:** `yay -S cowsay`, then `yay -R cowsay`; and the next
   `yay -Syu` (“Updating N packages” → “Updated”).
 - **`selawi-island run -- sleep 5`**, then `selawi-island run -- false`.
+- **GNOME notifications:** a screenshot (Print Screen) and a GNOME Clocks
+  timer show in the island.
+- **Copied:** Ctrl+C text, an image, files in Files.
+- **Charging:** plug in and unplug; icon, green and percentage.
 
 ## T-001 — Milestone 1: foundation and island UI
 - **Created:** 2026-11-09
@@ -282,3 +286,24 @@ Remind the owner about these when they ask what to test or what is next:
   owning integration), D-Bus smoke test (run and hooks end to end), view
   model test; root → user hand-off and the watcher checked by hand with
   a throwaway user.
+
+## T-016 — Notifications from GNOME, Copied, battery icons
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** daemon monitor also follows
+  `org.gtk.Notifications.AddNotification` (app name from the desktop
+  entry, priority mapped); the extension mirrors GNOME Shell's own
+  notifications (sources that are neither `FdoNotificationDaemonSource`
+  nor `GtkNotificationDaemonAppSource`) while banners are hidden;
+  `ClipboardSource` (Meta.Selection `owner-changed`, memory sources
+  ignored) sends a quiet “Copied” event that never auto-expands;
+  battery icons follow GNOME's `status/system.js` (floor, charged), green
+  accent and percentage on the right while charging. Checked: GNOME 51
+  has no paste signal (only `owner-changed`) and Files exposes no
+  progress (only GNotifications).
+- **Files:** `daemon/src/integrations/notifications.rs`,
+  `daemon/tests/fake_services.rs`, `gnome-extension/services/{shell-model,shell-notifications,clipboard-source,daemon-feed}.js`,
+  `gnome-extension/{extension.js,prefs-integrations.js,ui/island.js,ui/view-model.js}`, schema,
+  tests, docs.
+- **Tests:** notification unit tests and fake GTK notification server;
+  `tests/js/shell-model.test.js`; battery view-model tests.

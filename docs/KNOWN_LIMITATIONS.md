@@ -83,3 +83,6 @@
 - **`selawi-island run` shows the program and subcommand as the title**;
   a plain-word second argument is treated as a subcommand and shown (use
   `--title` for commands whose arguments are private).
+- **Pasting is not shown** (GNOME does not announce it), and **file copy
+  progress from GNOME Files is not available** to other apps; only its
+  “completed” notification shows.

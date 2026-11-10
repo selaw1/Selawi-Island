@@ -19,7 +19,7 @@ The full project specification is the master plan the owner provided
 - Integrations keep their decisions in pure functions (unit-tested) and are
   also tested against fake services in `daemon/tests/fake_services.rs`.
 - JavaScript: GNOME 45+ ES modules only. Files in `gnome-extension/services/`
-  `protocol.js`, `event-store.js`, `ui/view-model.js`, `ui/placement.js`, `ui/level.js` and `services/privacy-model.js` must stay free of
+  `protocol.js`, `event-store.js`, `ui/view-model.js`, `ui/placement.js`, `ui/level.js`, `services/privacy-model.js` and `services/shell-model.js` must stay free of
   `gi://` imports so Node can test them.
 - Browser extension: strict TypeScript, no `any`. Use pnpm (not npm or
   yarn) for the development dependencies. Content scripts must not

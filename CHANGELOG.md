@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — notifications from GNOME, Copied, battery
+
+### Fixed
+- Notifications from GNOME's own apps (Files, Software, Clocks, Calendar…)
+  and Flatpak apps now show in the island. They use GNOME's other
+  notification route, which the island did not watch, so with GNOME's
+  banners hidden they showed nowhere.
+- GNOME Shell's own notifications (“Screenshot captured”, network
+  sign-in…) also show in the island while GNOME's banners are hidden.
+- Battery icons match GNOME's own: the level is rounded down (95 %
+  charging is not shown as full) and “Fully charged” uses the full icon.
+
+### Added
+- A short “Copied” / “Copied image” / “Copied files” bubble when you copy
+  (never the content; it does not open the island). On/off in
+  Integrations.
+- Charging and fully charged are green, with the battery percentage on
+  the right, also in the closed island.
+
 ## Unreleased — Phase 8 (part 1): commands and system updates
 
 ### Added

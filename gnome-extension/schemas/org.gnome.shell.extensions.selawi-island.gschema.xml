@@ -9,6 +9,10 @@
       <default>true</default>
       <summary>Show audio output, microphone and microphone mute changes</summary>
     </key>
+    <key name="clipboard-events" type="b">
+      <default>true</default>
+      <summary>Show a short "Copied" bubble when something is copied</summary>
+    </key>
     <key name="privacy-events" type="b">
       <default>true</default>
       <summary>Show when an app is using the microphone or camera</summary>

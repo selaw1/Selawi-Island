@@ -15,6 +15,7 @@ const BUS_NAME = 'com.selawi.Island';
 const OBJECT_PATH = '/com/selawi/Island';
 const EVENTS_IFACE = 'com.selawi.Island.Events1';
 const INTEGRATIONS_IFACE = 'com.selawi.Island.Integrations1';
+const CONFIG_IFACE = 'com.selawi.Island.Configuration1';
 const CALL_TIMEOUT_MS = 5000;
 
 export class DaemonFeed extends EventEmitter {
@@ -76,6 +77,17 @@ export class DaemonFeed extends EventEmitter {
     }
 
     /** Sends one event input (an object) to the daemon. */
+    /** The daemon's settings (parsed JSON), or null if it can't be read. */
+    getConfig(callback) {
+        this._call('Get', null, reply => {
+            try {
+                callback(JSON.parse(reply.deepUnpack()[0]));
+            } catch {
+                callback(null);
+            }
+        }, CONFIG_IFACE);
+    }
+
     submit(input) {
         if (this._connected)
             this._call('Submit', new GLib.Variant('(s)', [JSON.stringify(input)]));

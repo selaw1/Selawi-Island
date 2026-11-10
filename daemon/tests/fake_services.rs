@@ -473,6 +473,34 @@ trait Notifications {
     ) -> zbus::Result<u32>;
 }
 
+/// GNOME Shell's other notification server (GNOME apps, Flatpak portal).
+struct FakeGtkNotificationServer;
+
+#[zbus::interface(name = "org.gtk.Notifications")]
+impl FakeGtkNotificationServer {
+    fn add_notification(
+        &self,
+        _app_id: &str,
+        _id: &str,
+        _notification: HashMap<String, OwnedVariant>,
+    ) {
+    }
+}
+
+#[zbus::proxy(
+    interface = "org.gtk.Notifications",
+    default_service = "org.gtk.Notifications",
+    default_path = "/org/gtk/Notifications"
+)]
+trait GtkNotifications {
+    fn add_notification(
+        &self,
+        app_id: &str,
+        id: &str,
+        notification: HashMap<&str, Variant<'_>>,
+    ) -> zbus::Result<()>;
+}
+
 #[tokio::test]
 async fn notifications_are_observed_without_replacing_the_server() -> TestResult {
     if !have_bus() {
@@ -518,6 +546,33 @@ async fn notifications_are_observed_without_replacing_the_server() -> TestResult
     .await?;
     assert_eq!(title, "Yousef");
     assert_eq!(body.as_deref(), Some("Lunch & coffee?"));
+
+    // GNOME's own apps send theirs another way.
+    let _gtk_server = zbus::connection::Builder::session()
+        .serve_at("/org/gtk/Notifications", FakeGtkNotificationServer)
+        .name("org.gtk.Notifications")
+        .build()
+        .await?;
+    let gtk = GtkNotificationsProxy::new(&client).await?;
+    let mut fields = HashMap::new();
+    fields.insert("title", Variant::from("File Operations"));
+    fields.insert(
+        "body",
+        Variant::from("All file operations have been completed"),
+    );
+    gtk.add_notification("org.gnome.Nautilus", "progress", fields)
+        .await?;
+    let (app, title) = wait_for(&hub, "GNOME app notification", |ev| {
+        ev.iter().find_map(|e| match &e.payload {
+            Payload::Notification(p) if e.id.as_str().starts_with("notifications:nautilus:") => {
+                Some((e.source.app.clone(), p.title.clone()))
+            }
+            _ => None,
+        })
+    })
+    .await?;
+    assert_eq!(title, "File Operations");
+    assert!(!app.is_empty());
     watcher.abort();
     Ok(())
 }

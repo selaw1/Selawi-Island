@@ -102,9 +102,23 @@ and case levels are not exposed by BlueZ, so they are not shown.
 
 ## Notifications — `notifications` (implemented)
 
-Source: the daemon watches `org.freedesktop.Notifications.Notify` calls on
-the session bus as a D-Bus **monitor**. GNOME stays the notification
-server: notifications still go to GNOME's list, with their buttons.
+Sources, so that every notification GNOME would show reaches the island:
+
+- `org.freedesktop.Notifications.Notify` calls (most apps: Slack,
+  Discord, Chrome…) and `org.gtk.Notifications.AddNotification` calls
+  (GNOME's own apps such as Files, Software, Clocks, Calendar, and Flatpak
+  apps through the notification portal), both watched by the daemon as a
+  D-Bus **monitor**. For GNOME-route notifications the app's name comes
+  from its desktop entry (“Files” for `org.gnome.Nautilus`); “urgent”
+  ones are shown like critical ones.
+- GNOME Shell's own notifications (“Screenshot captured”, network
+  sign-in, drives…), which never go over D-Bus: while GNOME's banners
+  are hidden, the extension passes them to the island
+  (`notifications:gnome-shell:…`, same text setting, dropped when this
+  integration is off).
+
+GNOME stays the notification server: notifications still go to GNOME's
+list, with their buttons.
 
 - Shown for the time the app asks (2–30 s), 6 s by default; critical ones
   15 s with the highest priority; low-urgency ones at low priority.
@@ -176,6 +190,23 @@ Each warning is shown once and again only after the value has recovered
 (memory above 15 %, CPU below 80 °C). There is no signal for these values,
 so this is the only integration that checks on a timer (every 15 s, two
 small file reads); that is why it is off by default.
+
+## Copied — clipboard (implemented, in the extension)
+
+A short “Copied”, “Copied image” or “Copied files” bubble (about 1.5 s)
+when something is copied, from GNOME's clipboard. Only the kind of data is
+used, never the content. It shows in the closed island only (it never
+opens it) and does not interrupt calls. Turn it off in Integrations →
+Copied.
+
+Limits: **pasting cannot be shown** — GNOME 51 announces a new clipboard
+owner but not when an app reads it. Copies made inside GNOME Shell itself
+(e.g. its search field) are not shown, because GNOME keeps the clipboard
+of a closed app the same way and that must not look like a new copy.
+**File copy progress** from GNOME Files is not available to other apps
+(Files keeps it in its own window); Files' “All file operations have been
+completed” notification does show. `selawi-island run -- cp -r …` shows a
+copy started from a terminal.
 
 ## System updates — `pacman` (implemented, pacman hooks)
 

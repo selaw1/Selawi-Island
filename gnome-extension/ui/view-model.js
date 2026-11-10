@@ -50,13 +50,16 @@ function systemIcon(event) {
     if (event.source.integration === 'upower') {
         if (event.id === 'upower:warning')
             return p.severity === 'critical' ? 'battery-caution-symbolic' : 'battery-low-symbolic';
+        // Same choice as GNOME's own battery icon (status/system.js):
+        // the level rounded down to a multiple of 10.
         const percent = Number.parseInt(p.detail ?? '', 10);
-        const level = Number.isFinite(percent) ? Math.min(100, Math.max(0, Math.round(percent / 10) * 10)) : 100;
+        const level = Number.isFinite(percent) ? Math.min(100, Math.max(0, Math.floor(percent / 10) * 10)) : 100;
         switch (p.title) {
         case 'Charging':
             return level === 100 ? 'battery-level-100-charged-symbolic' : `battery-level-${level}-charging-symbolic`;
-        case 'Plugged in':
         case 'Fully charged':
+            return 'battery-level-100-charged-symbolic';
+        case 'Plugged in':
             return `battery-level-${level}-plugged-in-symbolic`;
         default:
             return `battery-level-${level}-symbolic`;
@@ -75,6 +78,11 @@ function systemIcon(event) {
         return p.detail === 'USB drive removed' ? 'media-removable-symbolic' : 'drive-harddisk-usb-symbolic';
     if (event.source.integration === 'health')
         return event.id === 'health:memory' ? 'computer-symbolic' : 'dialog-warning-symbolic';
+    if (event.source.integration === 'gnome-clipboard') {
+        if (p.title === 'Copied image')
+            return 'image-x-generic-symbolic';
+        return p.title === 'Copied files' ? 'folder-documents-symbolic' : 'edit-copy-symbolic';
+    }
     if (event.source.integration === 'gnome-audio') {
         if (event.id === 'audio:output')
             return 'audio-speakers-symbolic';
@@ -343,6 +351,16 @@ export function describe(event, now) {
         vm.accent = p.severity === 'info' ? 'neutral' : p.severity === 'warning' ? 'orange' : 'red';
         vm.title = p.title;
         vm.subtitle = p.detail ?? app;
+        if (event.id === 'upower:power') {
+            // Charging looks like charging: green, with the percentage on
+            // the right (also when the island is closed).
+            if (p.title === 'Charging' || p.title === 'Fully charged')
+                vm.accent = 'green';
+            if (/^\d{1,3}%$/.test(p.detail ?? '')) {
+                vm.trailing = p.detail;
+                vm.subtitle = 'Battery';
+            }
+        }
         break;
     }
 

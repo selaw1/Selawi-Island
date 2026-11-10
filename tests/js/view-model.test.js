@@ -68,8 +68,10 @@ test('battery and audio events get matching icons', () => {
     }, 0).iconName;
     assert.equal(sys('upower:power', 'upower', 'Charging', '64%'), 'battery-level-60-charging-symbolic');
     assert.equal(sys('upower:power', 'upower', 'Charging', '100%'), 'battery-level-100-charged-symbolic');
-    assert.equal(sys('upower:power', 'upower', 'Plugged in', '100%'), 'battery-level-100-plugged-in-symbolic');
-    assert.equal(sys('upower:power', 'upower', 'On battery', '47%'), 'battery-level-50-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'Charging', '96%'), 'battery-level-90-charging-symbolic', 'like GNOME: rounded down, not "charged" yet');
+    assert.equal(sys('upower:power', 'upower', 'Fully charged', '100%'), 'battery-level-100-charged-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'Plugged in', '80%'), 'battery-level-80-plugged-in-symbolic');
+    assert.equal(sys('upower:power', 'upower', 'On battery', '47%'), 'battery-level-40-symbolic');
     assert.equal(sys('upower:warning', 'upower', 'Battery low', '9% remaining', 'warning'), 'battery-low-symbolic');
     assert.equal(sys('upower:warning', 'upower', 'Battery critical', '3%', 'critical'), 'battery-caution-symbolic');
     assert.equal(sys('audio:output', 'gnome-audio', 'Galaxy Buds', 'Audio output'), 'audio-speakers-symbolic');
@@ -273,4 +275,17 @@ test('commands and system updates: their icon and a running timer', () => {
     assert.equal(failed.accent, 'red');
     const download = describe(task('browser', 'transfer', 'started', {title: 'a.zip', detail: '5 MB'}), 9_000);
     assert.equal(download.trailing, '', 'downloads without a size keep no timer');
+});
+
+test('charging: green, percentage on the right', () => {
+    const power = (title, detail) => describe({...base, id: 'upower:power', category: 'system', state: 'started',
+        source: {app: 'Power', integration: 'upower'}, payload: {type: 'system', title, detail, severity: 'info'}}, 0);
+    const charging = power('Charging', '64%');
+    assert.equal(charging.accent, 'green');
+    assert.equal(charging.trailing, '64%');
+    assert.equal(charging.subtitle, 'Battery');
+    assert.equal(power('Fully charged', '100%').accent, 'green');
+    const unplugged = power('On battery', '64%');
+    assert.equal(unplugged.accent, 'neutral');
+    assert.equal(unplugged.trailing, '64%');
 });
