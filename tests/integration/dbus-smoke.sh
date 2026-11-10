@@ -36,6 +36,33 @@ if "$CLI" send '{"id":"x","exec":"rm"}' 2>/dev/null; then fail "invalid event ac
 sleep 1.2
 "$CLI" list | grep -q '"id":"n1"' && fail "notification did not expire"
 
+# selawi-island run: the command's own output and exit code, Running while
+# it runs, then Done / Failed (arguments never shown).
+"$CLI" run -- sh -c 'echo built; exit 0' | grep -q built || fail "run did not pass output through"
+"$CLI" list | grep -q '"title":"sh","detail":"Done · 0:00"' || fail "run did not finish as Done"
+set +e; "$CLI" run --title "Tests" -- sh -c 'exit 3'; code=$?; set -e
+[ "$code" = 3 ] || fail "run did not return the command's exit code ($code)"
+"$CLI" list | grep -q '"title":"Tests","detail":"Failed (exit 3) · 0:00"' || fail "failed run not shown"
+"$CLI" run -- sh -c "$CLI list > $WORK/during.json"
+grep -q '"detail":"Running"' "$WORK/during.json" || fail "run not shown while running"
+set +e; "$CLI" run -- /no/such/program 2>/dev/null; code=$?; set -e
+[ "$code" = 127 ] || fail "missing program should exit 127 ($code)"
+
+# pacman hooks, delivered to this test session (the real hook finds the
+# logged-in users and runs as each of them).
+printf 'firefox\nmesa\n' | "$CLI" pacman-hook --this-session pre install
+"$CLI" list | grep -q '"id":"pacman:transaction".*"title":"Updating 2 packages"' || fail "pacman start not shown"
+"$CLI" pacman-hook --this-session post install
+"$CLI" list | grep -q '"title":"Updated 2 packages"' || fail "pacman finish not shown"
+printf 'bad name;rm\n' | "$CLI" pacman-hook --this-session pre remove
+"$CLI" list | grep -q 'Removing' && fail "an invalid package name was shown"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{"integrations":{"pacman":false}}' >/dev/null
+printf 'spotify\n' | "$CLI" pacman-hook --this-session pre remove
+"$CLI" list | grep -q 'Removing spotify' && fail "pacman events shown while turned off"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{}' >/dev/null
+
 # Persistence: a persistent event survives a restart.
 "$CLI" send '{"id":"call","source":{"app":"Slack","integration":"test"},"category":"call","state":"started","persistent":true,"payload":{"type":"call","title":"Standup","confidence":"confirmed"}}'
 kill "$DAEMON_PID"; wait "$DAEMON_PID" 2>/dev/null || true

@@ -10,8 +10,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** (checked on GNOME 51) |
 | 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** (checked on GNOME 51); brightness and GPU left out on purpose |
 | 6 | Browser extensions (Chromium, Firefox) + native messaging | **Done** — calls on any site, Meet, per-tab media with ads hidden, downloads |
-| 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | **In progress** — standard call controls in the browser, desktop app logos on the mic bubble |
-| 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
+| 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | **Done** — any web call with standard call controls (Meet included, no per-site code), desktop apps' logos and sites' names on the mic bubble |
+| 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | **In progress** — system updates (pacman/yay) and `selawi-island run` done; Docker/Podman and file copies next; Git left out (too quick to be worth a bubble) |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
 | 10 | GTK4/libadwaita settings app, diagnostics | Planned |
 | 11 | Profiling, stress and multi-monitor testing | Planned |

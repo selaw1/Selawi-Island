@@ -248,3 +248,26 @@
   layout; the PKGBUILD's pkgver/prepare/build/package ran end to end on a
   fresh clone here (makepkg itself needs Arch: not available in this
   sandbox).
+
+## T-015 — Phase 8 (part 1): commands and system updates
+- **Created:** 2026-11-10
+- **Status:** Done (manual check on Arch pending)
+- **Description:** `selawi-island run` (spawns the command, Ctrl+C goes to
+  it, Running → Done / Failed / Stopped with duration, exit code passed
+  through; title from program + subcommand only). pacman hooks
+  (`packaging/pacman/*.hook`, pre/post for install/upgrade and remove,
+  never abort): `selawi-island pacman-hook` as root reads targets and the
+  local database, then starts `selawi-island pacman-user` as each
+  logged-in user (uid ≥ 1000 with a session bus; `Command::uid/gid`,
+  cleared environment) to send `pacman:transaction`; a watcher as the
+  user marks it “Did not finish” if pacman's lock goes away first.
+  Daemon: `pacman` integration id, `Submit` drops events of turned-off
+  integrations. Island: icons for updates and commands, running timer.
+- **Files:** `cli/src/{main,run,pacman}.rs`, `cli/Cargo.toml` (tokio
+  `signal`), `daemon/src/{config,hub}.rs`, `packaging/pacman/*.hook`,
+  `scripts/{stage-package,test}.sh`, `gnome-extension/{ui/view-model.js,prefs-integrations.js}`,
+  tests, docs.
+- **Tests:** unit tests (titles, outcomes, package names, summaries,
+  owning integration), D-Bus smoke test (run and hooks end to end), view
+  model test; root → user hand-off and the watcher checked by hand with
+  a throwaway user.

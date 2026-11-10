@@ -292,8 +292,14 @@ export function describe(event, now) {
         break;
     }
     case 'progress': {
-        vm.iconName = event.category === 'transfer'
-            ? 'folder-download-symbolic' : 'view-refresh-symbolic';
+        if (event.category === 'transfer')
+            vm.iconName = 'folder-download-symbolic';
+        else if (event.source.integration === 'pacman')
+            vm.iconName = 'software-update-available-symbolic';
+        else if (event.source.integration === 'cli' && event.category === 'custom')
+            vm.iconName = 'system-run-symbolic';
+        else
+            vm.iconName = 'view-refresh-symbolic';
         vm.title = p.title;
         vm.subtitle = join(app, p.detail);
         if (event.state === 'failed') {
@@ -309,6 +315,11 @@ export function describe(event, now) {
             if (p.percent !== undefined) {
                 vm.progress = p.percent / 100;
                 vm.trailing = `${Math.round(p.percent)}%`;
+            } else if (event.category !== 'transfer') {
+                // A task with no percentage (a command, a system update):
+                // how long it has been running.
+                vm.trailing = formatClock(now - event.created_at);
+                vm.live = true;
             }
         }
         break;

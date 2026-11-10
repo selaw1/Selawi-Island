@@ -1,8 +1,15 @@
 //! selawi-island: send events to the Selawi Island daemon from a terminal
 //! or script. See docs/CLI.md.
 
+mod pacman;
+mod run;
+
 use std::io::Read;
-use std::process::ExitCode;
+use std::os::unix::fs::MetadataExt;
+use std::os::unix::process::{CommandExt, ExitStatusExt};
+use std::path::Path;
+use std::process::{Child, ExitCode, Stdio};
+use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use selawi_core::events::{
@@ -106,6 +113,61 @@ enum Command {
     Status,
     /// Show the built-in integrations and what each is doing.
     Integrations,
+    /// Run a command and show it in the island: running with a timer, then
+    /// Done or Failed. Example: selawi-island run -- cargo build
+    Run {
+        /// Title to show instead of the command's name.
+        #[arg(long)]
+        title: Option<String>,
+        /// The command and its arguments (put `--` before it).
+        #[arg(
+            required = true,
+            trailing_var_arg = true,
+            allow_hyphen_values = true,
+            value_name = "COMMAND"
+        )]
+        command: Vec<String>,
+    },
+    /// Used by the pacman hooks (runs as root).
+    #[command(hide = true)]
+    PacmanHook {
+        #[arg(value_enum)]
+        phase: HookPhase,
+        #[arg(value_enum)]
+        operation: HookOperation,
+        /// Deliver to this process's own session bus (tests).
+        #[arg(long, hide = true)]
+        this_session: bool,
+    },
+    /// Used by pacman-hook, as the logged-in user.
+    #[command(hide = true)]
+    PacmanUser {
+        #[arg(value_enum)]
+        step: UserStep,
+        #[arg(long)]
+        title: Option<String>,
+        #[arg(long)]
+        detail: Option<String>,
+    },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+enum HookPhase {
+    Pre,
+    Post,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum HookOperation {
+    Install,
+    Remove,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+enum UserStep {
+    Start,
+    Finish,
+    Watch,
 }
 
 #[derive(Subcommand)]
@@ -187,6 +249,27 @@ type Result<T> = std::result::Result<T, String>;
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    match cli.command {
+        Command::Run { title, command } => return run_command(title, command),
+        // Never fails: an install must not depend on the island.
+        Command::PacmanHook {
+            phase,
+            operation,
+            this_session,
+        } => {
+            pacman_hook(phase, operation, this_session);
+            return ExitCode::SUCCESS;
+        }
+        Command::PacmanUser {
+            step,
+            title,
+            detail,
+        } => {
+            pacman_user(step, title, detail);
+            return ExitCode::SUCCESS;
+        }
+        _ => {}
+    }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -278,6 +361,9 @@ async fn run(command: Command) -> Result<()> {
                 );
             }
             Ok(())
+        }
+        Command::Run { .. } | Command::PacmanHook { .. } | Command::PacmanUser { .. } => {
+            Err("handled before connecting".into())
         }
         Command::Status => {
             let core = CoreProxy::new(&connection).await.map_err(dbus_error)?;
@@ -463,4 +549,372 @@ fn dbus_error(e: zbus::Error) -> String {
         return message.clone();
     }
     text
+}
+
+// ---- selawi-island run ------------------------------------------------------
+
+/// Runs are long; one that is never finished (terminal closed) goes after this.
+const RUN_TTL_SECS: u64 = 12 * 60 * 60;
+
+fn run_command(title: Option<String>, command: Vec<String>) -> ExitCode {
+    let runtime = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("selawi-island: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let Some((program, args)) = command.split_first() else {
+        return ExitCode::FAILURE;
+    };
+    let title = title.unwrap_or_else(|| run::command_title(&command));
+    let started = Instant::now();
+    let mut child = match std::process::Command::new(program).args(args).spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            eprintln!("selawi-island: can't run {program}: {e}");
+            return ExitCode::from(127);
+        }
+    };
+
+    runtime.block_on(async move {
+        let island = Island::connect().await;
+        let id = id_or_new(None, "run").ok();
+        let input = |state, detail: String, percent| {
+            id.clone().map(|id| EventInput {
+                id,
+                source: source(DEFAULT_APP.into()),
+                category: Category::Custom,
+                state,
+                priority: None,
+                persistent: false,
+                ttl_ms: Some(secs_to_ms(RUN_TTL_SECS)),
+                group: None,
+                payload: Payload::Progress(ProgressPayload {
+                    title: title.clone(),
+                    detail: Some(detail),
+                    percent,
+                }),
+                actions: Vec::new(),
+            })
+        };
+        island
+            .send(input(LifecycleState::Started, "Running".into(), None))
+            .await;
+
+        // Ctrl+C reaches the command itself; keep waiting so its end is shown.
+        let wait = tokio::task::spawn_blocking(move || child.wait());
+        tokio::pin!(wait);
+        let status = loop {
+            tokio::select! {
+                status = &mut wait => break status,
+                _ = tokio::signal::ctrl_c() => {}
+            }
+        };
+        let outcome = match status {
+            Ok(Ok(status)) => match (status.code(), status.signal()) {
+                (Some(code), _) => run::Outcome::Exited(code),
+                (None, Some(signal)) => run::Outcome::Signal(signal),
+                (None, None) => run::Outcome::Exited(1),
+            },
+            _ => run::Outcome::Exited(1),
+        };
+        let (state, percent) = if outcome.success() {
+            (LifecycleState::Ended, Some(100.0))
+        } else {
+            (LifecycleState::Failed, None)
+        };
+        island
+            .send(input(state, outcome.detail(started.elapsed()), percent))
+            .await;
+        ExitCode::from(outcome.exit_code())
+    })
+}
+
+/// The daemon, if it is running. Sending never fails the caller: a run
+/// or an install works the same without the island.
+struct Island {
+    events: Option<EventsProxy<'static>>,
+}
+
+impl Island {
+    async fn connect() -> Island {
+        let events = async {
+            let connection = zbus::Connection::session().await.ok()?;
+            let bus = zbus::fdo::DBusProxy::new(&connection).await.ok()?;
+            let name = zbus::names::BusName::try_from("com.selawi.Island").ok()?;
+            // Do not start the daemon just for this.
+            if !bus.name_has_owner(name).await.ok()? {
+                return None;
+            }
+            EventsProxy::new(&connection).await.ok()
+        }
+        .await;
+        Island { events }
+    }
+
+    async fn send(&self, input: Option<EventInput>) {
+        if let (Some(events), Some(input)) = (&self.events, input) {
+            let _ = submit(events, &input).await;
+        }
+    }
+
+    async fn current(&self, id: &str) -> Option<Event> {
+        let events = self.events.as_ref()?;
+        let list: Vec<Event> = serde_json::from_str(&events.list().await.ok()?).ok()?;
+        list.into_iter()
+            .find(|e| e.id.as_str() == id && !e.state.is_terminal())
+    }
+}
+
+// ---- pacman hooks -------------------------------------------------------------
+
+/// Packages being installed or removed take at most this long to show.
+const PACMAN_TTL_SECS: u64 = 6 * 60 * 60;
+const DELIVER_WAIT: Duration = Duration::from_millis(1500);
+
+fn pacman_hook(phase: HookPhase, operation: HookOperation, this_session: bool) {
+    let mut args: Vec<String> = Vec::new();
+    if phase == HookPhase::Pre {
+        let mut stdin = String::new();
+        if std::io::stdin().read_to_string(&mut stdin).is_err() {
+            return;
+        }
+        let targets = pacman::clean_targets(&stdin);
+        if targets.is_empty() {
+            return;
+        }
+        let installed = std::fs::read_dir(pacman::LOCAL_DB).ok().map(|dir| {
+            let entries: Vec<String> = dir
+                .filter_map(|e| e.ok()?.file_name().into_string().ok())
+                .collect();
+            pacman::installed_names(entries.iter().map(String::as_str))
+        });
+        let operation = match operation {
+            HookOperation::Install => pacman::Operation::Install,
+            HookOperation::Remove => pacman::Operation::Remove,
+        };
+        let (title, detail) = pacman::summary(operation, &targets, installed.as_ref());
+        args.extend([
+            "pacman-user".into(),
+            "start".into(),
+            "--title".into(),
+            title,
+        ]);
+        if let Some(detail) = detail {
+            args.extend(["--detail".into(), detail]);
+        }
+    } else {
+        args.extend(["pacman-user".into(), "finish".into()]);
+    }
+    let Ok(program) = std::env::current_exe() else {
+        return;
+    };
+    let sessions = if this_session {
+        vec![Session { uid: None, gid: 0 }]
+    } else {
+        user_sessions()
+    };
+    for session in sessions {
+        if let Some(mut child) = as_user(&program, &args, session) {
+            wait_briefly(&mut child);
+        }
+        if phase == HookPhase::Pre {
+            // Notices a transaction that stops without finishing. Detached:
+            // pacman does not wait for it.
+            let watch = ["pacman-user".to_string(), "watch".to_string()];
+            let _ = as_user(&program, &watch, session);
+        }
+    }
+}
+
+/// A logged-in user's session bus. None for `uid` means "this process's own
+/// bus" (when not running as root, e.g. in tests).
+#[derive(Clone, Copy)]
+struct Session {
+    uid: Option<u32>,
+    gid: u32,
+}
+
+fn running_as_root() -> bool {
+    std::fs::metadata("/proc/self").is_ok_and(|m| m.uid() == 0)
+}
+
+fn user_sessions() -> Vec<Session> {
+    if !running_as_root() {
+        return vec![Session { uid: None, gid: 0 }];
+    }
+    let Ok(dir) = std::fs::read_dir("/run/user") else {
+        return Vec::new();
+    };
+    dir.filter_map(|entry| {
+        let entry = entry.ok()?;
+        let uid: u32 = entry.file_name().to_str()?.parse().ok()?;
+        let home = entry.metadata().ok()?;
+        let bus = std::fs::metadata(entry.path().join("bus")).ok()?;
+        (uid >= pacman::FIRST_USER_UID && home.uid() == uid && bus.uid() == uid).then_some(
+            Session {
+                uid: Some(uid),
+                gid: home.gid(),
+            },
+        )
+    })
+    .collect()
+}
+
+/// Starts this program as the session's user, with nothing but the path to
+/// that user's bus in its environment.
+fn as_user(program: &Path, args: &[String], session: Session) -> Option<Child> {
+    let mut command = std::process::Command::new(program);
+    command
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0);
+    if let Some(uid) = session.uid {
+        command
+            .env_clear()
+            .env(
+                "DBUS_SESSION_BUS_ADDRESS",
+                format!("unix:path=/run/user/{uid}/bus"),
+            )
+            .current_dir("/")
+            .gid(session.gid)
+            .uid(uid);
+    }
+    command.spawn().ok()
+}
+
+fn wait_briefly(child: &mut Child) {
+    let until = Instant::now() + DELIVER_WAIT;
+    while Instant::now() < until {
+        if let Ok(Some(_)) = child.try_wait() {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+fn pacman_user(step: UserStep, title: Option<String>, detail: Option<String>) {
+    let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    else {
+        return;
+    };
+    match step {
+        UserStep::Start => runtime.block_on(async {
+            let island = Island::connect().await;
+            let title = title.unwrap_or_else(|| "Updating packages".into());
+            island
+                .send(pacman_input(LifecycleState::Started, title, detail, None))
+                .await;
+        }),
+        UserStep::Finish => runtime.block_on(async {
+            let island = Island::connect().await;
+            if let Some((title, detail)) = island
+                .current(pacman::EVENT_ID)
+                .await
+                .and_then(progress_text)
+            {
+                let input = pacman_input(
+                    LifecycleState::Ended,
+                    pacman::finished_title(&title),
+                    detail,
+                    Some(100.0),
+                );
+                island.send(input).await;
+            }
+        }),
+        UserStep::Watch => pacman_watch(&runtime),
+    }
+}
+
+/// Waits for pacman to let go of its database lock. If the transaction
+/// it saw starting has not finished by then, it stopped: say so.
+fn pacman_watch(runtime: &tokio::runtime::Runtime) {
+    let lock = Path::new(pacman::LOCK_FILE);
+    if !lock.exists() {
+        return;
+    }
+    // Which event this watch is about (another transaction may follow).
+    let mut watched = None;
+    for _ in 0..20 {
+        watched =
+            runtime.block_on(async { Island::connect().await.current(pacman::EVENT_ID).await });
+        if watched.is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let Some(watched) = watched else {
+        return;
+    };
+    let give_up = Instant::now() + Duration::from_secs(PACMAN_TTL_SECS);
+    while lock.exists() {
+        if Instant::now() > give_up {
+            return;
+        }
+        std::thread::sleep(Duration::from_secs(1));
+    }
+    std::thread::sleep(Duration::from_secs(2));
+    runtime.block_on(async {
+        let island = Island::connect().await;
+        let Some(current) = island.current(pacman::EVENT_ID).await else {
+            return;
+        };
+        if current.created_at != watched.created_at {
+            return;
+        }
+        if let Some((title, _)) = progress_text(current) {
+            let input = pacman_input(
+                LifecycleState::Failed,
+                title,
+                Some("Did not finish".into()),
+                None,
+            );
+            island.send(input).await;
+        }
+    });
+}
+
+fn progress_text(event: Event) -> Option<(String, Option<String>)> {
+    match event.payload {
+        Payload::Progress(p) => Some((p.title, p.detail)),
+        _ => None,
+    }
+}
+
+fn pacman_input(
+    state: LifecycleState,
+    title: String,
+    detail: Option<String>,
+    percent: Option<f64>,
+) -> Option<EventInput> {
+    Some(EventInput {
+        id: EventId::new(pacman::EVENT_ID).ok()?,
+        source: Source {
+            app: pacman::APP.into(),
+            integration: pacman::INTEGRATION.into(),
+            icon: None,
+        },
+        category: Category::System,
+        state,
+        priority: None,
+        persistent: false,
+        ttl_ms: Some(secs_to_ms(PACMAN_TTL_SECS)),
+        group: None,
+        payload: Payload::Progress(ProgressPayload {
+            title,
+            detail,
+            percent,
+        }),
+        actions: Vec::new(),
+    })
 }

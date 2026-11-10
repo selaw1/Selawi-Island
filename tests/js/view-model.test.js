@@ -255,3 +255,22 @@ test('the microphone bubble names the site when a browser records', async () => 
     assert.equal(foldBrowserMic([slack, site])[0].source.app, 'Slack', 'a desktop app keeps its own name');
     assert.deepEqual(foldBrowserMic([site]), [], 'no mic bubble: nothing shown');
 });
+
+test('commands and system updates: their icon and a running timer', () => {
+    const task = (integration, category, state, payload) => ({...base, id: 'x', category, state, created_at: 0,
+        updated_at: 0, source: {app: 'Packages', integration}, payload: {type: 'progress', ...payload}});
+    const update = describe(task('pacman', 'system', 'started', {title: 'Updating 23 packages'}), 65_000);
+    assert.equal(update.iconName, 'software-update-available-symbolic');
+    assert.equal(update.trailing, '1:05');
+    assert.equal(update.live, true);
+    const done = describe(task('pacman', 'system', 'ended', {title: 'Updated 23 packages', percent: 100}), 70_000);
+    assert.equal(done.trailing, 'Done');
+    const run = describe(task('cli', 'custom', 'started', {title: 'cargo build', detail: 'Running'}), 7_000);
+    assert.equal(run.iconName, 'system-run-symbolic');
+    assert.equal(run.trailing, '0:07');
+    const failed = describe(task('cli', 'custom', 'failed', {title: 'cargo build', detail: 'Failed (exit 101) · 0:09'}), 9_000);
+    assert.equal(failed.trailing, 'Failed');
+    assert.equal(failed.accent, 'red');
+    const download = describe(task('browser', 'transfer', 'started', {title: 'a.zip', detail: '5 MB'}), 9_000);
+    assert.equal(download.trailing, '', 'downloads without a size keep no timer');
+});

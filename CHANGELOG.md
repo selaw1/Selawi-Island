@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase 8 (part 1): commands and system updates
+
+### Added
+- `selawi-island run -- COMMAND`: shows any command running with a timer,
+  then Done (with its time), Failed (exit N) or Stopped; keeps the
+  command's output and exit code.
+- System updates: installs, updates and removals with pacman or yay show
+  in the island (“Updating 23 packages” → “Updated 23 packages”, Failed
+  “Did not finish” if stopped), through pacman hooks that never block a
+  transaction and send as the logged-in user, not root. On/off in
+  Integrations → System updates.
+- Progress without a percentage (commands, updates) shows a running timer.
+
 ## Unreleased — Arch package
 
 ### Added

@@ -77,3 +77,9 @@
   install, `./scripts/install-local.sh`).
 - **The package build (makepkg) is not run in the automated checks**
   (no Arch system there); its steps and the installed file layout are.
+- **System updates show no percentage** (pacman does not report one to
+  hooks), and yay's compile time for AUR packages is not shown (use
+  `selawi-island run -- yay -S name`).
+- **`selawi-island run` shows the program and subcommand as the title**;
+  a plain-word second argument is treated as a subcommand and shown (use
+  `--title` for commands whose arguments are private).

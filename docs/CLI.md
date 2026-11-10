@@ -47,12 +47,20 @@ selawi-island progress finish --id "$ID" --status success
 - `finish`: `--status success|failure` (default success), `--detail`. It
   stays visible a few seconds, then goes.
 
-Example: wrap any command.
+## Run a command
 
 ```bash
-ID=$(selawi-island progress start --title "cargo build")
-cargo build && selawi-island progress finish --id "$ID" || selawi-island progress finish --id "$ID" --status failure
+selawi-island run -- cargo build --release
+selawi-island run --title "Backup" -- ./backup.sh
 ```
+
+Runs the command as usual (its output in your terminal, Ctrl+C stops
+it) and shows it in the island: **Running** with a timer, then **Done**
+with how long it took, or **Failed (exit N)** / **Stopped**. The exit code
+is the command's own (127 if it could not be started). The title is the
+program's name plus its subcommand (`cargo build`), never its other
+arguments; `--title` sets your own. If the island is not running, the
+command still runs normally.
 
 ## Other commands
 
@@ -63,5 +71,7 @@ cargo build && selawi-island progress finish --id "$ID" || selawi-island progres
 | `selawi-island list` | Current events as JSON |
 | `selawi-island dismiss ID` | Remove an event |
 | `selawi-island send JSON` | Send a raw protocol v1 event input (`-` reads stdin) |
+| `selawi-island run -- COMMAND` | Run a command and show it (above) |
 
-Exit code is 0 on success and 1 on any error, with the reason on stderr.
+Exit code is 0 on success and 1 on any error, with the reason on stderr
+(`run` returns the command's own exit code).

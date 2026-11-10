@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 /// Integration ids the configuration may mention.
-pub const KNOWN_INTEGRATIONS: [&str; 7] = [
+pub const KNOWN_INTEGRATIONS: [&str; 8] = [
     "mpris",
     "upower",
     "bluez",
@@ -30,6 +30,8 @@ pub const KNOWN_INTEGRATIONS: [&str; 7] = [
     "network",
     "storage",
     "health",
+    // Sent by the pacman hooks (selawi-island pacman-hook), not run here.
+    "pacman",
 ];
 
 /// Integrations that are off unless turned on: they poll instead of

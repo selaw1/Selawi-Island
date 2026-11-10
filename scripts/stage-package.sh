@@ -69,5 +69,10 @@ cat > "$DEST/usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json" <<JSO
 JSON
 chmod 644 "$DEST/usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json"
 
+# pacman hooks: installs, updates and removals in the island.
+for hook in packaging/pacman/*.hook; do
+    install -Dm644 "$hook" "$DEST/usr/share/libalpm/hooks/$(basename "$hook")"
+done
+
 install -Dm644 README.md "$DEST/usr/share/doc/selawi-island/README.md"
 install -Dm644 docs/INSTALL.md "$DEST/usr/share/doc/selawi-island/INSTALL.md"

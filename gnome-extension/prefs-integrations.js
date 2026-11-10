@@ -20,6 +20,7 @@ const SOURCES = [
     ['network', 'Network', 'Wi-Fi, Ethernet, VPN and network sign-in'],
     ['storage', 'USB drives', 'Drives plugged in and removed'],
     ['health', 'System warnings', 'Low memory and high CPU temperature (checks every 15 s)'],
+    ['pacman', 'System updates', 'Installs, updates and removals with pacman or yay'],
 ];
 
 function call(iface, method, args = null) {

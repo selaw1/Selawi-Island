@@ -119,6 +119,13 @@ impl Hub {
     }
 
     pub async fn submit_json(&self, json: &str) -> Result<(), SubmitError> {
+        // Events sent from outside for an integration that is turned off
+        // (e.g. "pacman:…" from the pacman hook) are dropped quietly.
+        if let Some(owner) = owning_integration(json) {
+            if !self.config.borrow().enabled(owner) {
+                return Ok(());
+            }
+        }
         let changed = self.engine.lock().await.submit(json, Timestamp::now())?;
         self.after_change(changed).await;
         Ok(())
@@ -277,5 +284,35 @@ impl Hub {
         if let Err(e) = crate::dbus::Events::changed(emitter, &list).await {
             eprintln!("Could not emit Changed: {e}");
         }
+    }
+}
+
+/// The known integration an event id belongs to ("pacman:transaction" →
+/// "pacman"), if any.
+fn owning_integration(json: &str) -> Option<&'static str> {
+    let value: serde_json::Value = serde_json::from_str(json).ok()?;
+    let prefix = value.get("id")?.as_str()?.split(':').next()?;
+    crate::config::KNOWN_INTEGRATIONS
+        .into_iter()
+        .find(|known| *known == prefix)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::owning_integration;
+
+    #[test]
+    fn events_from_outside_belong_to_known_integrations_only() {
+        assert_eq!(
+            owning_integration(r#"{"id":"pacman:transaction"}"#),
+            Some("pacman")
+        );
+        assert_eq!(
+            owning_integration(r#"{"id":"mpris:spotify"}"#),
+            Some("mpris")
+        );
+        assert_eq!(owning_integration(r#"{"id":"cli-run-1-2"}"#), None);
+        assert_eq!(owning_integration(r#"{"id":"browser:call:1"}"#), None);
+        assert_eq!(owning_integration("not json"), None);
     }
 }

@@ -177,6 +177,35 @@ Each warning is shown once and again only after the value has recovered
 so this is the only integration that checks on a timer (every 15 s, two
 small file reads); that is why it is off by default.
 
+## System updates — `pacman` (implemented, pacman hooks)
+
+Source: pacman hooks (installed by the package in
+`/usr/share/libalpm/hooks/`), so it works for `pacman` and for `yay` (which
+hands installing to pacman), AUR packages included.
+
+| When | Shows |
+|---|---|
+| Install / update starts | “Installing spotify” or “Updating 23 packages” (a few names below), a running timer |
+| It finishes | “Installed spotify” / “Updated 23 packages”, Done |
+| Remove | “Removing …”, then “Removed …” |
+| It stops halfway (error, Ctrl+C) | Failed, “Did not finish” |
+
+How it stays harmless: the hook always succeeds and gives up after about a
+second, so it never stops or slows a transaction. It runs as root only to
+read the package list it is given and the local package database (to tell
+installs from updates); it then starts a copy of itself **as each
+logged-in user** (no root, no environment but the path to that user's
+session bus) to send one event, and does nothing if the island is not
+running. A small helper, also as the user, waits for pacman to release
+its lock (checking once a second while an update runs) to notice a
+transaction that stopped without finishing. Only package names are sent.
+
+Limits: no percentage (pacman does not report one to hooks). For AUR
+packages, the time yay spends compiling comes before pacman starts and is
+not shown; `selawi-island run -- yay -S name` shows the whole thing.
+Removing Selawi Island itself is not shown. Turn it off in Integrations →
+System updates.
+
 ## Microphone and camera in use — `gnome-privacy` (implemented, in the extension)
 
 Sources: recording streams in GNOME's mixer and `Shell.CameraMonitor`, the
@@ -247,5 +276,3 @@ those for web meetings.
 | Integration | Plan |
 |---|---|
 | Calls on any website (Google Meet included), per-tab media (YouTube, YouTube Music, SoundCloud) with ads hidden, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
-| Calls on any website (Slack, Teams, Zoom, Discord…) | Implemented: site name, timer and voice waves, no buttons |
-| Calls (Slack, Zoom, Teams, Discord…) | Phase 7 |

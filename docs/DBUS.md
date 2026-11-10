@@ -46,6 +46,11 @@ Events created by built-in integrations have ids starting with the
 integration id (`mpris:`, `upower:`, `bluez:`). Their action buttons are
 handled inside the daemon; `ActionInvoked` is still emitted for them.
 
+`pacman` is an integration id too, but its events come from outside (the
+pacman hooks, through `Submit`). `Submit` quietly drops any event whose id
+starts with a known integration id that is turned off (`"pacman:…"` while
+`integrations.pacman` is false); the call still succeeds.
+
 ### Errors
 
 | Name | When |

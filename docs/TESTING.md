@@ -20,6 +20,7 @@
 | `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) against a real daemon on a private bus: Default position dropdown, Make this the default / Reset, and the Integrations page (service status, turning Bluetooth off, one-player mode, notification text, audio switch). Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
 | `tests/browser/*.test.js` (6) | The browser extension's event building (mute state only when the site reports it, buttons, call controls from hostile input, media tabs with only the controls the page offers and no timer during ads, site names for calls on any site, download progress and names), every event validated by the island's validator. Runs after `scripts/build-browser.sh` (strict TypeScript) |
 | `native-messaging` unit tests (6) | Message framing, size limit, refusing events that pose as other integrations or carry unknown fields, rate limit |
+| `tests/integration/dbus-smoke.sh` (run and pacman part) | `selawi-island run` passes output and exit codes through and shows Running → Done / Failed (exit 3); a missing program exits 127; the pacman hook shows “Updating 2 packages” → “Updated 2 packages”, rejects odd package names, and nothing is shown while System updates is off. The root → user hand-off and the “Did not finish” watcher were checked by hand with a throwaway user (not in CI: needs root and a user session) |
 | `tests/integration/browser-host.sh` | The real helper against the real daemon: a call arrives, spoofed and unknown messages are refused, Mute pressed in the island reaches the browser, closing the browser ends the call |
 | `tests/integration/browser-e2e.sh` | The built extension in real Chromium (Playwright, Xvfb) with stand-in pages: Meet as a plain WebRTC call with standard call controls (“Google Meet”, logo, camera, Mute/Unmute and Leave through the page's handlers, the call goes on while muted with the microphone dropped from the connection), a download (appears, finishes), YouTube (song and artist, Pause/Play reach the page, a paused tab stays, the song title stays during an ad, Next presses the page's button), SoundCloud playing at the same time with its time read from the page, closing a tab ends its media, a real WebRTC call with the fake microphone on a stand-in Slack page shows as a green “Slack” call and ends on hang-up, and a connection without microphone is not a call. Stable over repeated runs |
 | `node --check` | Every extension file parses |
@@ -156,6 +157,14 @@ The demo loops about every 55 seconds. Check each item:
 17. **Monitors** — with two monitors, set Monitor to 1; plug/unplug a monitor: the island repositions.
 
 Report anything that looks wrong with the step number and any log lines.
+
+### Commands and system updates
+
+1. `selawi-island run -- sleep 5`: “sleep” with a timer, then Done · 0:05. `selawi-island run -- false`: Failed (exit 1). Ctrl+C during `selawi-island run -- sleep 60`: Stopped.
+2. `yay -S` a small package you don't have: “Installing name” with a timer, then “Installed name”. `yay -R` it: “Removing name”, then “Removed”.
+3. `yay -Syu` with updates: “Updating N packages” and a few names, then “Updated N packages”. Pacman's output shows one extra line, “Telling Selawi Island...”.
+4. Start an update and answer “n” at pacman's prompt, or press Ctrl+C while it installs: nothing shown, or Failed “Did not finish”.
+5. Integrations → turn off System updates: installs no longer show.
 
 ### Arch package
 

@@ -31,7 +31,8 @@ for file in usr/bin/selawi-islandd usr/bin/selawi-island usr/bin/selawi-island-b
     usr/share/gnome-shell/extensions/selawi-island@selawi/extension.js \
     usr/share/gnome-shell/extensions/selawi-island@selawi/schemas/gschemas.compiled \
     usr/share/selawi-island/browser/chrome/manifest.json usr/share/selawi-island/browser/firefox/manifest.json \
-    etc/opt/chrome/native-messaging-hosts/io.selawi.island.json usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json; do
+    etc/opt/chrome/native-messaging-hosts/io.selawi.island.json usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json \
+    usr/share/libalpm/hooks/selawi-island-install-pre.hook usr/share/libalpm/hooks/selawi-island-remove-post.hook; do
     [ -f "$stage/$file" ] || { echo "package is missing $file"; exit 1; }
 done
 grep -q '^ExecStart=/usr/bin/selawi-islandd$' "$stage/usr/lib/systemd/user/selawi-islandd.service" ||

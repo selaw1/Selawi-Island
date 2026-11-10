@@ -1,0 +1,14 @@
+# Shows installs, updates and removals (pacman, yay) in Selawi Island.
+# It only sends one short message to the island; it can never stop or
+# slow down the transaction (it always succeeds and gives up after ~1 s).
+[Trigger]
+Operation = Remove
+Type = Package
+Target = *
+Target = !selawi-island
+
+[Action]
+Description = Telling Selawi Island...
+When = PreTransaction
+Exec = /usr/bin/selawi-island pacman-hook pre remove
+NeedsTargets
