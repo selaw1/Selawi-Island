@@ -89,7 +89,8 @@ into the call bubble, which then shows the voice waves.
   keys (title, artist, album), the player's play state and time, and
   whether YouTube's player is showing an ad. It presses only the page's
   own play, next and previous controls.
-- On every https site it also notes the Media Session call controls the
+- On every https site it also notes whether the page holds the
+  microphone (yes/no) and the Media Session call controls the
   page reports (microphone/camera on or off, mute/hang-up available).
 - On Meet it reads only its call controls (is there a leave button, the
   microphone button's muted flag) and the page title. No chat, no names
@@ -109,6 +110,15 @@ in a call; when it closes or the microphone track stops, the call ends.
 This works the same on every site, with no per-site code. The site name
 comes from the tab's address (known sites get their proper names). Meet
 keeps its own, richer support.
+
+## Which site uses the microphone
+
+Linux only sees that the browser records. A small script in each https
+page notes whether the page holds a live microphone track (from
+`getUserMedia`; no audio is read) and the extension reports the site
+(`browser:mic:<tab>`, with the site's name and logo). The island never
+shows this on its own: it puts that site's name and logo on its orange
+microphone bubble in place of “Google Chrome”.
 
 ## Call controls a site reports (Media Session)
 

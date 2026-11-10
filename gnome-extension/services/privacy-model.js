@@ -10,6 +10,17 @@ export function appName(raw) {
     return name.slice(0, 60) || 'An app';
 }
 
+const BROWSER_NAME = /\b(chrome|chromium|brave|firefox|edge|vivaldi|opera|librewolf|waterfox|floorp|zen)\b/i;
+
+/**
+ * Whether a recording app is a web browser. A browser's own logo says
+ * nothing about which site uses the microphone, so it gets none; the
+ * browser extension names the site instead.
+ */
+export function isBrowserApp(...names) {
+    return names.some(name => BROWSER_NAME.test(String(name ?? '').replace(/[._-]/g, ' ')));
+}
+
 /**
  * `source.icon` for an installed app, from its desktop file id
  * ("com.slack.Slack.desktop" → "app:com.slack.Slack"). Null for anything else.

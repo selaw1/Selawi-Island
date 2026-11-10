@@ -91,6 +91,7 @@ journalctl -f -o cat /usr/bin/gnome-shell
 8. Expand the island during a call → **Mute**: it shows “Microphone muted”, the bars stop, GNOME's volume menu shows the microphone muted, and the other side can't hear you. **Unmute** brings your voice back.
 9. Mute the microphone from GNOME's volume menu (or the mic key) during a call: the bubble shows “Microphone muted”; **Unmute** in the bubble turns it back on.
 10. Join a call in a desktop app (Slack, Zoom, Discord): the orange bubble shows the app's logo instead of the mic icon; Mute adds a small crossed-out mic next to the time.
+11. Use the microphone on a website in Chrome (dismiss the Meet call to see the bubble, or record a voice message): the orange bubble shows the site's name and logo, never Chrome's logo.
 
 ### Browser (Google Meet, downloads)
 

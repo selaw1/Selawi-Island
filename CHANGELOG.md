@@ -10,8 +10,12 @@
 - The microphone bubble shows the recording app's logo (Slack, Zoom…),
   still orange; muted and camera show as small icons next to the time.
 
+- When a website uses the microphone, the orange bubble shows that site's
+  name and logo instead of “Google Chrome”.
+
 ### Fixed
 - A logo in the expanded island no longer sits on a coloured square.
+- Browsers no longer get their own logo on the microphone bubble.
 
 ## Unreleased — playing media first
 

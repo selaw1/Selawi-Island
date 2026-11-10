@@ -242,9 +242,15 @@ try {
     ok(list().filter(e => e.id.startsWith('browser:call:') && e.state !== 'ended').length === 1,
         'a page with a connection but no microphone is not a call');
 
+    const micHint = await waitFor('Slack holds the microphone', events => events.find(e =>
+        e.id.startsWith('browser:mic:') && e.state !== 'ended'));
+    ok(micHint.source.app === 'Slack', 'the island learns which site holds the microphone');
+
     await huddle.evaluate(() => window.hangUp());
     await waitFor('call ended', events => events.find(e => e.id === webCall.id && e.state === 'ended'));
     ok(true, 'hanging up ends the call');
+    await waitFor('microphone released', events => events.find(e => e.id === micHint.id && e.state === 'ended'));
+    ok(true, 'stopping the microphone clears the site');
 
     // ---- a site that reports its call controls (Media Session) ------------
     const teams = await context.newPage();

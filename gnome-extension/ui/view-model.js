@@ -4,6 +4,8 @@
 // Rule: show only what the event says. Never invent battery levels, call
 // mute state or anything else a source did not report.
 
+import {isBrowserApp} from '../services/privacy-model.js';
+
 export function formatClock(ms) {
     const total = Math.max(0, Math.floor(ms / 1000));
     const h = Math.floor(total / 3600);
@@ -148,6 +150,31 @@ export function playingFirst(events) {
     const sorted = [...media.filter(playing), ...media.filter(e => !playing(e))];
     let next = 0;
     return events.map(e => (isMedia(e) ? sorted[next++] : e));
+}
+
+/**
+ * The browser extension says which site holds the microphone
+ * (`browser:mic:<tab>`); Linux only knows "Google Chrome". These events
+ * are never shown themselves: when the microphone bubble's app is a
+ * browser, it takes the newest site's name and logo instead.
+ *
+ * @param {object[]} events - ordered events
+ * @returns {object[]} the list to show
+ */
+export function foldBrowserMic(events) {
+    const sites = events.filter(e => e.id.startsWith('browser:mic:'));
+    if (sites.length === 0)
+        return events;
+    const site = sites.filter(e => !isFinished(e)).sort((a, b) => b.created_at - a.created_at)[0];
+    return events.filter(e => !sites.includes(e)).map(e => {
+        if (!site || e.id !== 'privacy:capture' || e.source.icon || !isBrowserApp(e.source.app))
+            return e;
+        const detail = e.payload.detail?.replace(e.source.app, site.source.app) ?? site.source.app;
+        const source = {...e.source, app: site.source.app};
+        if (site.source.icon)
+            source.icon = site.source.icon;
+        return {...e, source, payload: {...e.payload, detail}};
+    });
 }
 
 /**

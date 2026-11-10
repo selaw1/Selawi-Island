@@ -58,3 +58,12 @@ test('the recording app\'s logo', async () => {
     const camOnly = privacyInput({apps: [], camera: true, muted: false, icon: 'app:x'});
     assert.equal(camOnly.source.icon, undefined, 'no app logo for the camera alone');
 });
+
+test('browsers get no app logo', async () => {
+    const {isBrowserApp} = await import('../../gnome-extension/services/privacy-model.js');
+    assert.ok(isBrowserApp('Google Chrome'));
+    assert.ok(isBrowserApp(null, 'org.mozilla.firefox'));
+    assert.ok(isBrowserApp('', '', 'brave-browser'));
+    assert.ok(!isBrowserApp('Slack', 'com.slack.Slack'));
+    assert.ok(!isBrowserApp('Zoom'));
+});

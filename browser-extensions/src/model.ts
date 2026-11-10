@@ -27,6 +27,13 @@ export interface MediaPayload {
     duration_ms?: number;
 }
 
+export interface SystemPayload {
+    type: 'system';
+    title: string;
+    detail: string;
+    severity: 'info';
+}
+
 export interface ProgressPayload {
     type: 'progress';
     title: string;
@@ -37,12 +44,12 @@ export interface ProgressPayload {
 export interface EventInput {
     id: string;
     source: {app: string; integration: 'browser'; icon?: string};
-    category: 'call' | 'transfer' | 'media';
+    category: 'call' | 'transfer' | 'media' | 'system';
     state: State;
     persistent: boolean;
     priority?: 'call';
     ttl_ms?: number;
-    payload: CallPayload | ProgressPayload | MediaPayload;
+    payload: CallPayload | ProgressPayload | MediaPayload | SystemPayload;
     actions: Action[];
 }
 
@@ -131,7 +138,8 @@ export type PageMessage =
     | {kind: 'meet'; state: MeetState}
     | {kind: 'media'; state: MediaState | null}
     | {kind: 'call'; active: boolean}
-    | {kind: 'session'; raw: string | null};
+    | {kind: 'session'; raw: string | null}
+    | {kind: 'mic'; active: boolean};
 export type SessionCommand = {kind: 'session-action'; action: SessionAction};
 export type MeetCommand = {kind: 'meet-action'; action: 'mute' | 'unmute' | 'leave'};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
@@ -366,5 +374,28 @@ export function webCallEvent(tabId: number, site: string, state: State, session:
         priority: 'call',
         payload,
         actions,
+    };
+}
+
+// ---- which site uses the microphone -------------------------------------
+
+export function micEventId(tabId: number): string {
+    return `browser:mic:${tabId}`;
+}
+
+/**
+ * "This site holds the microphone." Linux only knows the browser does; the
+ * island uses this to put the site's name and logo on its microphone
+ * bubble, and does not show it on its own.
+ */
+export function micEvent(tabId: number, site: string, state: State): EventInput {
+    return {
+        id: micEventId(tabId),
+        source: {app: clean(site, 64) || 'Website', integration: 'browser'},
+        category: 'system',
+        state,
+        persistent: state === 'started' || state === 'updated',
+        payload: {type: 'system', title: 'Microphone', detail: clean(site, 64) || 'Website', severity: 'info'},
+        actions: [],
     };
 }

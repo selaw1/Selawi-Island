@@ -13,7 +13,7 @@ import Shell from 'gi://Shell';
 import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 
 import {METER_APP_ID, METER_APP_NAME} from './level-meter.js';
-import {appIcon, appName, privacyInput} from './privacy-model.js';
+import {appIcon, appName, isBrowserApp, privacyInput} from './privacy-model.js';
 
 // These show an input level meter and would look like recording apps.
 const SKIPPED_APPS = ['org.gnome.VolumeControl', 'org.PulseAudio.pavucontrol', METER_APP_ID];
@@ -88,9 +88,12 @@ export class PrivacySource {
     /**
      * The recording app's logo: the installed app it names (its app id or
      * icon name) or, failing that, a running app with exactly that name.
-     * Null when it cannot be matched; the island then shows the mic icon.
+     * Null for a browser, or when it cannot be matched; the island then shows
+     * the mic icon (or the site, from the browser extension).
      */
     _iconFor(output) {
+        if (isBrowserApp(output.get_name(), output.get_application_id(), output.get_icon_name()))
+            return null;
         const apps = Shell.AppSystem.get_default();
         const byId = id => id ? apps.lookup_app(`${id}.desktop`) ??
             apps.lookup_heuristic_basename(`${id}.desktop`) ??

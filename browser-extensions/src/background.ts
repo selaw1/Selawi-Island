@@ -5,7 +5,7 @@ import {
     type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
     type MediaState, type MeetCommand, type MeetState, type PageMessage, type SessionCommand, type SessionState,
     type State, type ToHost,
-    NO_SESSION, downloadEvent, hasSession, mediaEvent, meetEvent, meetTitle, parseSession, sessionCommand,
+    NO_SESSION, downloadEvent, hasSession, mediaEvent, micEvent, meetEvent, meetTitle, parseSession, sessionCommand,
     siteName, webCallEvent,
 } from './model.js';
 
@@ -188,6 +188,38 @@ function onSession(tabId: number, frameId: number, state: SessionState): void {
         publish(webCallEvent(tabId, call.site, 'updated', sessionOf(tabId)), tabId);
 }
 
+// ---- which site uses the microphone -----------------------------------------
+
+// Tab → frames holding the microphone, and the site name.
+const mics = new Map<number, {frames: Set<number>; site: string}>();
+
+function onMic(tabId: number, frameId: number, active: boolean, tabUrl: string): void {
+    const mic = mics.get(tabId);
+    if (active) {
+        if (mic) {
+            mic.frames.add(frameId);
+            return;
+        }
+        const site = siteName(tabUrl);
+        mics.set(tabId, {frames: new Set([frameId]), site});
+        publish(micEvent(tabId, site, 'started'), tabId);
+        return;
+    }
+    if (!mic)
+        return;
+    mic.frames.delete(frameId);
+    if (mic.frames.size === 0)
+        endMic(tabId);
+}
+
+function endMic(tabId: number): void {
+    const mic = mics.get(tabId);
+    if (!mic)
+        return;
+    mics.delete(tabId);
+    publish(micEvent(tabId, mic.site, 'ended'), tabId);
+}
+
 // ---- Google Meet ----------------------------------------------------------
 
 const calls = new Map<number, MeetState>();
@@ -262,6 +294,10 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
         onWebCall(tabId, sender.frameId ?? 0, message.active === true, sender.tab?.url ?? sender.url ?? '');
         return;
     }
+    if (message?.kind === 'mic') {
+        onMic(tabId, sender.frameId ?? 0, message.active === true, sender.tab?.url ?? sender.url ?? '');
+        return;
+    }
     if (message?.kind === 'session') {
         onSession(tabId, sender.frameId ?? 0, parseSession(typeof message.raw === 'string' ? message.raw : null));
         return;
@@ -286,6 +322,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
     endCall(tabId);
     endMedia(tabId);
     endWebCall(tabId);
+    endMic(tabId);
     logos.delete(tabId);
     refetch.delete(tabId);
     sessions.delete(tabId);

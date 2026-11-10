@@ -237,3 +237,21 @@ test('microphone bubble with an app logo', () => {
     assert.deepEqual(describe(mic('Microphone muted'), 0).indicators, ['microphone-disabled-symbolic']);
     assert.deepEqual(describe(mic('Camera and microphone'), 0).indicators, ['camera-web-symbolic']);
 });
+
+test('the microphone bubble names the site when a browser records', async () => {
+    const {foldBrowserMic} = await import('../../gnome-extension/ui/view-model.js');
+    const capture = {...base, id: 'privacy:capture', state: 'started',
+        source: {app: 'Google Chrome', integration: 'gnome-privacy'},
+        payload: {type: 'system', title: 'Microphone', detail: 'Google Chrome', severity: 'info'}};
+    const site = {...base, id: 'browser:mic:7', state: 'started', created_at: 5,
+        source: {app: 'selawigram.com', integration: 'browser', icon: 'data:image/png;base64,AAAA'},
+        payload: {type: 'system', title: 'Microphone', detail: 'selawigram.com', severity: 'info'}};
+    const out = foldBrowserMic([capture, site]);
+    assert.equal(out.length, 1, 'the site hint is never shown on its own');
+    assert.equal(out[0].source.app, 'selawigram.com');
+    assert.equal(out[0].source.icon, 'data:image/png;base64,AAAA');
+    assert.equal(out[0].payload.detail, 'selawigram.com');
+    const slack = {...capture, source: {app: 'Slack', integration: 'gnome-privacy', icon: 'app:slack'}};
+    assert.equal(foldBrowserMic([slack, site])[0].source.app, 'Slack', 'a desktop app keeps its own name');
+    assert.deepEqual(foldBrowserMic([site]), [], 'no mic bubble: nothing shown');
+});

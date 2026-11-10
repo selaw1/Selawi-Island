@@ -222,7 +222,10 @@ button as it was.
 **App logo:** the recording app's logo (Slack, Zoom, Discord…) replaces
 the mic icon when the island can match it to an installed app: by the
 app id or icon name the app gives its audio connection, or else a running
-app with exactly that name. Otherwise the mic icon stays. With a logo,
+app with exactly that name. Otherwise the mic icon stays. Browsers get
+no logo of their own: with the browser extension, the bubble shows the
+website that holds the microphone instead (its name and logo, e.g.
+“Google Meet”); without it, the plain mic icon and the browser's name. With a logo,
 “muted” and “camera on” show as small icons next to the time. The bubble
 stays orange: it shows the microphone is in use, not that a call is on.
 

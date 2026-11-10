@@ -213,3 +213,8 @@
   events with and without controls, Meet merge); browser e2e with a
   stand-in Teams page using the real Media Session API (Mute, Unmute,
   Leave through the page's handlers); privacy model and view model tests.
+- **Follow-up:** browsers get no app logo (`isBrowserApp`); `mic-main.ts`
+  notes whether a page holds a live microphone track and the extension
+  sends `browser:mic:<tab>` (never shown itself); `foldBrowserMic` puts
+  that site's name and logo on the microphone bubble. Tested in the
+  browser e2e (Slack stand-in) and the view model tests.
