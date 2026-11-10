@@ -317,6 +317,11 @@ export function describe(event, now) {
                 vm.indicators.push('camera-web-symbolic');
             if (p.muted === true)
                 vm.indicators.push('microphone-disabled-symbolic');
+        } else if (event.source.integration === 'gnome-privacy' && p.type === 'system' && !isFinished(event)) {
+            if (p.title.startsWith('Camera'))
+                vm.indicators.push('camera-web-symbolic');
+            if (p.title.endsWith('muted'))
+                vm.indicators.push('microphone-disabled-symbolic');
         } else if (p.type === 'media' && !p.playing && !isFinished(event)) {
             vm.indicators.push('media-playback-pause-symbolic');
         }

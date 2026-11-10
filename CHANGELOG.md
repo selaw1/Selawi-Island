@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — call controls and app logos
+
+### Added
+- Calls on any website show “Muted”, “Camera on”, **Mute / Unmute** and
+  **Leave** when the site reports them through Chrome's Media Session call
+  controls; the buttons use the site's own controls. Meet uses them first,
+  its page buttons otherwise.
+- The microphone bubble shows the recording app's logo (Slack, Zoom…),
+  still orange; muted and camera show as small icons next to the time.
+
+### Fixed
+- A logo in the expanded island no longer sits on a coloured square.
+
 ## Unreleased — playing media first
 
 ### Changed

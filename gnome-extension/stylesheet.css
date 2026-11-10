@@ -93,7 +93,6 @@
 }
 
 /* A logo fills its tile instead of sitting on the accent colour. */
-.selawi-icon-tile.has-logo { background-color: transparent; }
 .selawi-icon-tile.has-logo .selawi-expanded-icon { icon-size: 40px; }
 
 .selawi-title {
@@ -199,3 +198,6 @@
 .selawi-icon-tile.accent-pink, .selawi-progress-fill.accent-pink { background-color: #ff375f; }
 .selawi-icon-tile.accent-orange, .selawi-progress-fill.accent-orange { background-color: #ff9f0a; }
 .selawi-icon-tile.accent-red, .selawi-progress-fill.accent-red { background-color: #ff453a; }
+
+/* After the accent colours, so a logo never sits on a coloured square. */
+.selawi-icon-tile.has-logo { background-color: transparent; }

@@ -45,3 +45,16 @@ test('app names drop the "input" suffix apps give their audio connection', async
     assert.equal(appName(''), 'An app');
     assert.equal(appName(null), 'An app');
 });
+
+test('the recording app\'s logo', async () => {
+    const {appIcon} = await import('../../gnome-extension/services/privacy-model.js');
+    assert.equal(appIcon('com.slack.Slack.desktop'), 'app:com.slack.Slack');
+    assert.equal(appIcon('zoom'), 'app:zoom');
+    assert.equal(appIcon(null), null);
+    assert.equal(appIcon('../evil'), null);
+    const withLogo = privacyInput({apps: ['Slack'], camera: false, muted: false, icon: 'app:com.slack.Slack'});
+    assert.equal(withLogo.source.icon, 'app:com.slack.Slack');
+    assert.equal(withLogo.payload.title, 'Microphone', 'still orange "Microphone", not a call');
+    const camOnly = privacyInput({apps: [], camera: true, muted: false, icon: 'app:x'});
+    assert.equal(camOnly.source.icon, undefined, 'no app logo for the camera alone');
+});

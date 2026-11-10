@@ -13,7 +13,7 @@ import Shell from 'gi://Shell';
 import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 
 import {METER_APP_ID, METER_APP_NAME} from './level-meter.js';
-import {appName, privacyInput} from './privacy-model.js';
+import {appIcon, appName, privacyInput} from './privacy-model.js';
 
 // These show an input level meter and would look like recording apps.
 const SKIPPED_APPS = ['org.gnome.VolumeControl', 'org.PulseAudio.pavucontrol', METER_APP_ID];
@@ -85,6 +85,22 @@ export class PrivacySource {
         });
     }
 
+    /**
+     * The recording app's logo: the installed app it names (its app id or
+     * icon name) or, failing that, a running app with exactly that name.
+     * Null when it cannot be matched; the island then shows the mic icon.
+     */
+    _iconFor(output) {
+        const apps = Shell.AppSystem.get_default();
+        const byId = id => id ? apps.lookup_app(`${id}.desktop`) ??
+            apps.lookup_heuristic_basename(`${id}.desktop`) ??
+            apps.lookup_desktop_wmclass(id) ?? apps.lookup_startup_wmclass(id) : null;
+        const name = appName(output.get_name()).toLowerCase();
+        const app = byId(output.get_application_id()) ?? byId(output.get_icon_name()) ??
+            apps.get_running().find(a => a.get_name()?.toLowerCase() === name) ?? null;
+        return appIcon(app?.get_id());
+    }
+
     _update() {
         const outputs = this._outputs();
         const mic = outputs.length > 0;
@@ -92,13 +108,14 @@ export class PrivacySource {
         const sourceMuted = Boolean(this._control.get_default_source()?.is_muted);
         const muted = mic && (sourceMuted || outputs.every(o => o.is_muted));
         const camera = Boolean(this._camera?.cameras_in_use);
+        const icon = outputs.length > 0 ? this._iconFor(outputs[0]) : null;
 
         if (mic !== this._mic) {
             this._mic = mic;
             this._onMicChanged(mic);
         }
 
-        const input = privacyInput({apps, camera, muted});
+        const input = privacyInput({apps, camera, muted, icon});
         if (!input) {
             if (this._shownKey) {
                 this._send('ended', this._lastInput);
@@ -106,7 +123,7 @@ export class PrivacySource {
             }
             return;
         }
-        const key = JSON.stringify([input.payload, input.actions]);
+        const key = JSON.stringify([input.source, input.payload, input.actions]);
         if (key === this._shownKey)
             return;
         this._send(this._shownKey ? 'updated' : 'started', input);

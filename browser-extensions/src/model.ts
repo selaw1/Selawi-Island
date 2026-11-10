@@ -72,11 +72,67 @@ export interface MediaState {
 
 export type MediaAction = 'play_pause' | 'next' | 'previous';
 
+/**
+ * What a call site reports through Chrome's Media Session call controls
+ * (session-main.ts): microphone and camera on/off, and which of its own
+ * controls it offers. null = the site does not say.
+ */
+export interface SessionState {
+    mic: boolean | null;
+    camera: boolean | null;
+    actions: SessionAction[];
+}
+
+export type SessionAction = 'togglemicrophone' | 'togglecamera' | 'hangup';
+
+export const NO_SESSION: SessionState = {mic: null, camera: null, actions: []};
+
+const SESSION_ACTIONS: readonly SessionAction[] = ['togglemicrophone', 'togglecamera', 'hangup'];
+
+/** Reads session-main.ts's report. The page could send anything, so check it. */
+export function parseSession(raw: string | null): SessionState {
+    if (raw === null)
+        return NO_SESSION;
+    let value: unknown;
+    try {
+        value = JSON.parse(raw);
+    } catch {
+        return NO_SESSION;
+    }
+    if (typeof value !== 'object' || value === null)
+        return NO_SESSION;
+    const record = value as Record<string, unknown>;
+    const flag = (x: unknown): boolean | null => (typeof x === 'boolean' ? x : null);
+    const actions = Array.isArray(record.actions)
+        ? SESSION_ACTIONS.filter(action => (record.actions as unknown[]).includes(action))
+        : [];
+    return {mic: flag(record.mic), camera: flag(record.camera), actions};
+}
+
+export function hasSession(session: SessionState): boolean {
+    return session.mic !== null || session.camera !== null || session.actions.length > 0;
+}
+
+/**
+ * The page action that does what the island asked, or null. Mute and
+ * Unmute only toggle when the microphone is known to be the other way.
+ */
+export function sessionCommand(session: SessionState, action: string): SessionAction | null {
+    if (action === 'leave')
+        return session.actions.includes('hangup') ? 'hangup' : null;
+    if ((action === 'mute' || action === 'unmute') && session.actions.includes('togglemicrophone') &&
+        session.mic !== null && session.mic === (action === 'mute'))
+        return 'togglemicrophone';
+    return null;
+}
+
 /** Messages between content scripts and the background script. */
 export type PageMessage =
     | {kind: 'meet'; state: MeetState}
     | {kind: 'media'; state: MediaState | null}
-    | {kind: 'call'; active: boolean};
+    | {kind: 'call'; active: boolean}
+    | {kind: 'session'; raw: string | null};
+export type SessionCommand = {kind: 'session-action'; action: SessionAction};
 export type MeetCommand = {kind: 'meet-action'; action: 'mute' | 'unmute' | 'leave'};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
@@ -102,20 +158,26 @@ export function meetEventId(tabId: number): string {
     return `browser:meet:${tabId}`;
 }
 
-export function meetEvent(tabId: number, meet: MeetState, state: State): EventInput {
+/**
+ * Meet: what Meet reports through the Media Session call controls wins;
+ * its buttons on the page (meet.ts) fill in whatever that does not say.
+ */
+export function meetEvent(tabId: number, meet: MeetState, state: State, session: SessionState = NO_SESSION): EventInput {
     const live = state !== 'ended' && state !== 'failed';
+    const muted = session.mic !== null ? !session.mic : meet.muted;
+    const camera = session.camera ?? meet.camera;
     const actions: Action[] = [];
-    if (live && meet.muted === true)
+    if (live && muted === true)
         actions.push({id: 'unmute', label: 'Unmute'});
-    else if (live && meet.muted === false)
+    else if (live && muted === false)
         actions.push({id: 'mute', label: 'Mute'});
     if (live)
         actions.push({id: 'leave', label: 'Leave'});
     const payload: CallPayload = {type: 'call', title: clean(meet.title) || 'Google Meet', confidence: 'confirmed'};
-    if (meet.muted !== null)
-        payload.muted = meet.muted;
-    if (meet.camera !== null)
-        payload.camera = meet.camera;
+    if (muted !== null)
+        payload.muted = muted;
+    if (camera !== null)
+        payload.camera = camera;
     return {
         id: meetEventId(tabId),
         source: {app: 'Google Meet', integration: 'browser'},
@@ -278,8 +340,23 @@ export function webCallEventId(tabId: number): string {
     return `browser:call:${tabId}`;
 }
 
-/** A call on any site: the site's name and a timer, no buttons. */
-export function webCallEvent(tabId: number, site: string, state: State): EventInput {
+/**
+ * A call on any site: the site's name and a timer. Muted, camera and the
+ * Mute / Leave buttons only when the site reports them through the Media
+ * Session call controls.
+ */
+export function webCallEvent(tabId: number, site: string, state: State, session: SessionState = NO_SESSION): EventInput {
+    const live = state !== 'ended' && state !== 'failed';
+    const payload: CallPayload = {type: 'call', title: clean(site) || 'Web call', confidence: 'confirmed'};
+    if (session.mic !== null)
+        payload.muted = !session.mic;
+    if (session.camera !== null)
+        payload.camera = session.camera;
+    const actions: Action[] = [];
+    if (live && session.mic !== null && session.actions.includes('togglemicrophone'))
+        actions.push(session.mic ? {id: 'mute', label: 'Mute'} : {id: 'unmute', label: 'Unmute'});
+    if (live && session.actions.includes('hangup'))
+        actions.push({id: 'leave', label: 'Leave'});
     return {
         id: webCallEventId(tabId),
         source: {app: 'Call', integration: 'browser'},
@@ -287,7 +364,7 @@ export function webCallEvent(tabId: number, site: string, state: State): EventIn
         state,
         persistent: true,
         priority: 'call',
-        payload: {type: 'call', title: clean(site) || 'Web call', confidence: 'confirmed'},
-        actions: [],
+        payload,
+        actions,
     };
 }

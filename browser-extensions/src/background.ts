@@ -3,8 +3,10 @@
 
 import {
     type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
-    type MediaState, type MeetCommand, type MeetState, type PageMessage, type State, type ToHost,
-    downloadEvent, mediaEvent, meetEvent, meetTitle, siteName, webCallEvent,
+    type MediaState, type MeetCommand, type MeetState, type PageMessage, type SessionCommand, type SessionState,
+    type State, type ToHost,
+    NO_SESSION, downloadEvent, hasSession, mediaEvent, meetEvent, meetTitle, parseSession, sessionCommand,
+    siteName, webCallEvent,
 } from './model.js';
 
 const HOST = 'io.selawi.island';
@@ -121,6 +123,9 @@ function onHostMessage(message: FromHost): void {
     const meet = /^browser:meet:(\d+)$/.exec(message.id);
     if (meet) {
         const action = message.action;
+        // Meet's own call controls first, its buttons on the page otherwise.
+        if (sendSessionAction(Number(meet[1]), action))
+            return;
         if (action === 'mute' || action === 'unmute' || action === 'leave') {
             const command: MeetCommand = {kind: 'meet-action', action};
             chrome.tabs.sendMessage(Number(meet[1]), command).catch(() => {});
@@ -136,9 +141,51 @@ function onHostMessage(message: FromHost): void {
         }
         return;
     }
+    const call = /^browser:call:(\d+)$/.exec(message.id);
+    if (call) {
+        sendSessionAction(Number(call[1]), message.action);
+        return;
+    }
     const download = /^browser:download:(\d+)$/.exec(message.id);
     if (download && message.action === 'cancel')
         chrome.downloads.cancel(Number(download[1])).catch(() => {});
+}
+
+// ---- call controls a site reports (Media Session) -------------------------
+
+// Tab → the frame that reports call controls, and what it reports.
+const sessions = new Map<number, {frameId: number; state: SessionState}>();
+
+function sessionOf(tabId: number): SessionState {
+    return sessions.get(tabId)?.state ?? NO_SESSION;
+}
+
+/** Presses the page's own control for `action`. False when it has none. */
+function sendSessionAction(tabId: number, action: string): boolean {
+    const session = sessions.get(tabId);
+    const command = session ? sessionCommand(session.state, action) : null;
+    if (!session || !command)
+        return false;
+    const message: SessionCommand = {kind: 'session-action', action: command};
+    chrome.tabs.sendMessage(tabId, message, {frameId: session.frameId}).catch(() => {});
+    return true;
+}
+
+function onSession(tabId: number, frameId: number, state: SessionState): void {
+    const current = sessions.get(tabId);
+    if (hasSession(state))
+        sessions.set(tabId, {frameId, state});
+    else if (current?.frameId === frameId)
+        sessions.delete(tabId);
+    else
+        return;
+    // Show the change on a call this tab already has.
+    const meet = calls.get(tabId);
+    if (meet)
+        publish(meetEvent(tabId, meet, 'updated', sessionOf(tabId)), tabId);
+    const call = webCalls.get(tabId);
+    if (call)
+        publish(webCallEvent(tabId, call.site, 'updated', sessionOf(tabId)), tabId);
 }
 
 // ---- Google Meet ----------------------------------------------------------
@@ -150,7 +197,7 @@ function endCall(tabId: number): void {
     if (!meet)
         return;
     calls.delete(tabId);
-    publish(meetEvent(tabId, meet, 'ended'), tabId);
+    publish(meetEvent(tabId, meet, 'ended', sessionOf(tabId)), tabId);
 }
 
 // ---- media tabs -----------------------------------------------------------
@@ -189,7 +236,7 @@ function onWebCall(tabId: number, frameId: number, active: boolean, tabUrl: stri
         }
         const site = siteName(tabUrl);
         webCalls.set(tabId, {frames: new Set([frameId]), site});
-        publish(webCallEvent(tabId, site, 'started'), tabId);
+        publish(webCallEvent(tabId, site, 'started', sessionOf(tabId)), tabId);
         return;
     }
     if (!call)
@@ -204,7 +251,7 @@ function endWebCall(tabId: number): void {
     if (!call)
         return;
     webCalls.delete(tabId);
-    publish(webCallEvent(tabId, call.site, 'ended'), tabId);
+    publish(webCallEvent(tabId, call.site, 'ended', sessionOf(tabId)), tabId);
 }
 
 chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
@@ -213,6 +260,10 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
         return;
     if (message?.kind === 'call') {
         onWebCall(tabId, sender.frameId ?? 0, message.active === true, sender.tab?.url ?? sender.url ?? '');
+        return;
+    }
+    if (message?.kind === 'session') {
+        onSession(tabId, sender.frameId ?? 0, parseSession(typeof message.raw === 'string' ? message.raw : null));
         return;
     }
     if (message?.kind === 'media') {
@@ -228,7 +279,7 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     }
     const known = calls.has(tabId);
     calls.set(tabId, state);
-    publish(meetEvent(tabId, state, known ? 'updated' : 'started'), tabId);
+    publish(meetEvent(tabId, state, known ? 'updated' : 'started', sessionOf(tabId)), tabId);
 });
 
 chrome.tabs.onRemoved.addListener(tabId => {
@@ -237,6 +288,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
     endWebCall(tabId);
     logos.delete(tabId);
     refetch.delete(tabId);
+    sessions.delete(tabId);
 });
 
 // ---- downloads ------------------------------------------------------------

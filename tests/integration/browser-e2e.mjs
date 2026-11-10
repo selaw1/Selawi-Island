@@ -102,6 +102,20 @@ async function startCall() {
 }
 startCall();
 </script></body></html>`;
+
+// The same call, on a page that also reports its microphone and offers
+// mute / hang up through Chrome's Media Session call controls.
+const TEAMS = SLACK.replace('<title>Slack | huddle</title>', '<title>Teams</title>').replace('startCall();', `
+startCall().then(() => {
+  let muted = false;
+  navigator.mediaSession.setActionHandler('togglemicrophone', () => {
+    muted = !muted;
+    navigator.mediaSession.setMicrophoneActive(!muted);
+    window.pageMuted = muted;
+  });
+  navigator.mediaSession.setActionHandler('hangup', () => { window.leftFromIsland = true; window.hangUp(); });
+  navigator.mediaSession.setMicrophoneActive(true);
+});`);
 const DATA_ONLY = `<!doctype html><html><body><script>
 const a = new RTCPeerConnection(), b = new RTCPeerConnection();
 a.createDataChannel('x');
@@ -128,6 +142,8 @@ try {
         route.fulfill({status: 200, contentType: 'text/html', body: SOUNDCLOUD}));
     await context.route('https://app.slack.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: SLACK}));
+    await context.route('https://teams.microsoft.com/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: TEAMS}));
     await context.route('https://p2p.example/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: DATA_ONLY}));
     await context.route('https://files.example/**', route =>
@@ -229,6 +245,24 @@ try {
     await huddle.evaluate(() => window.hangUp());
     await waitFor('call ended', events => events.find(e => e.id === webCall.id && e.state === 'ended'));
     ok(true, 'hanging up ends the call');
+
+    // ---- a site that reports its call controls (Media Session) ------------
+    const teams = await context.newPage();
+    await teams.goto('https://teams.microsoft.com/call');
+    const teamsCall = await waitFor('Teams call with controls', events => events.find(e =>
+        e.id.startsWith('browser:call:') && e.state !== 'ended' && e.payload.title === 'Microsoft Teams' &&
+        e.actions.length > 0));
+    ok(teamsCall.payload.muted === false && teamsCall.actions.map(a => a.id).join() === 'mute,leave',
+        'a site that reports its microphone gets Mute and Leave');
+    invoke(teamsCall.id, 'mute');
+    await waitFor('Teams muted', events => events.find(e => e.id === teamsCall.id && e.payload.muted === true));
+    ok(await teams.evaluate(() => window.pageMuted) === true, 'Mute in the island used the site\'s own mute');
+    invoke(teamsCall.id, 'unmute');
+    await waitFor('Teams unmuted', events => events.find(e => e.id === teamsCall.id && e.payload.muted === false));
+    ok(await teams.evaluate(() => window.pageMuted) === false, 'Unmute works the same way');
+    invoke(teamsCall.id, 'leave');
+    await waitFor('Teams left', events => events.find(e => e.id === teamsCall.id && e.state === 'ended'));
+    ok(await teams.evaluate(() => window.leftFromIsland) === true, 'Leave used the site\'s own hang up');
 } finally {
     await context.close();
 }

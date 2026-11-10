@@ -61,6 +61,27 @@
       ],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "session-main.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "session.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "host_permissions": [

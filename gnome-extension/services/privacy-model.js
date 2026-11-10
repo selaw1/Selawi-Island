@@ -11,13 +11,23 @@ export function appName(raw) {
 }
 
 /**
+ * `source.icon` for an installed app, from its desktop file id
+ * ("com.slack.Slack.desktop" → "app:com.slack.Slack"). Null for anything else.
+ */
+export function appIcon(desktopId) {
+    const id = String(desktopId ?? '').trim().replace(/\.desktop$/, '');
+    return id && id.length <= 128 && /^[A-Za-z0-9._-]+$/.test(id) ? `app:${id}` : null;
+}
+
+/**
  * @param {object} state
  * @param {string[]} state.apps - apps recording from the microphone
  * @param {boolean} state.camera - a camera is in use
  * @param {boolean} state.muted - the microphone is muted (nobody hears you)
+ * @param {string|null} [state.icon] - the first app's logo (`app:<id>`)
  * @returns {object|null} event input without `state`, or null when nothing is in use
  */
-export function privacyInput({apps, camera, muted}) {
+export function privacyInput({apps, camera, muted, icon = null}) {
     const mic = apps.length > 0;
     if (!mic && !camera)
         return null;
@@ -31,7 +41,9 @@ export function privacyInput({apps, camera, muted}) {
         title = micMuted ? 'Microphone muted' : 'Microphone';
     return {
         id: PRIVACY_EVENT_ID,
-        source: {app: apps[0] ?? 'Camera', integration: 'gnome-privacy'},
+        source: mic && icon
+            ? {app: apps[0], integration: 'gnome-privacy', icon}
+            : {app: apps[0] ?? 'Camera', integration: 'gnome-privacy'},
         category: 'call',
         priority: 'call',
         persistent: true,

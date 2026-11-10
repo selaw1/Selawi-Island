@@ -184,7 +184,7 @@ same ones behind GNOME's own top-bar privacy icons.
 
 | When | Shows |
 |---|---|
-| An app uses the microphone | 🟠 Microphone · app name · running time · voice waves |
+| An app uses the microphone | 🟠 Microphone · app name · running time · voice waves; the app's logo when it can be matched |
 | The camera is on (with or without the microphone) | 🟢 Camera / Camera and microphone · app name · running time |
 
 One event (`privacy:capture`, call priority) that stays while the
@@ -218,6 +218,13 @@ the microphone back on and also clears any mute an app's own audio
 connection was left with, so it always means “they can hear you again”.
 The app itself (Slack, Discord…) does not know and keeps its own mute
 button as it was.
+
+**App logo:** the recording app's logo (Slack, Zoom, Discord…) replaces
+the mic icon when the island can match it to an installed app: by the
+app id or icon name the app gives its audio connection, or else a running
+app with exactly that name. Otherwise the mic icon stays. With a logo,
+“muted” and “camera on” show as small icons next to the time. The bubble
+stays orange: it shows the microphone is in use, not that a call is on.
 
 Limits: the camera can only be shown, not turned off. Camera use is
 reported without the app's name (GNOME does not say which app). Apps keep

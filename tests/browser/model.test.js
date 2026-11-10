@@ -134,3 +134,42 @@ test('calls on any site: the site name, a timer, no buttons', async () => {
     valid(call);
     valid(webCallEvent(9, 'Slack', 'ended'));
 });
+
+const checked = event => {
+    valid(event);
+    return event;
+};
+
+test('call controls a site reports (Media Session)', async () => {
+    const {NO_SESSION, parseSession, sessionCommand, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
+    // Bad or hostile input is ignored.
+    assert.deepEqual(parseSession(null), NO_SESSION);
+    assert.deepEqual(parseSession('not json'), NO_SESSION);
+    assert.deepEqual(parseSession('{"mic":"yes","actions":["hangup","rm -rf"]}'), {mic: null, camera: null, actions: ['hangup']});
+
+    const session = parseSession('{"mic":true,"camera":false,"actions":["togglemicrophone","hangup"]}');
+    assert.equal(sessionCommand(session, 'mute'), 'togglemicrophone');
+    assert.equal(sessionCommand(session, 'unmute'), null, 'already unmuted: nothing to press');
+    assert.equal(sessionCommand(session, 'leave'), 'hangup');
+    assert.equal(sessionCommand(NO_SESSION, 'leave'), null);
+
+    const call = checked(webCallEvent(5, 'Slack', 'started', session));
+    assert.equal(call.payload.muted, false);
+    assert.equal(call.payload.camera, false);
+    assert.deepEqual(call.actions.map(a => a.id), ['mute', 'leave']);
+    const plain = checked(webCallEvent(5, 'Slack', 'started'));
+    assert.deepEqual(plain.actions, [], 'a site that reports nothing: no buttons');
+    assert.equal(plain.payload.muted, undefined);
+    assert.deepEqual(checked(webCallEvent(5, 'Slack', 'ended', session)).actions, []);
+});
+
+test('Meet prefers its reported call controls, page buttons fill in', async () => {
+    const {parseSession} = await import('../../browser-extensions/build/js/model.js');
+    const page = {inCall: true, title: 'Sync', muted: false, camera: true};
+    const fromPage = checked(meetEvent(1, page, 'updated'));
+    assert.equal(fromPage.payload.muted, false);
+    const reported = checked(meetEvent(1, page, 'updated', parseSession('{"mic":false,"camera":null,"actions":[]}')));
+    assert.equal(reported.payload.muted, true, 'reported state wins');
+    assert.equal(reported.payload.camera, true, 'camera from the page when not reported');
+    assert.equal(reported.actions[0].id, 'unmute');
+});

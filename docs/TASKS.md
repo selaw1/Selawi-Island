@@ -192,3 +192,24 @@
   stays first. Other events keep their places.
 - **Files:** `gnome-extension/ui/{view-model,island}.js`, `tests/js/view-model.test.js`, docs.
 - **Tests:** view model test (paused/playing, both playing, mixed with a call).
+
+## T-013 — Call controls and app logos (Phase 7 start)
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** browser: `session-main.ts` (MAIN world) notes the Media
+  Session call controls a page reports (`setMicrophoneActive`,
+  `setCameraActive`, `togglemicrophone` / `togglecamera` / `hangup`
+  handlers), `session.ts` forwards them; web calls and Meet show muted /
+  camera and get Mute / Leave that call the page's handlers, Meet falling
+  back to its page buttons. GNOME: the mic bubble's app logo (matched via
+  Shell.AppSystem from the stream's app id, icon name or a running app's
+  exact name); small status icons with a logo; logo tile without the
+  accent colour.
+- **Files:** `browser-extensions/src/{session-main,session,model,background}.ts`,
+  manifests, `scripts/build-browser.sh`,
+  `gnome-extension/services/{privacy-source,privacy-model}.js`,
+  `gnome-extension/{ui/view-model.js,stylesheet.css}`, tests, docs.
+- **Tests:** model tests (parsing hostile input, which control to press,
+  events with and without controls, Meet merge); browser e2e with a
+  stand-in Teams page using the real Media Session API (Mute, Unmute,
+  Leave through the page's handlers); privacy model and view model tests.

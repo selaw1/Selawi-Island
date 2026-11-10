@@ -61,3 +61,9 @@
 - **Quick preferences only.** The full settings app is Phase 10.
 - **Integrations were tested against fake services**, not yet against
   your real players and devices (see `docs/TESTING.md`).
+- **Mute / Leave on web calls** only for sites that use Chrome's Media
+  Session call controls; other sites get the plain call bubble. Firefox has
+  no such controls.
+- **Desktop app logos on the mic bubble** need the app to name itself on
+  its audio connection (or a running app with exactly that name);
+  otherwise the mic icon stays.

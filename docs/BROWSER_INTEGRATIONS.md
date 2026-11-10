@@ -49,7 +49,7 @@ one-time manual step for you, not something the project does.
 
 | Site / feature | Shows | Buttons |
 |---|---|---|
-| A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk | None: mute and leave in the call itself |
+| A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk; “Muted” and “Camera on” if the site reports them | **Mute / Unmute** and **Leave** only if the site offers them through Chrome's call controls (see below); otherwise none |
 | Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” and “Camera on” (camera icon) when Meet says so | **Mute / Unmute** (presses Meet's own microphone button), **Leave** (presses Meet's leave button) |
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
@@ -89,6 +89,8 @@ into the call bubble, which then shows the voice waves.
   keys (title, artist, album), the player's play state and time, and
   whether YouTube's player is showing an ad. It presses only the page's
   own play, next and previous controls.
+- On every https site it also notes the Media Session call controls the
+  page reports (microphone/camera on or off, mute/hang-up available).
 - On Meet it reads only its call controls (is there a leave button, the
   microphone button's muted flag) and the page title. No chat, no names
   of participants, no audio or video.
@@ -108,10 +110,25 @@ This works the same on every site, with no per-site code. The site name
 comes from the tab's address (known sites get their proper names). Meet
 keeps its own, richer support.
 
+## Call controls a site reports (Media Session)
+
+Chrome lets call sites report “microphone on/off” and “camera on/off” and
+offer “toggle microphone” and “hang up” controls (the Media Session API,
+made for Chrome's floating call window). A small script in each https
+page notes what the page reports there. When a site uses it:
+
+- the call shows “Muted” / “Camera on” as the site reports them;
+- **Mute / Unmute** and **Leave** appear and call the site's own handlers.
+
+Sites that do not use it keep the plain call bubble. Which sites use it is
+up to them (Google Meet does); Firefox does not have these controls. A page
+could report anything here; the worst it can do is change its own bubble.
+
 ## How Meet is detected
 
-Meet's page has no public API. The content script looks for Meet's own
-buttons: the leave button (Material icon `call_end`) means you are in a
+Meet's state comes from its call controls above when Meet reports them,
+and from its buttons on the page otherwise. For the buttons, the content
+script looks for Meet's own buttons: the leave button (Material icon `call_end`) means you are in a
 call, and the microphone toggle's `data-is-muted` attribute gives the mute
 state. If Meet changes its page, detection stops (nothing wrong is shown)
 until `browser-extensions/src/meet.ts` is updated.

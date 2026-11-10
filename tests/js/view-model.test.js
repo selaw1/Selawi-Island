@@ -225,3 +225,15 @@ test('playing media is shown before paused media', async () => {
         'other events keep their place');
     assert.deepEqual(ids([media('a', false), media('b', false)]), ['a', 'b'], 'both paused: unchanged');
 });
+
+test('microphone bubble with an app logo', () => {
+    const mic = (title) => ({...base, id: 'privacy:capture', state: 'started',
+        source: {app: 'Slack', integration: 'gnome-privacy', icon: 'app:com.slack.Slack'},
+        payload: {type: 'system', title, detail: 'Slack', severity: 'info'}});
+    const on = describe(mic('Microphone'), 0);
+    assert.equal(on.logo, 'app:com.slack.Slack');
+    assert.equal(on.accent, 'orange');
+    assert.deepEqual(on.indicators, []);
+    assert.deepEqual(describe(mic('Microphone muted'), 0).indicators, ['microphone-disabled-symbolic']);
+    assert.deepEqual(describe(mic('Camera and microphone'), 0).indicators, ['camera-web-symbolic']);
+});
