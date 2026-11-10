@@ -109,3 +109,23 @@ test('media tabs: controls the page offers, paused expires, valid for the island
     assert.equal(ended.payload.playing, false);
     valid(ended);
 });
+
+test('calls on any site: the site name, a timer, no buttons', async () => {
+    const {siteName, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
+    assert.equal(siteName('https://app.slack.com/huddle/T1/C2'), 'Slack');
+    assert.equal(siteName('https://teams.microsoft.com/v2/'), 'Microsoft Teams');
+    assert.equal(siteName('https://teams.live.com/v2/'), 'Microsoft Teams');
+    assert.equal(siteName('https://app.zoom.us/wc/123/join'), 'Zoom');
+    assert.equal(siteName('https://discord.com/channels/1/2'), 'Discord');
+    assert.equal(siteName('https://web.whatsapp.com/'), 'WhatsApp');
+    assert.equal(siteName('https://www.call.example.org/room'), 'call.example.org', 'unknown sites by address');
+    assert.equal(siteName('not a url'), 'Web call');
+
+    const call = webCallEvent(9, 'Slack', 'started');
+    assert.equal(call.id, 'browser:call:9');
+    assert.equal(call.payload.title, 'Slack');
+    assert.equal(call.payload.confidence, 'confirmed');
+    assert.deepEqual(call.actions, []);
+    valid(call);
+    valid(webCallEvent(9, 'Slack', 'ended'));
+});

@@ -1,10 +1,12 @@
 # Browser integrations
 
 A small extension for Chrome (and Chromium, Brave) and Firefox shows what
-only the browser can see: **Google Meet calls**, **media in each tab**
-(YouTube, YouTube Music, SoundCloud) and **downloads**.
+only the browser can see: **calls on any website**, **Google Meet**,
+**media in each tab** (YouTube, YouTube Music, SoundCloud) and
+**downloads**.
 
 ```text
+ any site ─ rtc-main.js → call.js ┐
  Meet tab ─ meet.js ─┐
  media tabs ─ media.js ┤
                      ├─ background.js ─ native messaging ─ selawi-island-browser-host ─ D-Bus ─ selawi-islandd ─ island
@@ -36,8 +38,8 @@ signed:
 1. Open `about:debugging#/runtime/this-firefox`.
 2. **Load Temporary Add-on…** → choose
    `~/.local/share/selawi-island/browser/firefox/manifest.json`.
-3. In `about:addons` → Selawi Island → Permissions, allow **meet.google.com**,
-   **youtube.com**, **music.youtube.com** and **soundcloud.com**.
+3. In `about:addons` → Selawi Island → Permissions, allow access to
+   websites (needed for calls on any site).
 
 A temporary add-on is removed when Firefox restarts. Signing it for
 personal use is free (an unlisted add-on on addons.mozilla.org); that is a
@@ -47,6 +49,7 @@ one-time manual step for you, not something the project does.
 
 | Site / feature | Shows | Buttons |
 |---|---|---|
+| A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk | None: mute and leave in the call itself |
 | Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” when Meet says so | **Mute / Unmute** (presses Meet's own microphone button), **Leave** (presses Meet's leave button) |
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
@@ -66,9 +69,15 @@ into the call bubble, which then shows the voice waves.
 
 ## Privacy
 
-- Permissions: `nativeMessaging`, `downloads`, and access to
-  `meet.google.com`, `youtube.com`, `music.youtube.com` and
-  `soundcloud.com` only. No history, no other sites, no cookies.
+- Permissions: `nativeMessaging`, `downloads`, and access to https
+  websites (Chrome calls this “read and change your data on all
+  websites”). It is needed to notice calls on any site; no history, no
+  cookies, no page content is read.
+- On every https site it only watches whether a live call connection
+  (WebRTC) is sending your microphone; that yes/no and the site's name
+  are all that is sent. Nothing about the call's people, chat or audio.
+  A page could pretend to be in a call; the worst it can do is show a
+  call bubble with its own name.
 - On media sites it reads only what the site publishes for the media
   keys (title, artist, album), the player's play state and time, and
   whether YouTube's player is showing an ad. It presses only the page's
@@ -81,6 +90,16 @@ into the call bubble, which then shows the voice waves.
 - The helper accepts only events whose id starts with `browser:` and that
   are marked `browser`, at most 20 a second, 64 KiB each; it never runs
   commands. When the browser closes, everything it showed is ended.
+
+## How calls on any site are detected
+
+Every web call uses the browser's WebRTC connection. A small script runs
+in each https page before the page's own code and wraps it: when a
+connection is connected and sending a live microphone track, the tab is
+in a call; when it closes or the microphone track stops, the call ends.
+This works the same on every site, with no per-site code. The site name
+comes from the tab's address (known sites get their proper names). Meet
+keeps its own, richer support.
 
 ## How Meet is detected
 

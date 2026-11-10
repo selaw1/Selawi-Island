@@ -7,6 +7,9 @@
   tabs at once, with Previous / Play–Pause / Next pressing the page's own
   controls.
 - During YouTube ads the song title stays and the ad's timer is hidden.
+- Calls on any website (Slack, Teams, Zoom, Discord, WhatsApp…): a green
+  bubble with the site's name, a timer and voice waves; no buttons. The
+  extension now needs access to https sites for this.
 - While the extension shows a browser's tabs, that browser's own single
   media player is hidden (no doubles).
 

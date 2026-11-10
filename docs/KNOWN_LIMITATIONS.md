@@ -11,6 +11,9 @@
   them, not yet on the real sites. If a site changes, that part simply
   stops showing; media titles come from the standard media keys data and
   are the most robust part.
+- **Calls on other sites have no buttons** (by choice) and show the site's
+  name, not the meeting's. The extension needs access to all https sites
+  for this, which Chrome warns about.
 - **Per-tab media covers YouTube, YouTube Music and SoundCloud.** Other
   sites still show through the browser's single player.
 - **Firefox needs a signed add-on** to keep it after a restart; until then

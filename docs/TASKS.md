@@ -140,3 +140,16 @@
   (found and fixed: Chrome mistaken for Firefox; a paused clip at 0:00
   ending its tab); stable over repeated runs.
 - **Remaining:** check on the real sites; Zoom/Teams/Slack web calls.
+
+## T-009 — Calls on any website
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** generic call detection for every https site: a
+  MAIN-world script wraps RTCPeerConnection and reports "live connection
+  sending the microphone" yes/no; the background shows a green call with
+  the site's name (known sites named, others by address), no buttons. The
+  mic bubble folds into it, so it shows the voice waves.
+- **Files:** `browser-extensions/src/{rtc-main,call,background,model}.ts`,
+  manifests (https sites), build script, tests, docs.
+- **Tests:** a real WebRTC call with Chromium's fake microphone on a
+  stand-in Slack page; a microphone-less connection is not a call.

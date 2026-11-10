@@ -72,7 +72,8 @@ export type MediaAction = 'play_pause' | 'next' | 'previous';
 /** Messages between content scripts and the background script. */
 export type PageMessage =
     | {kind: 'meet'; state: MeetState}
-    | {kind: 'media'; state: MediaState | null};
+    | {kind: 'media'; state: MediaState | null}
+    | {kind: 'call'; active: boolean};
 export type MeetCommand = {kind: 'meet-action'; action: 'mute' | 'unmute' | 'leave'};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
@@ -234,4 +235,54 @@ export function mediaEvent(family: BrowserFamily, tabId: number, media: MediaSta
     if (live && !media.playing)
         event.ttl_ms = PAUSED_TTL_MS;
     return event;
+}
+
+// ---- calls on any site ------------------------------------------------------
+
+const SITE_NAMES: Array<[RegExp, string]> = [
+    [/(^|\.)slack\.com$/, 'Slack'],
+    [/(^|\.)teams\.(microsoft|live)\.com$/, 'Microsoft Teams'],
+    [/(^|\.)teams\.cloud\.microsoft$/, 'Microsoft Teams'],
+    [/(^|\.)zoom\.(us|com)$/, 'Zoom'],
+    [/(^|\.)discord\.com$/, 'Discord'],
+    [/^web\.whatsapp\.com$/, 'WhatsApp'],
+    [/^web\.telegram\.org$/, 'Telegram'],
+    [/(^|\.)messenger\.com$/, 'Messenger'],
+    [/(^|\.)webex\.com$/, 'Webex'],
+    [/(^|\.)jit\.si$/, 'Jitsi'],
+    [/(^|\.)whereby\.com$/, 'Whereby'],
+    [/^meet\.google\.com$/, 'Google Meet'],
+];
+
+/** "https://app.slack.com/huddle/…" → "Slack"; unknown sites by their address. */
+export function siteName(url: string): string {
+    let host = '';
+    try {
+        host = new URL(url).hostname.toLowerCase();
+    } catch {
+        return 'Web call';
+    }
+    for (const [pattern, name] of SITE_NAMES) {
+        if (pattern.test(host))
+            return name;
+    }
+    return clean(host.replace(/^www\./, ''), 64) || 'Web call';
+}
+
+export function webCallEventId(tabId: number): string {
+    return `browser:call:${tabId}`;
+}
+
+/** A call on any site: the site's name and a timer, no buttons. */
+export function webCallEvent(tabId: number, site: string, state: State): EventInput {
+    return {
+        id: webCallEventId(tabId),
+        source: {app: 'Call', integration: 'browser'},
+        category: 'call',
+        state,
+        persistent: true,
+        priority: 'call',
+        payload: {type: 'call', title: clean(site) || 'Web call', confidence: 'confirmed'},
+        actions: [],
+    };
 }

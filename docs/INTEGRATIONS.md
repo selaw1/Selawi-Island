@@ -223,5 +223,5 @@ those for web meetings.
 | Integration | Plan |
 |---|---|
 | Google Meet calls, per-tab media (YouTube, YouTube Music, SoundCloud) with ads hidden, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
-| Zoom / Teams / Slack calls in the browser | Not yet: needs the real pages to build against (they show as “Microphone in use” meanwhile) |
+| Calls on any website (Slack, Teams, Zoom, Discord…) | Implemented: site name, timer and voice waves, no buttons |
 | Calls (Slack, Zoom, Teams, Discord…) | Phase 7 |

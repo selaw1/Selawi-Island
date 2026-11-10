@@ -81,11 +81,39 @@ const SOUNDCLOUD = `<!doctype html><html><head><title>Night Drive by Artist | So
 navigator.mediaSession.playbackState = 'playing';</script>
 </body></html>`;
 
+// A page that makes a real WebRTC call to itself with the fake microphone,
+// like any web call (Slack huddle, Teams, Zoom…) does underneath.
+const SLACK = `<!doctype html><html><head><title>Slack | huddle</title></head><body><script>
+async function startCall() {
+  const mic = await navigator.mediaDevices.getUserMedia({audio: true});
+  const a = new RTCPeerConnection(), b = new RTCPeerConnection();
+  a.onicecandidate = e => e.candidate && b.addIceCandidate(e.candidate);
+  b.onicecandidate = e => e.candidate && a.addIceCandidate(e.candidate);
+  for (const t of mic.getTracks()) a.addTrack(t, mic);
+  await a.setLocalDescription(await a.createOffer());
+  await b.setRemoteDescription(a.localDescription);
+  await b.setLocalDescription(await b.createAnswer());
+  await a.setRemoteDescription(b.localDescription);
+  window.hangUp = () => { a.close(); b.close(); mic.getTracks().forEach(t => t.stop()); };
+}
+startCall();
+</script></body></html>`;
+const DATA_ONLY = `<!doctype html><html><body><script>
+const a = new RTCPeerConnection(), b = new RTCPeerConnection();
+a.createDataChannel('x');
+a.onicecandidate = e => e.candidate && b.addIceCandidate(e.candidate);
+b.onicecandidate = e => e.candidate && a.addIceCandidate(e.candidate);
+(async () => { await a.setLocalDescription(await a.createOffer()); await b.setRemoteDescription(a.localDescription);
+  await b.setLocalDescription(await b.createAnswer()); await a.setRemoteDescription(b.localDescription); })();
+</script></body></html>`;
+
 const context = await chromium.launchPersistentContext(profile, {
     headless: false,
     acceptDownloads: true,
     args: [`--disable-extensions-except=${EXTENSION}`, `--load-extension=${EXTENSION}`,
-        '--autoplay-policy=no-user-gesture-required'],
+        '--autoplay-policy=no-user-gesture-required',
+        '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+    permissions: ['microphone'],
 });
 try {
     await context.route('https://meet.google.com/**', route =>
@@ -94,6 +122,10 @@ try {
         route.fulfill({status: 200, contentType: 'text/html', body: YOUTUBE}));
     await context.route('https://soundcloud.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: SOUNDCLOUD}));
+    await context.route('https://app.slack.com/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: SLACK}));
+    await context.route('https://p2p.example/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: DATA_ONLY}));
     await context.route('https://files.example/**', route =>
         route.fulfill({status: 200, body: Buffer.alloc(256 * 1024),
             headers: {'content-type': 'application/octet-stream', 'content-disposition': 'attachment; filename="report.pdf"'}}));
@@ -171,6 +203,23 @@ try {
     await youtube.close();
     await waitFor('YouTube tab ended', events => events.find(e => e.id === tune.id && e.state === 'ended'));
     ok(true, 'closing a tab ends its media');
+
+    // ---- a call on any site ----------------------------------------------
+    const p2p = await context.newPage();
+    await p2p.goto('https://p2p.example/share');
+    const huddle = await context.newPage();
+    await huddle.goto('https://app.slack.com/huddle/T1/C2');
+    const webCall = await waitFor('Slack call', events => events.find(e =>
+        e.id.startsWith('browser:call:') && e.state !== 'ended'));
+    ok(webCall.payload.title === 'Slack' && webCall.payload.confidence === 'confirmed',
+        'a call on Slack in the browser shows as a green "Slack" call');
+    ok(webCall.actions.length === 0, 'no buttons: mute and leave in the call itself');
+    ok(list().filter(e => e.id.startsWith('browser:call:') && e.state !== 'ended').length === 1,
+        'a page with a connection but no microphone is not a call');
+
+    await huddle.evaluate(() => window.hangUp());
+    await waitFor('call ended', events => events.find(e => e.id === webCall.id && e.state === 'ended'));
+    ok(true, 'hanging up ends the call');
 } finally {
     await context.close();
 }

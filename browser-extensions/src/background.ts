@@ -4,7 +4,7 @@
 import {
     type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
     type MediaState, type MeetCommand, type MeetState, type PageMessage, type State, type ToHost,
-    downloadEvent, mediaEvent, meetEvent, meetTitle,
+    downloadEvent, mediaEvent, meetEvent, meetTitle, siteName, webCallEvent,
 } from './model.js';
 
 const HOST = 'io.selawi.island';
@@ -100,10 +100,46 @@ function onMedia(tabId: number, state: MediaState | null): void {
     publish(mediaEvent(BROWSER, tabId, state, known ? 'updated' : 'started'));
 }
 
+// ---- calls on any site ------------------------------------------------------
+
+// Tab → frames that are in a call, and the site name shown.
+const webCalls = new Map<number, {frames: Set<number>; site: string}>();
+
+function onWebCall(tabId: number, frameId: number, active: boolean, tabUrl: string): void {
+    const call = webCalls.get(tabId);
+    if (active) {
+        if (call) {
+            call.frames.add(frameId);
+            return;
+        }
+        const site = siteName(tabUrl);
+        webCalls.set(tabId, {frames: new Set([frameId]), site});
+        publish(webCallEvent(tabId, site, 'started'));
+        return;
+    }
+    if (!call)
+        return;
+    call.frames.delete(frameId);
+    if (call.frames.size === 0)
+        endWebCall(tabId);
+}
+
+function endWebCall(tabId: number): void {
+    const call = webCalls.get(tabId);
+    if (!call)
+        return;
+    webCalls.delete(tabId);
+    publish(webCallEvent(tabId, call.site, 'ended'));
+}
+
 chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     const tabId = sender.tab?.id;
     if (tabId === undefined)
         return;
+    if (message?.kind === 'call') {
+        onWebCall(tabId, sender.frameId ?? 0, message.active === true, sender.tab?.url ?? sender.url ?? '');
+        return;
+    }
     if (message?.kind === 'media') {
         onMedia(tabId, message.state);
         return;
@@ -123,6 +159,7 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
 chrome.tabs.onRemoved.addListener(tabId => {
     endCall(tabId);
     endMedia(tabId);
+    endWebCall(tabId);
 });
 
 // ---- downloads ------------------------------------------------------------

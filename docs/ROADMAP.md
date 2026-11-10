@@ -9,7 +9,7 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
 | 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** (checked on GNOME 51) |
 | 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** (checked on GNOME 51); brightness and GPU left out on purpose |
-| 6 | Browser extensions (Chromium, Firefox) + native messaging | **Done** — Meet, per-tab media with ads hidden, downloads; web Zoom/Teams/Slack left for when real pages can be checked |
+| 6 | Browser extensions (Chromium, Firefox) + native messaging | **Done** — calls on any site, Meet, per-tab media with ads hidden, downloads |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | **Next** |
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
@@ -60,6 +60,6 @@ folded into the call); per-tab media for YouTube, YouTube Music and
 SoundCloud with Previous/Play-Pause/Next, ads hidden, the browser's own
 duplicate player hidden; downloads with progress and Cancel.
 
-Not done: Zoom, Teams and Slack calls in the browser. Their pages could not
-be checked from the development machine; they show as “Microphone in use”
-with the backup mute meanwhile.
+Calls on any website (Slack, Teams, Zoom, Discord…) are detected the same
+way everywhere, from the browser's WebRTC connection: the site's name, a
+timer and voice waves, no buttons (by choice: mute and leave in the call).
