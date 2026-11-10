@@ -122,6 +122,7 @@ pub fn media_input(
         source: Source {
             app: truncate(&app, 64),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::Media,
         state: LifecycleState::Updated,
@@ -435,6 +436,13 @@ async fn watch_player(
         .await
         .ok()
         .and_then(|v| String::try_from(&*v).ok());
+    // The player's installed app (e.g. "spotify"), for its logo.
+    let icon = props
+        .get(ROOT_IFACE, "DesktopEntry")
+        .await
+        .ok()
+        .and_then(|v| String::try_from(&*v).ok())
+        .and_then(|entry| super::app_icon(&entry));
     // (title, playing) last reported, to tell a new track or a resume
     // (sent as `started`, which also brings back a dismissed event) from
     // a plain update.
@@ -449,6 +457,9 @@ async fn watch_player(
             .ok()
             .and_then(|v| i64::try_from(&*v).ok());
         let mut input = media_input(name, identity.as_deref(), &all, position);
+        if let Some(input) = input.as_mut() {
+            input.source.icon = icon.clone();
+        }
         let mut playing = false;
         match input.as_mut() {
             Some(input) => {

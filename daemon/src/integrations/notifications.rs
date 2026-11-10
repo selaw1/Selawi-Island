@@ -78,6 +78,7 @@ pub fn notification_input(n: &Notification, seq: u64, show_body: bool) -> Option
                 app
             },
             integration: ID.into(),
+            icon: variant::string(&n.hints, "desktop-entry").and_then(|e| super::app_icon(&e)),
         },
         category: Category::Notification,
         state: LifecycleState::Started,

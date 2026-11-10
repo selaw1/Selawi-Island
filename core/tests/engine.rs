@@ -14,6 +14,7 @@ fn source() -> Source {
     Source {
         app: "Test".into(),
         integration: "test".into(),
+        icon: None,
     }
 }
 
@@ -41,6 +42,7 @@ fn call(name: &str) -> EventInput {
         source: Source {
             app: "Slack".into(),
             integration: "test".into(),
+            icon: None,
         },
         category: Category::Call,
         state: LifecycleState::Started,

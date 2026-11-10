@@ -70,6 +70,10 @@ impl FakeRoot {
     fn identity(&self) -> String {
         "Fake Player".into()
     }
+    #[zbus(property)]
+    fn desktop_entry(&self) -> String {
+        "org.example.FakePlayer".into()
+    }
 }
 
 struct FakePlayer {
@@ -164,6 +168,13 @@ async fn mpris_follows_a_player_and_controls_it() -> TestResult {
             .map(|e| e.source.app.clone())
             .as_deref(),
         Some("Fake Player")
+    );
+    assert_eq!(
+        find(&events(&hub).await, id)
+            .and_then(|e| e.source.icon.clone())
+            .as_deref(),
+        Some("app:org.example.FakePlayer"),
+        "the player's installed app gives the logo"
     );
 
     // Pressing Pause in the island reaches the player.

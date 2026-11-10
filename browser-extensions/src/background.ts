@@ -36,9 +36,84 @@ function send(message: ToHost): void {
     connect()?.postMessage(message);
 }
 
-function publish(event: EventInput): void {
+// Events last sent, by id, so a logo that arrives later can be added.
+const lastSent = new Map<string, {event: EventInput; tabId: number | null}>();
+
+function publish(event: EventInput, tabId: number | null = null): void {
+    if (tabId !== null) {
+        const logo = logos.get(tabId);
+        if (logo)
+            event.source.icon = logo;
+        else
+            void fetchLogo(tabId);
+    }
+    if (event.state === 'ended' || event.state === 'failed')
+        lastSent.delete(event.id);
+    else
+        lastSent.set(event.id, {event, tabId});
     send({type: 'event', event});
 }
+
+// ---- site logos -------------------------------------------------------------
+
+// Tab → its site icon as a small PNG data URL. The icon is decoded and
+// redrawn here, in the browser, so the island only ever gets a clean
+// 64×64 PNG, never a file straight from a website.
+const logos = new Map<number, string>();
+const fetching = new Set<number>();
+// Tabs whose icon changed while a lookup was running: look again after it.
+const refetch = new Set<number>();
+const LOGO_SIZE = 64;
+const MAX_LOGO = 48 * 1024;
+
+async function fetchLogo(tabId: number): Promise<void> {
+    if (fetching.has(tabId)) {
+        refetch.add(tabId);
+        return;
+    }
+    fetching.add(tabId);
+    try {
+        const tab = await chrome.tabs.get(tabId);
+        const url = tab.favIconUrl;
+        if (!url || !/^(https:|data:image\/)/.test(url))
+            return;
+        const bitmap = await createImageBitmap(await (await fetch(url)).blob());
+        const canvas = new OffscreenCanvas(LOGO_SIZE, LOGO_SIZE);
+        const context = canvas.getContext('2d');
+        if (!context)
+            return;
+        context.drawImage(bitmap, 0, 0, LOGO_SIZE, LOGO_SIZE);
+        const png = new Uint8Array(await (await canvas.convertToBlob({type: 'image/png'})).arrayBuffer());
+        let binary = '';
+        for (let i = 0; i < png.length; i += 0x8000)
+            binary += String.fromCharCode(...png.subarray(i, i + 0x8000));
+        const logo = `data:image/png;base64,${btoa(binary)}`;
+        if (logo.length > MAX_LOGO)
+            return;
+        logos.set(tabId, logo);
+        // Add it to what this tab is already showing.
+        for (const {event, tabId: owner} of [...lastSent.values()]) {
+            if (owner === tabId)
+                publish({...event, state: 'updated', source: {...event.source, icon: logo}}, tabId);
+        }
+    } catch {
+        // No logo (unsupported image, closed tab…): the island shows its own icon.
+    } finally {
+        fetching.delete(tabId);
+        if (refetch.delete(tabId) && !logos.has(tabId))
+            void fetchLogo(tabId);
+    }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, change) => {
+    if (change.favIconUrl === undefined)
+        return;
+    // The icon often loads after the first event went out: fetch it now.
+    logos.delete(tabId);
+    refetch.delete(tabId);
+    if ([...lastSent.values()].some(sent => sent.tabId === tabId))
+        void fetchLogo(tabId);
+});
 
 function onHostMessage(message: FromHost): void {
     if (message?.type !== 'action' || typeof message.id !== 'string')
@@ -75,7 +150,7 @@ function endCall(tabId: number): void {
     if (!meet)
         return;
     calls.delete(tabId);
-    publish(meetEvent(tabId, meet, 'ended'));
+    publish(meetEvent(tabId, meet, 'ended'), tabId);
 }
 
 // ---- media tabs -----------------------------------------------------------
@@ -87,7 +162,7 @@ function endMedia(tabId: number): void {
     if (!media)
         return;
     playing.delete(tabId);
-    publish(mediaEvent(BROWSER, tabId, media, 'ended'));
+    publish(mediaEvent(BROWSER, tabId, media, 'ended'), tabId);
 }
 
 function onMedia(tabId: number, state: MediaState | null): void {
@@ -97,7 +172,7 @@ function onMedia(tabId: number, state: MediaState | null): void {
     }
     const known = playing.has(tabId);
     playing.set(tabId, state);
-    publish(mediaEvent(BROWSER, tabId, state, known ? 'updated' : 'started'));
+    publish(mediaEvent(BROWSER, tabId, state, known ? 'updated' : 'started'), tabId);
 }
 
 // ---- calls on any site ------------------------------------------------------
@@ -114,7 +189,7 @@ function onWebCall(tabId: number, frameId: number, active: boolean, tabUrl: stri
         }
         const site = siteName(tabUrl);
         webCalls.set(tabId, {frames: new Set([frameId]), site});
-        publish(webCallEvent(tabId, site, 'started'));
+        publish(webCallEvent(tabId, site, 'started'), tabId);
         return;
     }
     if (!call)
@@ -129,7 +204,7 @@ function endWebCall(tabId: number): void {
     if (!call)
         return;
     webCalls.delete(tabId);
-    publish(webCallEvent(tabId, call.site, 'ended'));
+    publish(webCallEvent(tabId, call.site, 'ended'), tabId);
 }
 
 chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
@@ -153,13 +228,15 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     }
     const known = calls.has(tabId);
     calls.set(tabId, state);
-    publish(meetEvent(tabId, state, known ? 'updated' : 'started'));
+    publish(meetEvent(tabId, state, known ? 'updated' : 'started'), tabId);
 });
 
 chrome.tabs.onRemoved.addListener(tabId => {
     endCall(tabId);
     endMedia(tabId);
     endWebCall(tabId);
+    logos.delete(tabId);
+    refetch.delete(tabId);
 });
 
 // ---- downloads ------------------------------------------------------------

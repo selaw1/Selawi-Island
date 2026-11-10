@@ -166,3 +166,20 @@
 - **Files:** `gnome-extension/services/{privacy-source,privacy-model,audio-source}.js`,
   `gnome-extension/{extension.js,prefs-integrations.js,ui/compact-view.js}`,
   schema, tests, docs.
+
+## T-011 — Logos
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** optional `source.icon` on events (`app:<desktop id>`
+  or a PNG data URL up to 48 KiB, validated in Rust and JS); MPRIS and
+  notifications set the app's icon from its desktop entry; the browser
+  extension redraws each tab's favicon as a 64×64 PNG and attaches it to
+  calls, Meet and media; the island shows the logo in place of the icon
+  and moves muted / camera / paused to small icons beside the time.
+- **Files:** `core/src/events.rs`, `daemon/src/integrations/{mod,mpris,notifications}.rs`,
+  `gnome-extension/{services/protocol.js,ui/*.js,stylesheet.css}`,
+  `browser-extensions/{src/background.ts,src/model.ts,chrome/manifest.json}`,
+  `tests/fixtures/protocol-cases.json`, tests, docs.
+- **Tests:** protocol cases (valid and invalid icons), fake MPRIS player
+  with a desktop entry, view model logo and indicators, browser e2e (Meet
+  and YouTube stand-ins carry their favicon as a PNG).

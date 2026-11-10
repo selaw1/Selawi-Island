@@ -63,6 +63,9 @@ Rhythmbox, and others.
   Player keys are stable across browser restarts (`firefox`, `chromium`,
   `spotify`, `vlc`…).
 
+- The player app's own logo (e.g. Spotify's) when it names its desktop
+  entry (`DesktopEntry`); otherwise the usual play icon.
+
 Limits: position is read when something changes and advanced by the
 island while playing. No artwork (by choice: it looks cleaner without).
 
@@ -103,7 +106,8 @@ server: notifications still go to GNOME's list, with their buttons.
 
 - Shown for the time the app asks (2–30 s), 6 s by default; critical ones
   15 s with the highest priority; low-urgency ones at low priority.
-- Grouped by app. Markup is removed. Text only if “Show notification text”.
+- Grouped by app, with the app's logo when it names its desktop entry.
+  Markup is removed. Text only if “Show notification text”.
 - A media player's own “now playing” notification is skipped (the media
   event already shows it).
 - GNOME's banner is hidden while this integration is active and “Hide

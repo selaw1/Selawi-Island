@@ -33,6 +33,9 @@
 - **Warning limits are fixed** (memory 10 %, CPU 90 °C) for now.
   Per-integration limits are in `docs/INTEGRATIONS.md`.
 - **No album artwork**, by choice.
+- **Logos** come only from what a source names: an app without a desktop
+  entry, or a site without a favicon, keeps the generic icon. Apps run as
+  PWAs report the browser, so they show the browser's icon.
 - **Notification buttons are not shown** in the island (only GNOME, as the
   notification server, can deliver them); they stay in GNOME's list.
 - **Notifications rely on D-Bus monitoring**, which the session bus allows

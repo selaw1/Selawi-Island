@@ -47,6 +47,13 @@
 
 .selawi-compact-right { spacing: 8px; }
 
+/* Logos are full colour and a little larger than symbolic icons. */
+.selawi-compact-icon.selawi-logo { icon-size: 18px; }
+
+.selawi-indicators { spacing: 4px; }
+.selawi-indicator { icon-size: 14px; }
+.selawi-indicator-large { icon-size: 16px; }
+
 /* ---- voice waves ------------------------------------------------------ */
 
 .selawi-waves { spacing: 2px; }
@@ -84,6 +91,10 @@
   icon-size: 20px;
   color: #000;
 }
+
+/* A logo fills its tile instead of sitting on the accent colour. */
+.selawi-icon-tile.has-logo { background-color: transparent; }
+.selawi-icon-tile.has-logo .selawi-expanded-icon { icon-size: 40px; }
 
 .selawi-title {
   font-size: 11.5pt;
@@ -158,6 +169,13 @@
 }
 
 /* ---- accents ---------------------------------------------------------- */
+
+.selawi-indicator.accent-green, .selawi-indicator-large.accent-green { color: #30d158; }
+.selawi-indicator.accent-orange, .selawi-indicator-large.accent-orange { color: #ff9f0a; }
+.selawi-indicator.accent-pink, .selawi-indicator-large.accent-pink { color: #ff375f; }
+.selawi-indicator.accent-blue, .selawi-indicator-large.accent-blue { color: #0a84ff; }
+.selawi-indicator.accent-neutral, .selawi-indicator-large.accent-neutral,
+.selawi-indicator.accent-red, .selawi-indicator-large.accent-red { color: #f5f5f7; }
 
 .selawi-compact-icon.accent-neutral, .selawi-compact-trailing.accent-neutral,
 .selawi-other-icon.accent-neutral, .selawi-trailing.accent-neutral { color: #f5f5f7; }

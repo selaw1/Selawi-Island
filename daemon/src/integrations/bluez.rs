@@ -92,6 +92,7 @@ pub fn connection_event(path: &str, d: &Device) -> Option<EventInput> {
         source: Source {
             app: "Bluetooth".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::Device,
         state: LifecycleState::Started,
@@ -117,6 +118,7 @@ pub fn low_battery_event(path: &str, d: &Device) -> Option<EventInput> {
         source: Source {
             app: "Bluetooth".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::Device,
         state: LifecycleState::Started,

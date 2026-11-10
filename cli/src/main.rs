@@ -428,6 +428,7 @@ fn source(app: String) -> Source {
     Source {
         app,
         integration: INTEGRATION.into(),
+        icon: None,
     }
 }
 

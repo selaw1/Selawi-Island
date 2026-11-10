@@ -23,6 +23,29 @@ const MAX_TEXT_LEN = 1024;
 const MAX_LABEL_LEN = 32;
 const MAX_ACTIONS = 4;
 export const MAX_TTL_MS = 24 * 60 * 60 * 1000;
+/** Longest `source.icon` (same limit as the Rust core). */
+export const MAX_ICON_LEN = 48 * 1024;
+const PNG_DATA_PREFIX = 'data:image/png;base64,';
+
+/** `app:<desktop id>` or a small PNG data URL; see docs/EVENT_SYSTEM.md. */
+function icon(v) {
+    if (typeof v !== 'string')
+        fail('source.icon: must be a string');
+    if (v.startsWith('app:')) {
+        const id = v.slice(4);
+        if (!id || id.length > MAX_ID_LEN || !/^[A-Za-z0-9._-]+$/.test(id))
+            fail('source.icon: must be app:<id> or a PNG data URL');
+        return v;
+    }
+    if (v.startsWith(PNG_DATA_PREFIX)) {
+        if (v.length > MAX_ICON_LEN)
+            fail('source.icon: out of range');
+        if (!/^[A-Za-z0-9+/=]+$/.test(v.slice(PNG_DATA_PREFIX.length)))
+            fail('source.icon: must be app:<id> or a PNG data URL');
+        return v;
+    }
+    fail('source.icon: must be app:<id> or a PNG data URL');
+}
 
 const TOKEN_RE = /^[A-Za-z0-9._:-]+$/;
 // Control characters other than newline.
@@ -209,7 +232,7 @@ export function validateInput(raw) {
             'ttl_ms', 'group', 'payload', 'actions'], 'event');
         if (!isObject(raw.source))
             fail('source: must be an object');
-        checkKeys(raw.source, ['app', 'integration'], 'source');
+        checkKeys(raw.source, ['app', 'integration', 'icon'], 'source');
         const category = oneOf(raw.category, CATEGORIES, 'category');
         const input = {
             id: token(raw.id, MAX_ID_LEN, 'id'),
@@ -223,6 +246,8 @@ export function validateInput(raw) {
             payload: payload(raw.payload, category),
             actions: actions(raw.actions),
         };
+        if (raw.source.icon !== undefined && raw.source.icon !== null)
+            input.source.icon = icon(raw.source.icon);
         if (raw.priority !== undefined)
             input.priority = oneOf(raw.priority, PRIORITIES, 'priority');
         if (raw.ttl_ms !== undefined) {

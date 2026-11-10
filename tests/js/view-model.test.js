@@ -193,3 +193,22 @@ test('camera in a call: from the call itself, or carried over from the camera bu
     const known = foldMicIntoCalls([call(false), capture('Camera and microphone')]);
     assert.equal(known.events[0].payload.camera, false, 'the call\'s own answer wins');
 });
+
+test('logos replace the main icon; camera, muted and paused move next to the time', () => {
+    const meet = describe({...base, id: 'browser:meet:1', category: 'call', state: 'started',
+        source: {app: 'Google Meet', integration: 'browser', icon: 'data:image/png;base64,AAAA'},
+        payload: {type: 'call', title: 'Standup', confidence: 'confirmed', camera: true, muted: true}}, 0);
+    assert.equal(meet.logo, 'data:image/png;base64,AAAA');
+    assert.deepEqual(meet.indicators, ['camera-web-symbolic', 'microphone-disabled-symbolic']);
+
+    const paused = describe({...base, category: 'media', state: 'updated',
+        source: {app: 'Spotify', integration: 'mpris', icon: 'app:spotify'},
+        payload: {type: 'media', title: 'Song', playing: false}}, 0);
+    assert.deepEqual(paused.indicators, ['media-playback-pause-symbolic']);
+
+    const noLogo = describe({...base, category: 'call', state: 'started',
+        payload: {type: 'call', title: 'x', confidence: 'confirmed', camera: true}}, 0);
+    assert.equal(noLogo.logo, null);
+    assert.deepEqual(noLogo.indicators, [], 'without a logo the main icon already shows the camera');
+    assert.equal(noLogo.iconName, 'camera-web-symbolic');
+});

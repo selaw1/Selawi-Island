@@ -153,6 +153,7 @@ fn warning(id: &str, title: &str, detail: &str) -> EventInput {
         source: Source {
             app: "System".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::System,
         state: LifecycleState::Started,

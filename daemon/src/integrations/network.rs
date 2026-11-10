@@ -176,6 +176,7 @@ fn event(id: &str, title: &str, detail: &str, severity: Severity, ttl_ms: u64) -
         source: Source {
             app: "Network".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::System,
         state: LifecycleState::Started,

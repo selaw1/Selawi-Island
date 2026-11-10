@@ -137,6 +137,36 @@
         "muted": false,
         "camera": true
       }
+    },
+    {
+      "id": "mpris:spotify",
+      "source": {
+        "app": "Spotify",
+        "integration": "mpris",
+        "icon": "app:spotify"
+      },
+      "category": "media",
+      "state": "started",
+      "payload": {
+        "type": "media",
+        "title": "Song",
+        "playing": true
+      }
+    },
+    {
+      "id": "browser:media:chrome:1",
+      "source": {
+        "app": "YouTube",
+        "integration": "browser",
+        "icon": "data:image/png;base64,iVBORw0KGgo="
+      },
+      "category": "media",
+      "state": "started",
+      "payload": {
+        "type": "media",
+        "title": "Song",
+        "playing": true
+      }
     }
   ],
   "invalid": [
@@ -416,6 +446,57 @@
           "title": "t",
           "confidence": "confirmed",
           "camera": 1
+        }
+      }
+    },
+    {
+      "why": "icon from the web as a URL",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b",
+          "icon": "https://evil.example/x.png"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "icon not PNG",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b",
+          "icon": "data:image/svg+xml;base64,PHN2Zz4="
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
+        }
+      }
+    },
+    {
+      "why": "icon app id with path",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b",
+          "icon": "app:../../etc/passwd"
+        },
+        "category": "notification",
+        "state": "started",
+        "payload": {
+          "type": "notification",
+          "title": "t"
         }
       }
     }

@@ -99,6 +99,19 @@ async fn until_disabled(config: &mut tokio::sync::watch::Receiver<Config>, id: &
     }
 }
 
+/// `source.icon` for an installed app, from its desktop entry id
+/// ("spotify", "org.gnome.Nautilus.desktop" → "app:org.gnome.Nautilus").
+/// `None` for anything that is not a plain desktop entry id.
+pub fn app_icon(desktop_entry: &str) -> Option<String> {
+    let id = desktop_entry.trim().trim_end_matches(".desktop");
+    let valid = !id.is_empty()
+        && id.len() <= 128
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+    valid.then(|| format!("app:{id}"))
+}
+
 /// Makes any string usable inside an event id (`A-Z a-z 0-9 . _ : -`).
 pub fn id_part(raw: &str) -> String {
     let cleaned: String = raw
@@ -122,6 +135,19 @@ pub fn id_part(raw: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::id_part;
+
+    #[test]
+    fn app_icons_only_for_plain_desktop_ids() {
+        use super::app_icon;
+        assert_eq!(app_icon("spotify").as_deref(), Some("app:spotify"));
+        assert_eq!(
+            app_icon("org.gnome.Nautilus.desktop").as_deref(),
+            Some("app:org.gnome.Nautilus")
+        );
+        assert_eq!(app_icon(""), None);
+        assert_eq!(app_icon("../etc/passwd"), None);
+        assert_eq!(app_icon("my app"), None);
+    }
 
     #[test]
     fn id_part_is_always_valid() {

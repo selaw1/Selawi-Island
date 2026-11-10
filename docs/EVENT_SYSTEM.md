@@ -12,6 +12,7 @@ types are fully typed (`core/src/events.rs`).
 | `id` | string | yes | 1–128 chars of `A-Z a-z 0-9 . _ : -`. Same id = same event. |
 | `source.app` | string | yes | Display name, ≤ 64 chars |
 | `source.integration` | string | yes | e.g. `mpris`, `simulator` |
+| `source.icon` | string | no | The app's or site's logo: `app:<desktop entry id>` (an installed app, e.g. `app:spotify`) or a small PNG as `data:image/png;base64,…` (at most 48 KiB). Nothing else (no web addresses) |
 | `category` | enum | yes | `call` `media` `transfer` `device` `notification` `system` `reminder` `metric` `custom` |
 | `state` | enum | yes | `started` `updated` `ended` `failed` `expired` |
 | `priority` | enum | no | Overrides the category default |

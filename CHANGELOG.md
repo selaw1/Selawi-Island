@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — logos
+
+### Added
+- Logos instead of generic icons: the site's icon for calls, Meet and
+  browser media tabs; the app's own icon for media players (Spotify…) and
+  notifications. Muted microphone, camera on and paused show as small
+  icons next to the time. New optional `source.icon` in the event protocol
+  (`app:<desktop id>` or a small PNG).
+
+### Changed
+- Chrome: the extension asks for website access as a host permission too
+  (it already had it through its call detection), so it can read each
+  tab's icon.
+
 ## Unreleased — fixes after testing
 
 ### Changed

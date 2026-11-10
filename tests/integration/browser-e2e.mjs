@@ -32,7 +32,11 @@ async function waitFor(what, check) {
     throw new Error(`timed out: ${what}; events: ${JSON.stringify(list().map(e => [e.id, e.state]))}`);
 }
 
-const MEET = `<!doctype html><html><head><title>Meet - Weekly sync</title></head><body>
+// A tiny real PNG used as each stand-in site's icon.
+const FAVICON = '<link rel="icon" href="data:image/png;base64,' +
+    'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR4nGN4amn6nxLMMGrAqAGjBgwXAwC1ulIfmdOREQAAAABJRU5ErkJggg==">';
+
+const MEET = `<!doctype html><html><head><title>Meet - Weekly sync</title>${FAVICON}</head><body>
 <button id="mic" aria-label="Turn off microphone" data-is-muted="false"><i class="google-material-icons">mic</i></button>
 <button id="cam" aria-label="Turn off camera" data-is-muted="false"><i class="google-material-icons">videocam</i></button>
 <button id="leave" aria-label="Leave call"><i class="google-material-icons">call_end</i></button>
@@ -67,7 +71,7 @@ function silentWav() {
     buf.write('data', 36); buf.writeUInt32LE(samples * 2, 40);
     return `data:audio/wav;base64,${buf.toString('base64')}`;
 }
-const YOUTUBE = `<!doctype html><html><head><title>Midnight City - YouTube</title></head><body>
+const YOUTUBE = `<!doctype html><html><head><title>Midnight City - YouTube</title>${FAVICON}</head><body>
 <div class="html5-video-player"><audio loop autoplay src="${silentWav()}"></audio></div>
 <button class="ytp-next-button" onclick="document.body.dataset.next='pressed'">next</button>
 <button class="ytp-prev-button" style="display:none">prev</button>
@@ -137,6 +141,8 @@ try {
     ok(call.payload.title === 'Weekly sync', 'the call appears with the meeting name');
     ok(call.payload.confidence === 'confirmed' && call.payload.muted === false, 'confirmed call, microphone on');
     ok(call.payload.camera === true, 'the camera state comes from Meet\'s own camera button');
+    const withLogo = await waitFor('Meet logo', events => events.find(e => e.id === call.id && e.source.icon));
+    ok(withLogo.source.icon.startsWith('data:image/png;base64,'), 'the call carries the site\'s logo as a clean PNG');
     ok(call.actions.map(a => a.id).join() === 'mute,leave', 'Mute and Leave buttons');
 
     invoke(call.id, 'mute');
@@ -169,6 +175,8 @@ try {
         e.id.startsWith('browser:media:chrome:') && e.source.app === 'YouTube' && e.payload.playing));
     ok(tune.payload.title === 'Midnight City' && tune.payload.artist === 'M83', 'a YouTube tab shows its song and artist');
     ok(tune.actions.map(a => a.id).join() === 'play_pause,next', 'Play/Pause and Next (no Previous on this page)');
+    await waitFor('YouTube logo', events => events.find(e => e.id === tune.id && e.source.icon?.startsWith('data:image/png;base64,')));
+    ok(true, 'the YouTube tab carries its logo');
 
     invoke(tune.id, 'play_pause');
     await waitFor('paused', events => events.find(e => e.id === tune.id && e.payload.playing === false));

@@ -15,7 +15,7 @@
 | `core/tests/demo_scenario.rs` | Every simulator event is valid and the scenario plays twice through the engine |
 | `daemon` unit tests (47) | Engine (submit/list/dismiss, limits, expiry, snapshot 0600, corrupt snapshot), config, safe reading of D-Bus values, MPRIS event building (controls only when supported, paused ttl, stopped, hostile metadata), battery rules (quiet at startup, plug/unplug, low once, critical persistent, cleared by charger), Bluetooth (names, kinds, battery only when reported, never on disconnect), configuration (defaults, round trip, typos rejected, saved 0600), player keys and which player is shown in each media mode, notifications (markup, hidden text, urgency, timeouts, app keys), network changes (switch, offline, portal, VPN), USB drive naming, memory/temperature parsing and warning margins against fake /proc and /sys files |
 | `daemon/tests/fake_services.rs` (10) | Each integration against a fake service on a private bus: fake MPRIS players (appears, Pause reaches it, closes → ended; dismissed then resumed comes back; one-player mode follows the preferred player and switches back to all), fake UPower (quiet at start, Charging, Battery low), fake BlueZ (connect, battery added a moment later, disconnect without battery), a fake notification server (Notify observed while the real server still answers; markup cleaned), turning an integration off and on live, a fake NetworkManager (quiet start, VPN up, Wi-Fi → Ethernet, portal, offline with VPN down), a fake UDisks2 (internal disk ignored, USB drive in and out), and the warnings integration reading a fake /proc |
-| `tests/js/*.test.js` (51) | JS validator on the shared cases, JS event store, view model, parsing the daemon's event list (real reply) and dropping bad entries, battery/audio/network icons, microphone (orange, waves) and camera (green) view, muted state, a confirmed call absorbing the microphone event, a browser's own MPRIS player hidden while the extension shows its tabs, microphone event model (titles, Mute/Unmute buttons), loudness parsing and wave bar math, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
+| `tests/js/*.test.js` (51) | JS validator on the shared cases, JS event store, view model (logos and small status icons), parsing the daemon's event list (real reply) and dropping bad entries, battery/audio/network icons, microphone (orange, waves) and camera (green) view, muted state, a confirmed call absorbing the microphone event, a browser's own MPRIS player hidden while the extension shows its tabs, microphone event model (titles, Mute/Unmute buttons), loudness parsing and wave bar math, placement (every default anchor, growth direction, top-bar inset, custom default, edges, second monitor, snap-back) |
 | `tests/integration/dbus-smoke.sh` | On a private D-Bus bus: CLI without daemon fails cleanly; daemon starts; notify, progress start/update/finish, rejected updates and invalid events; expiry; persistent event restored after a daemon restart; and the extension's real `DaemonFeed` under GJS (connect, follow changes, dismiss, refused action, and a Mute press on an extension-submitted event coming back as `action-invoked`) |
 | `tests/integration/prefs-check.sh` | Opens the real preferences window headless (Xvfb, GTK 4, libadwaita) against a real daemon on a private bus: Default position dropdown, Make this the default / Reset, and the Integrations page (service status, turning Bluetooth off, one-player mode, notification text, audio switch). Skipped if `xvfb-run` is missing (`sudo pacman -S xorg-server-xvfb`) |
 | `tests/browser/*.test.js` (6) | The browser extension's event building (Meet titles, mute state only when known, buttons, media tabs with only the controls the page offers and no timer during ads, site names for calls on any site, download progress and names), every event validated by the island's validator. Runs after `scripts/build-browser.sh` (strict TypeScript) |
@@ -94,16 +94,17 @@ journalctl -f -o cat /usr/bin/gnome-shell
 ### Browser (Google Meet, downloads)
 
 1. Load the extension (docs/BROWSER_INTEGRATIONS.md).
-2. Join a Google Meet: a **green** call with the meeting name and a timer; the orange microphone bubble disappears into it and the call shows the voice waves. Turn the camera on in Meet: the call shows a camera icon and “Camera on”; off: it goes away.
+2. Join a Google Meet: a **green** call with the meeting name and a timer; the orange microphone bubble disappears into it and the call shows the voice waves. The call shows Meet's logo. Turn the camera on in Meet: a small camera icon appears next to the time and “Camera on” in the details; off: it goes away.
 3. Mute in Meet: the island shows “Muted”. Press **Unmute** in the island: Meet unmutes (its own button changes).
 4. Press **Leave** in the island: you leave the meeting and the call ends.
-5. Download a file: its name and progress, then “Downloaded”. Start another and press **Cancel**: “Cancelled”.
-6. Close Chrome during a call: the call ends in the island.
-7. If nothing shows on Meet, the page may have changed: open Meet, press F12 → Console, and report any “Selawi” messages.
-8. Play a YouTube video and a SoundCloud track in two tabs: both show (no extra “Chrome” player). Previous/Play-Pause/Next in the island control each tab.
-9. Let a YouTube ad play: the island keeps the song's title and hides the timer.
-10. Pause a tab: it stays with a Play button for 5 minutes. Close it: it disappears.
-11. Join a Slack huddle, a Teams or Zoom web call, or a Discord voice channel in Chrome: a green bubble with the site's name, a timer and voice waves (no buttons). Leave: it disappears.
+5. Play YouTube and SoundCloud tabs: each shows its site's logo; pausing adds a small pause icon next to the time. Spotify (if installed) shows Spotify's own icon.
+6. Download a file: its name and progress, then “Downloaded”. Start another and press **Cancel**: “Cancelled”.
+7. Close Chrome during a call: the call ends in the island.
+8. If nothing shows on Meet, the page may have changed: open Meet, press F12 → Console, and report any “Selawi” messages.
+9. Play a YouTube video and a SoundCloud track in two tabs: both show (no extra “Chrome” player). Previous/Play-Pause/Next in the island control each tab.
+10. Let a YouTube ad play: the island keeps the song's title and hides the timer.
+11. Pause a tab: it stays with a Play button for 5 minutes. Close it: it disappears.
+12. Join a Slack huddle, a Teams or Zoom web call, or a Discord voice channel in Chrome: a green bubble with the site's name, a timer and voice waves (no buttons). Leave: it disappears.
 
 ### Idle and position
 

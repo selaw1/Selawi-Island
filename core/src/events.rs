@@ -90,6 +90,43 @@ pub struct Source {
     pub app: String,
     /// Integration that produced the event, e.g. "mpris" or "simulator".
     pub integration: String,
+    /// The app's or site's logo: `app:<desktop entry id>` for an installed
+    /// app (e.g. `app:spotify`), or a small PNG as
+    /// `data:image/png;base64,…` (at most `MAX_ICON_LEN` characters).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<String>,
+}
+
+/// Longest `source.icon` accepted (about 36 KB of PNG).
+pub const MAX_ICON_LEN: usize = 48 * 1024;
+const PNG_DATA_PREFIX: &str = "data:image/png;base64,";
+
+fn check_icon(icon: &str) -> Result<(), ValidationError> {
+    let bad = || ValidationError::InvalidText {
+        field: "source.icon",
+        reason: "must be app:<id> or a PNG data URL",
+    };
+    if let Some(id) = icon.strip_prefix("app:") {
+        let ok = !id.is_empty()
+            && id.len() <= MAX_ID_LEN
+            && id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+        return if ok { Ok(()) } else { Err(bad()) };
+    }
+    if let Some(data) = icon.strip_prefix(PNG_DATA_PREFIX) {
+        if icon.len() > MAX_ICON_LEN {
+            return Err(ValidationError::OutOfRange {
+                field: "source.icon",
+            });
+        }
+        let ok = !data.is_empty()
+            && data
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '/' | '='));
+        return if ok { Ok(()) } else { Err(bad()) };
+    }
+    Err(bad())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -343,6 +380,9 @@ impl EventInput {
     pub fn validate(&self) -> Result<(), ValidationError> {
         check_text("source.app", &self.source.app, MAX_NAME_LEN)?;
         check_text("source.integration", &self.source.integration, MAX_NAME_LEN)?;
+        if let Some(icon) = &self.source.icon {
+            check_icon(icon)?;
+        }
         if let Some(group) = &self.group {
             if !is_valid_token(group, MAX_ID_LEN) {
                 return Err(ValidationError::InvalidId(group.clone()));
@@ -470,6 +510,7 @@ mod tests {
             source: Source {
                 app: "Test".into(),
                 integration: "test".into(),
+                icon: None,
             },
             category: Category::Notification,
             state: LifecycleState::Started,

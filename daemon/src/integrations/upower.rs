@@ -152,6 +152,7 @@ fn event(
         source: Source {
             app: "Power".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::System,
         state: LifecycleState::Started,

@@ -7,7 +7,7 @@ import Graphene from 'gi://Graphene';
 import St from 'gi://St';
 
 import {Waves} from './waves.js';
-import {label, setAccent, setIcon, setText} from './widgets.js';
+import {label, setAccent, setIcon, setIndicators, setText} from './widgets.js';
 
 const MAX_OTHER_ROWS = 3;
 
@@ -48,8 +48,11 @@ export const ExpandedView = GObject.registerClass({
         this._trailing = label('selawi-trailing');
         this._waves = new Waves();
         this._waves.visible = false;
+        this._indicators = new St.BoxLayout({style_class: 'selawi-indicators', y_align: Clutter.ActorAlign.CENTER});
+        this._indicators.visible = false;
         header.add_child(this._iconTile);
         header.add_child(text);
+        header.add_child(this._indicators);
         header.add_child(this._waves);
         header.add_child(this._trailing);
         this.add_child(header);
@@ -107,8 +110,15 @@ export const ExpandedView = GObject.registerClass({
             return;
         }
 
-        setIcon(this._icon, vm.iconName);
+        // A logo fills the tile; a symbolic icon sits on the accent colour.
+        if (setIcon(this._icon, vm.iconName, vm.logo))
+            this._iconTile.add_style_class_name('has-logo');
+        else
+            this._iconTile.remove_style_class_name('has-logo');
         setAccent(this._iconTile, vm.accent);
+        setIndicators(this._indicators, vm.indicators, 'selawi-indicator-large');
+        for (const icon of this._indicators.get_children())
+            setAccent(icon, vm.accent);
         setText(this._title, vm.title);
         setText(this._subtitle, vm.subtitle);
         setText(this._trailing, vm.trailing);
@@ -196,7 +206,7 @@ export const ExpandedView = GObject.registerClass({
         this._others.visible = shown.length > 0;
         shown.forEach((o, i) => {
             const row = this._otherRows[i];
-            setIcon(row.icon, o.vm.iconName);
+            setIcon(row.icon, o.vm.iconName, o.vm.logo);
             setAccent(row.icon, o.vm.accent);
             setText(row.title, o.vm.title);
             setText(row.trailing, o.vm.trailing);

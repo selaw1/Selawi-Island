@@ -54,6 +54,12 @@ one-time manual step for you, not something the project does.
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
 
+**Logos:** calls, Meet and media tabs show the site's own icon (its
+favicon) instead of a generic one. The extension redraws the icon as a
+small 64×64 PNG before sending it, so the island never loads anything
+from a website. Microphone-off and camera-on then show as small icons
+next to the time. Downloads keep the download icon.
+
 **Ads (YouTube, YouTube Music):** while the player is marked as showing
 an ad, the last real title stays and the ad's own timer is hidden.
 
@@ -75,7 +81,8 @@ into the call bubble, which then shows the voice waves.
   cookies, no page content is read.
 - On every https site it only watches whether a live call connection
   (WebRTC) is sending your microphone; that yes/no and the site's name
-  are all that is sent. Nothing about the call's people, chat or audio.
+  are all that is sent, plus the site's icon (see Logos above). Nothing
+  about the call's people, chat or audio.
   A page could pretend to be in a call; the worst it can do is show a
   call bubble with its own name.
 - On media sites it reads only what the site publishes for the media

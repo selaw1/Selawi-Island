@@ -188,7 +188,8 @@ function isFinished(event) {
  *   accent is one of: neutral, green, blue, pink, orange, red.
  *   progress is 0..1 or null. live means the view changes with time and
  *   must be refreshed every second while visible. waves means the view
- *   shows microphone voice bars.
+ *   shows microphone voice bars. logo is the source's logo (or null);
+ *   indicators are small status icon names shown next to the time.
  */
 export function describe(event, now) {
     const p = event.payload;
@@ -202,6 +203,11 @@ export function describe(event, now) {
         progress: null,
         live: false,
         waves: false,
+        // The app's or site's logo (source.icon), shown instead of iconName.
+        logo: event.source.icon ?? null,
+        // Small status icons next to the time, used when a logo takes the
+        // main icon's place (camera on, muted, paused).
+        indicators: [],
     };
 
     switch (p.type) {
@@ -287,6 +293,17 @@ export function describe(event, now) {
 
     if (event.source.integration === 'gnome-privacy' && p.type === 'system')
         describePrivacy(event, now, vm);
+
+    if (vm.logo) {
+        if (p.type === 'call' && !isFinished(event)) {
+            if (p.camera === true)
+                vm.indicators.push('camera-web-symbolic');
+            if (p.muted === true)
+                vm.indicators.push('microphone-disabled-symbolic');
+        } else if (p.type === 'media' && !p.playing && !isFinished(event)) {
+            vm.indicators.push('media-playback-pause-symbolic');
+        }
+    }
 
     if (vm.progress !== null)
         vm.progress = Math.min(1, Math.max(0, vm.progress));

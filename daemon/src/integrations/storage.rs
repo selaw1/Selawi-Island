@@ -54,6 +54,7 @@ pub fn drive_event(path: &str, name: &str, connected: bool) -> Option<EventInput
         source: Source {
             app: "Drives".into(),
             integration: ID.into(),
+            icon: None,
         },
         category: Category::Device,
         state: LifecycleState::Started,

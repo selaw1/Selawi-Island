@@ -5,7 +5,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {Waves} from './waves.js';
-import {label, setAccent, setIcon, setText} from './widgets.js';
+import {label, setAccent, setIcon, setIndicators, setText} from './widgets.js';
 
 // Layout: icon and title on the left; on the right the "+N" count, voice
 // waves (microphone only) and the trailing value (timer, percent). The
@@ -40,10 +40,13 @@ class CompactView extends St.Widget {
             y_expand: true,
         });
         this._badge = label('selawi-badge');
+        this._indicators = new St.BoxLayout({style_class: 'selawi-indicators', y_align: Clutter.ActorAlign.CENTER});
+        this._indicators.visible = false;
         this._waves = new Waves();
         this._waves.visible = false;
         this._trailing = label('selawi-compact-trailing');
         this._right.add_child(this._badge);
+        this._right.add_child(this._indicators);
         this._right.add_child(this._waves);
         this._right.add_child(this._trailing);
 
@@ -79,8 +82,15 @@ class CompactView extends St.Widget {
             return;
         }
         this._icon.visible = true;
-        setIcon(this._icon, vm.iconName);
+        const hasLogo = setIcon(this._icon, vm.iconName, vm.logo);
+        if (hasLogo)
+            this._icon.add_style_class_name('selawi-logo');
+        else
+            this._icon.remove_style_class_name('selawi-logo');
         setAccent(this._icon, vm.accent);
+        setIndicators(this._indicators, vm.indicators, 'selawi-indicator');
+        for (const icon of this._indicators.get_children())
+            setAccent(icon, vm.accent);
         setAccent(this._trailing, vm.accent);
         setText(this._title, vm.title);
         setText(this._trailing, vm.trailing);

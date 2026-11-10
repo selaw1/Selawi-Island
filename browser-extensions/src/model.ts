@@ -36,7 +36,7 @@ export interface ProgressPayload {
 
 export interface EventInput {
     id: string;
-    source: {app: string; integration: 'browser'};
+    source: {app: string; integration: 'browser'; icon?: string};
     category: 'call' | 'transfer' | 'media';
     state: State;
     persistent: boolean;
