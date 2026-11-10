@@ -272,6 +272,7 @@ const SITE_NAMES: Array<[RegExp, string]> = [
     [/(^|\.)webex\.com$/, 'Webex'],
     [/(^|\.)jit\.si$/, 'Jitsi'],
     [/(^|\.)whereby\.com$/, 'Whereby'],
+    [/(^|\.)selawii\.com$/, 'Selawigram'],
     [/^meet\.google\.com$/, 'Google Meet'],
 ];
 

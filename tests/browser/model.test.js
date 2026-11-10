@@ -123,6 +123,7 @@ test('call controls a site reports (Media Session)', async () => {
     assert.equal(call.payload.camera, false);
     assert.deepEqual(call.actions.map(a => a.id), ['mute', 'leave']);
     assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij'), 'Google Meet');
+    assert.equal(siteNameOf('https://chat.selawii.com/call/1'), 'Selawigram');
     const plain = checked(webCallEvent(5, 'Slack', 'started'));
     assert.deepEqual(plain.actions, [], 'a site that reports nothing: no buttons');
     assert.equal(plain.payload.muted, undefined);
