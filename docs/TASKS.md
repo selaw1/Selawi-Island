@@ -7,6 +7,7 @@ Remind the owner about these when they ask what to test or what is next:
 - **Slack in Chrome** (huddle or call): do Mute / Leave buttons appear in
   the island? (Yes means Slack uses Chrome's standard call controls.)
 - **Slack desktop app** call: the orange mic bubble shows Slack's logo.
+- **Wi-Fi**: turn it off (Offline) and on (“<name> · Wi-Fi connected”), a few times.
 
 Checked on the owner's machine (2026-11-10): commands (`selawi-island
 run`), system updates with yay, GNOME notifications (screenshot, Clocks),
@@ -378,3 +379,20 @@ logo, Mute / Leave, clean after leaving).
 - **Files:** `gnome-extension/{ui/banner-blocker.js,services/shell-notifications.js,services/shell-model.js,stylesheet.css}`,
   `daemon/src/integrations/notifications.rs`, `daemon/tests/fake_services.rs`,
   `browser-extensions/src/model.ts`, tests, docs.
+
+## T-021 — Network stuck at “offline”
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** zbus stops reading a connection while any of its
+  signal queues is full (64). Turning Wi-Fi on floods access-point
+  PropertiesChanged signals; the network loop was waiting for
+  NetworkManager's replies without reading signals, so it deadlocked and
+  kept the last state (“offline”). Now: rules only for the NetworkManager
+  object and `ActiveConnection/*`, signals read in their own task that
+  wakes the loop (Notify). Same reader pattern for each MPRIS player
+  (stopped with the player); Bluetooth's change stream gets a 4096 queue
+  for its start-up read.
+- **Files:** `daemon/src/integrations/{network,mpris,bluez}.rs`,
+  `daemon/tests/fake_services.rs`, docs.
+- **Tests:** new fake NetworkManager test with a 400-signal scan flood
+  (failed before the fix, passes 5/5 after).

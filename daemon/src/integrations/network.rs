@@ -29,7 +29,7 @@ pub const ID: &str = "network";
 pub const NAME: &str = "Network (NetworkManager)";
 const DESTINATION: &str = "org.freedesktop.NetworkManager";
 const NM_PATH: &str = "/org/freedesktop/NetworkManager";
-const ACTIVE_PREFIX: &str = "/org/freedesktop/NetworkManager/ActiveConnection/";
+const ACTIVE_NAMESPACE: &str = "/org/freedesktop/NetworkManager/ActiveConnection";
 const NM_IFACE: InterfaceName<'static> =
     InterfaceName::from_static_str_unchecked("org.freedesktop.NetworkManager");
 const ACTIVE_IFACE: InterfaceName<'static> =
@@ -211,18 +211,55 @@ pub async fn watch(hub: Arc<Hub>, conn: Connection) -> Result<(), Stop> {
         .path(NM_PATH)
         .build()
         .await?;
-    let rule = MatchRule::builder()
+    // Only NetworkManager itself and its active connections matter. Device
+    // and access-point chatter (a Wi-Fi scan announces every network
+    // nearby) is not even subscribed to.
+    let main_rule = MatchRule::builder()
         .msg_type(MessageType::Signal)
         .sender(DESTINATION)
         .interface("org.freedesktop.DBus.Properties")
         .member("PropertiesChanged")
-        .path_namespace(NM_PATH)
+        .path(NM_PATH)
         .build()?;
-    let mut signals = MessageStream::for_match_rule(rule, &conn, None).await?;
-    let mut previous: Option<Snapshot> = None;
+    let active_rule = MatchRule::builder()
+        .msg_type(MessageType::Signal)
+        .sender(DESTINATION)
+        .interface("org.freedesktop.DBus.Properties")
+        .member("PropertiesChanged")
+        .path_namespace(ACTIVE_NAMESPACE)
+        .build()?;
+    let main = MessageStream::for_match_rule(main_rule, &conn, None).await?;
+    let active = MessageStream::for_match_rule(active_rule, &conn, None).await?;
 
+    // The signals are read all the time by their own task, which only
+    // says "something changed". If they were left unread while a
+    // snapshot waits for NetworkManager's replies, a full queue would hold
+    // back those replies and the integration would hang.
+    let changed = Arc::new(tokio::sync::Notify::new());
+    let mut reader = tokio::spawn({
+        let changed = changed.clone();
+        async move {
+            let mut signals = futures_util::stream::select(main, active);
+            while let Some(Ok(_)) = signals.next().await {
+                changed.notify_one();
+            }
+        }
+    });
+    let result = follow(&hub, &conn, &nm, &changed, &mut reader).await;
+    reader.abort();
+    result
+}
+
+async fn follow(
+    hub: &Hub,
+    conn: &Connection,
+    nm: &PropertiesProxy<'_>,
+    changed: &tokio::sync::Notify,
+    reader: &mut tokio::task::JoinHandle<()>,
+) -> Result<(), Stop> {
+    let mut previous: Option<Snapshot> = None;
     loop {
-        let now = snapshot(&conn, &nm).await?;
+        let now = snapshot(conn, nm).await?;
         let detail = match &now.primary {
             Some(c) => format!("on {}", c.name),
             None => "offline".into(),
@@ -242,18 +279,11 @@ pub async fn watch(hub: Arc<Hub>, conn: Connection) -> Result<(), Stop> {
         }
         previous = Some(now);
 
-        // Wait for a change on NetworkManager itself or an active
-        // connection. Device and access-point chatter (signal strength…)
-        // is ignored.
-        loop {
-            let Some(Ok(message)) = signals.next().await else {
-                return Err(Stop::Unavailable("NetworkManager went away".into()));
-            };
-            let header = message.header();
-            let path = header.path().map(|p| p.as_str()).unwrap_or_default();
-            if path == NM_PATH || path.starts_with(ACTIVE_PREFIX) {
-                break;
-            }
+        // Changes that arrive while a snapshot is taken leave one wake-up
+        // behind, so the next snapshot sees them.
+        tokio::select! {
+            () = changed.notified() => {}
+            _ = &mut *reader => return Err(Stop::Unavailable("NetworkManager went away".into())),
         }
     }
 }

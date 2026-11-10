@@ -3,6 +3,12 @@
 ## Unreleased — fixes after testing (2)
 
 ### Fixed
+- Wi-Fi coming back was missed and the network stayed “offline” until a
+  restart: the scan flood when Wi-Fi turns on filled the daemon's signal
+  queue, which then held back NetworkManager's replies. The network
+  integration now subscribes only to NetworkManager itself and its active
+  connections, and reads signals in their own task. Media players get the
+  same protection; Bluetooth gets room for chatter while it starts.
 - GNOME Shell's own notifications (screenshots) and notifications from
   GNOME apps (Clocks, Files…) now really show in the island: the code
   that passes them on never started (it asked the banner blocker a

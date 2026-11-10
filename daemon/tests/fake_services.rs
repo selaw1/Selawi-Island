@@ -931,3 +931,107 @@ async fn health_warns_about_low_memory_from_fake_proc() -> TestResult {
     std::fs::remove_dir_all(root)?;
     Ok(())
 }
+
+/// Turning Wi-Fi on makes NetworkManager announce every access point it
+/// scans. That flood must not stop the integration from seeing the
+/// connection come back (it used to fill the queue and hang).
+#[tokio::test]
+async fn wifi_coming_back_survives_a_scan_flood() -> TestResult {
+    if !have_bus() {
+        return Ok(());
+    }
+    const NM: &str = "/org/freedesktop/NetworkManager";
+    const WIFI: &str = "/org/freedesktop/NetworkManager/ActiveConnection/7";
+    let service = zbus::connection::Builder::session()
+        .serve_at(
+            NM,
+            FakeNm {
+                primary: WIFI.into(),
+                active: vec![WIFI.into()],
+                connectivity: 4,
+            },
+        )
+        .serve_at(
+            WIFI,
+            FakeActive {
+                id: "Home",
+                kind: "802-11-wireless",
+                vpn: false,
+            },
+        )
+        .name("org.freedesktop.NetworkManager")
+        .build()
+        .await?;
+    let hub = new_hub();
+    let watcher = tokio::spawn(selawi_islandd::integrations::network::watch(
+        hub.clone(),
+        Connection::session().await?,
+    ));
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let nm = service.object_server().interface::<_, FakeNm>(NM).await?;
+
+    // Wi-Fi off.
+    {
+        let mut n = nm.get_mut().await;
+        n.primary = "/".into();
+        n.active = Vec::new();
+    }
+    nm.get()
+        .await
+        .active_connections_changed(nm.signal_emitter())
+        .await?;
+    nm.get()
+        .await
+        .primary_connection_changed(nm.signal_emitter())
+        .await?;
+    wait_for(&hub, "offline", |ev| {
+        find(ev, "network:primary")
+            .and_then(system_line)
+            .filter(|l| l.starts_with("Offline"))
+    })
+    .await?;
+
+    // Wi-Fi on: the connection comes back in the middle of a scan flood.
+    for i in 0..400 {
+        let mut changed: HashMap<&str, Variant<'_>> = HashMap::new();
+        changed.insert("Strength", Variant::U8((i % 100) as u8));
+        service
+            .emit_signal(
+                None::<&str>,
+                format!("{NM}/AccessPoint/{i}").as_str(),
+                "org.freedesktop.DBus.Properties",
+                "PropertiesChanged",
+                &(
+                    "org.freedesktop.NetworkManager.AccessPoint",
+                    changed,
+                    Vec::<String>::new(),
+                ),
+            )
+            .await?;
+        if i == 50 {
+            {
+                let mut n = nm.get_mut().await;
+                n.primary = WIFI.into();
+                n.active = vec![WIFI.into()];
+            }
+            nm.get()
+                .await
+                .active_connections_changed(nm.signal_emitter())
+                .await?;
+            nm.get()
+                .await
+                .primary_connection_changed(nm.signal_emitter())
+                .await?;
+        }
+    }
+    let line = wait_for(&hub, "Wi-Fi back", |ev| {
+        find(ev, "network:primary")
+            .and_then(system_line)
+            .filter(|l| l.contains("Wi-Fi connected"))
+    })
+    .await?;
+    assert_eq!(line, "Home · Wi-Fi connected");
+    assert!(hub.integrations_json().await.contains("on Home"));
+    watcher.abort();
+    Ok(())
+}

@@ -429,8 +429,28 @@ async fn watch_player(
         .build()
         .await?;
     let player = PlayerProxy::builder(conn).destination(name).build().await?;
-    let mut changes = props.receive_properties_changed().await?;
-    let mut seeks = player.receive_seeked().await?;
+    let changes = props.receive_properties_changed().await?;
+    let seeks = player.receive_seeked().await?;
+    // Read the player's signals all the time in their own task, which
+    // only says "something changed": left unread while we wait for the
+    // player's replies below, a chatty player could fill the queue and
+    // hold back those replies (hanging every player).
+    let changed = std::sync::Arc::new(tokio::sync::Notify::new());
+    let mut reader = tokio::spawn({
+        let changed = changed.clone();
+        async move {
+            let mut changes = changes;
+            let mut seeks = seeks;
+            loop {
+                tokio::select! {
+                    change = changes.next() => if change.is_none() { break },
+                    seek = seeks.next() => if seek.is_none() { break },
+                }
+                changed.notify_one();
+            }
+        }
+    });
+    let _stop_reader = StopOnDrop(reader.abort_handle());
     let identity = props
         .get(ROOT_IFACE, "Identity")
         .await
@@ -489,11 +509,21 @@ async fn watch_player(
             break;
         }
         tokio::select! {
-            change = changes.next() => if change.is_none() { break },
-            seek = seeks.next() => if seek.is_none() { break },
+            () = changed.notified() => {}
+            _ = &mut reader => break,
         }
     }
     Ok(())
+}
+
+/// Stops a task when the function that started it returns, however it
+/// returns (including early, through `?`).
+struct StopOnDrop(tokio::task::AbortHandle);
+
+impl Drop for StopOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
 }
 
 #[cfg(test)]

@@ -164,7 +164,11 @@ pub async fn watch(hub: Arc<Hub>, conn: Connection) -> Result<(), Stop> {
         .member("PropertiesChanged")
         .path_namespace("/org/bluez")
         .build()?;
-    let mut changed = MessageStream::for_match_rule(rule, &conn, None).await?;
+    // Room for the device chatter (e.g. signal strength while Bluetooth
+    // settings scan) that arrives while all devices are read below: a full
+    // queue would hold back that reply.
+    let mut changed =
+        MessageStream::for_match_rule(rule, &conn, std::num::NonZeroUsize::new(4096)).await?;
 
     let mut devices: HashMap<String, Tracked> = HashMap::new();
     for (path, interfaces) in manager.get_managed_objects().await? {
