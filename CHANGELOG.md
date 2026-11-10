@@ -12,6 +12,10 @@
 - `scripts/firefox-xpi.sh`: the Firefox extension as a file to sign for free
   on addons.mozilla.org (unlisted, private).
 
+### Fixed
+- `selawi-island-update` no longer leaves the PKGBUILD looking edited
+  (makepkg writes the version into it; the update now puts it back).
+
 ## Unreleased — call controls and app logos
 
 ### Added

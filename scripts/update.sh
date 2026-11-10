@@ -48,6 +48,14 @@ repo="$(cd "$repo" && pwd)"
 mkdir -p "$(dirname "$SAVED")"
 printf '%s\n' "$repo" > "$SAVED"
 
+# makepkg writes the version it works out back into the PKGBUILD: undo
+# that, so it never looks like a local change or blocks git pull.
+restore_pkgbuild() {
+    git -C "$repo" checkout --quiet -- packaging/arch/PKGBUILD 2>/dev/null || true
+}
+restore_pkgbuild
+trap restore_pkgbuild EXIT
+
 if [ "$pull" = 1 ]; then
     echo "Getting the latest code..."
     git -C "$repo" pull --ff-only
