@@ -36,18 +36,21 @@ async function waitFor(what, check) {
 const FAVICON = '<link rel="icon" href="data:image/png;base64,' +
     'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR4nGN4amn6nxLMMGrAqAGjBgwXAwC1ulIfmdOREQAAAABJRU5ErkJggg==">';
 
+// Like real Meet: a leave button on the page, and microphone / camera
+// state and controls through Chrome's Media Session call controls.
 const MEET = `<!doctype html><html><head><title>Meet - Weekly sync</title>${FAVICON}</head><body>
-<button id="mic" aria-label="Turn off microphone" data-is-muted="false"><i class="google-material-icons">mic</i></button>
-<button id="cam" aria-label="Turn off camera" data-is-muted="false"><i class="google-material-icons">videocam</i></button>
 <button id="leave" aria-label="Leave call"><i class="google-material-icons">call_end</i></button>
 <script>
-const mic = document.getElementById('mic');
-mic.onclick = () => {
-  const muted = mic.dataset.isMuted !== 'true';
-  mic.dataset.isMuted = String(muted);
-  mic.querySelector('i').textContent = muted ? 'mic_off' : 'mic';
-};
-document.getElementById('leave').onclick = () => { document.body.innerHTML = '<p>You left the meeting</p>'; };
+const session = navigator.mediaSession;
+window.meetMuted = false;
+session.setActionHandler('togglemicrophone', () => {
+  window.meetMuted = !window.meetMuted;
+  session.setMicrophoneActive(!window.meetMuted);
+});
+session.setActionHandler('togglecamera', () => {});
+session.setActionHandler('hangup', () => { document.body.innerHTML = '<p>You left the meeting</p>'; });
+session.setMicrophoneActive(true);
+session.setCameraActive(true);
 </script></body></html>`;
 
 // Chromium looks for native host registrations inside its profile folder
@@ -153,17 +156,18 @@ try {
     const page = await context.newPage();
     await page.goto('https://meet.google.com/abc-defg-hij');
 
-    const call = await waitFor('Meet call', events => events.find(e => e.id.startsWith('browser:meet:') && e.state !== 'ended'));
+    const call = await waitFor('Meet call', events => events.find(e => e.id.startsWith('browser:meet:') &&
+        e.state !== 'ended' && e.payload.muted !== undefined));
     ok(call.payload.title === 'Weekly sync', 'the call appears with the meeting name');
     ok(call.payload.confidence === 'confirmed' && call.payload.muted === false, 'confirmed call, microphone on');
-    ok(call.payload.camera === true, 'the camera state comes from Meet\'s own camera button');
+    ok(call.payload.camera === true, 'the camera state comes from Meet\'s call controls');
     const withLogo = await waitFor('Meet logo', events => events.find(e => e.id === call.id && e.source.icon));
     ok(withLogo.source.icon.startsWith('data:image/png;base64,'), 'the call carries the site\'s logo as a clean PNG');
     ok(call.actions.map(a => a.id).join() === 'mute,leave', 'Mute and Leave buttons');
 
     invoke(call.id, 'mute');
     await waitFor('muted', events => events.find(e => e.id === call.id && e.payload.muted === true));
-    ok(await page.getAttribute('#mic', 'data-is-muted') === 'true', 'Mute in the island pressed Meet\'s own microphone button');
+    ok(await page.evaluate(() => window.meetMuted) === true, 'Mute in the island used Meet\'s own mute');
 
     invoke(call.id, 'unmute');
     await waitFor('unmuted', events => events.find(e => e.id === call.id && e.payload.muted === false));
@@ -171,7 +175,7 @@ try {
 
     invoke(call.id, 'leave');
     await waitFor('call ended', events => events.find(e => e.id === call.id && e.state === 'ended'));
-    ok(await page.locator('#leave').count() === 0, 'Leave pressed Meet\'s leave button and the call ended');
+    ok(await page.locator('#leave').count() === 0, 'Leave used Meet\'s hang up and the call ended');
 
     const download = page.waitForEvent('download');
     await page.evaluate(() => { location.href = 'https://files.example/report'; });

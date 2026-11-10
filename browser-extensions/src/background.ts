@@ -123,10 +123,10 @@ function onHostMessage(message: FromHost): void {
     const meet = /^browser:meet:(\d+)$/.exec(message.id);
     if (meet) {
         const action = message.action;
-        // Meet's own call controls first, its buttons on the page otherwise.
+        // Meet's own call controls; its leave button on the page otherwise.
         if (sendSessionAction(Number(meet[1]), action))
             return;
-        if (action === 'mute' || action === 'unmute' || action === 'leave') {
+        if (action === 'leave') {
             const command: MeetCommand = {kind: 'meet-action', action};
             chrome.tabs.sendMessage(Number(meet[1]), command).catch(() => {});
         }
@@ -308,7 +308,7 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     }
     if (message?.kind !== 'meet')
         return;
-    const state: MeetState = {...message.state, title: meetTitle(String(message.state.title ?? ''))};
+    const state: MeetState = {inCall: message.state?.inCall === true, title: meetTitle(String(message.state?.title ?? ''))};
     if (!state.inCall) {
         endCall(tabId);
         return;

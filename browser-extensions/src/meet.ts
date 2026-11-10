@@ -1,18 +1,17 @@
-// Content script for meet.google.com. Reads only Meet's own call
-// controls: whether the "leave call" button exists (you are in a call),
-// the microphone button's muted state, and the page title. It can press
-// the microphone and leave buttons when asked by the island.
+// Content script for meet.google.com. Reads only two things from Meet's
+// page: whether the "leave call" button exists (you are in a call) and the
+// page title (the meeting name). It can press the leave button when asked.
 //
-// Meet's page uses Material icon names inside its buttons (call_end,
-// mic, mic_off) and a data-is-muted attribute; those are what this
-// relies on. If Meet changes its page, detection stops (nothing wrong is
-// shown) until this file is updated.
+// Microphone and camera state, and Mute / Unmute, come from Meet's own
+// Media Session call controls (session-main.ts), like on any other site.
+//
+// Meet's page uses Material icon names inside its buttons (call_end).
+// If Meet changes its page, detection stops (nothing wrong is shown)
+// until this file is updated.
 
 import type {MeetCommand, MeetState, PageMessage} from './model.js';
 
 const LEAVE_ICONS = ['call_end'];
-const MIC_ICONS = ['mic', 'mic_off', 'mic_none'];
-const CAMERA_ICONS = ['videocam', 'videocam_off'];
 const CHECK_MS = 1000;
 
 function iconNames(button: Element): string[] {
@@ -25,53 +24,20 @@ function iconNames(button: Element): string[] {
     return names;
 }
 
-function findButton(icons: string[], label: RegExp): HTMLElement | null {
+function leaveButton(): HTMLElement | null {
     for (const button of document.querySelectorAll<HTMLElement>('button, [role="button"]')) {
-        if (iconNames(button).some(name => icons.includes(name)))
+        if (iconNames(button).some(name => LEAVE_ICONS.includes(name)))
             return button;
     }
     for (const button of document.querySelectorAll<HTMLElement>('button[aria-label], [role="button"][aria-label]')) {
-        if (label.test(button.getAttribute('aria-label') ?? ''))
+        if (/leave call/i.test(button.getAttribute('aria-label') ?? ''))
             return button;
     }
     return null;
-}
-
-function leaveButton(): HTMLElement | null {
-    return findButton(LEAVE_ICONS, /leave call/i);
-}
-
-// The in-call microphone and camera toggles carry data-is-muted.
-function toggle(icons: string[], label: RegExp): HTMLElement | null {
-    for (const button of document.querySelectorAll<HTMLElement>('[data-is-muted]')) {
-        if (iconNames(button).some(name => icons.includes(name)) || label.test(button.getAttribute('aria-label') ?? ''))
-            return button;
-    }
-    return null;
-}
-
-function micButton(): HTMLElement | null {
-    return toggle(MIC_ICONS, /microphone/i);
-}
-
-function cameraButton(): HTMLElement | null {
-    return toggle(CAMERA_ICONS, /camera/i);
-}
-
-function flag(button: HTMLElement | null): boolean | null {
-    const value = button?.getAttribute('data-is-muted');
-    return value === 'true' ? true : value === 'false' ? false : null;
 }
 
 function read(): MeetState {
-    const inCall = leaveButton() !== null;
-    const cameraOff = inCall ? flag(cameraButton()) : null;
-    return {
-        inCall,
-        title: document.title,
-        muted: inCall ? flag(micButton()) : null,
-        camera: cameraOff === null ? null : !cameraOff,
-    };
+    return {inCall: leaveButton() !== null, title: document.title};
 }
 
 let last = '';
@@ -88,18 +54,10 @@ function report(state: MeetState): void {
 }
 
 setInterval(() => report(read()), CHECK_MS);
-window.addEventListener('pagehide', () => report({inCall: false, title: document.title, muted: null, camera: null}));
+window.addEventListener('pagehide', () => report({inCall: false, title: document.title}));
 
+// Used only if Meet does not offer "hang up" through its call controls.
 chrome.runtime.onMessage.addListener((message: MeetCommand) => {
-    if (message?.kind !== 'meet-action')
-        return;
-    if (message.action === 'leave') {
+    if (message?.kind === 'meet-action' && message.action === 'leave')
         leaveButton()?.click();
-        return;
-    }
-    const state = read();
-    const wantMuted = message.action === 'mute';
-    if (state.muted !== null && state.muted !== wantMuted)
-        micButton()?.click();
-    setTimeout(() => report(read()), 300);
 });

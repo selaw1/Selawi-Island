@@ -13,6 +13,12 @@
 - When a website uses the microphone, the orange bubble shows that site's
   name and logo instead of “Google Chrome”.
 
+### Changed
+- Meet's microphone, camera, Mute / Unmute and Leave now come only from
+  Meet's call controls (confirmed on real Meet); the reader of Meet's
+  mute and camera buttons is gone. The page is still read for “in a call”
+  and the meeting name.
+
 ### Fixed
 - A logo in the expanded island no longer sits on a coloured square.
 - Browsers no longer get their own logo on the microphone bubble.

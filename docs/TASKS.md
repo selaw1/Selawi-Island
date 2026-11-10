@@ -218,3 +218,7 @@
   sends `browser:mic:<tab>` (never shown itself); `foldBrowserMic` puts
   that site's name and logo on the microphone bubble. Tested in the
   browser e2e (Slack stand-in) and the view model tests.
+- **Follow-up 2:** real Meet confirmed to report microphone, camera and
+  all three controls through Media Session, so `meet.ts` no longer reads
+  Meet's mute/camera buttons; it only reports “in a call” (leave button)
+  and the title, and presses leave as a fallback.

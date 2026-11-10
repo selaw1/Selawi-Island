@@ -57,10 +57,6 @@ export interface EventInput {
 export interface MeetState {
     inCall: boolean;
     title: string;
-    /** null when the page does not say. */
-    muted: boolean | null;
-    /** Camera on? null when the page does not say. */
-    camera: boolean | null;
 }
 
 /** What a media content script sees in its tab. */
@@ -141,7 +137,7 @@ export type PageMessage =
     | {kind: 'session'; raw: string | null}
     | {kind: 'mic'; active: boolean};
 export type SessionCommand = {kind: 'session-action'; action: SessionAction};
-export type MeetCommand = {kind: 'meet-action'; action: 'mute' | 'unmute' | 'leave'};
+export type MeetCommand = {kind: 'meet-action'; action: 'leave'};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
 /** Messages between the background script and the native host. */
@@ -167,25 +163,22 @@ export function meetEventId(tabId: number): string {
 }
 
 /**
- * Meet: what Meet reports through the Media Session call controls wins;
- * its buttons on the page (meet.ts) fill in whatever that does not say.
+ * Meet: the meeting name from the page; microphone, camera and Mute /
+ * Unmute from Meet's Media Session call controls. Leave is always offered
+ * (Meet's "hang up" control, or its leave button on the page).
  */
 export function meetEvent(tabId: number, meet: MeetState, state: State, session: SessionState = NO_SESSION): EventInput {
     const live = state !== 'ended' && state !== 'failed';
-    const muted = session.mic !== null ? !session.mic : meet.muted;
-    const camera = session.camera ?? meet.camera;
+    const payload: CallPayload = {type: 'call', title: clean(meet.title) || 'Google Meet', confidence: 'confirmed'};
+    if (session.mic !== null)
+        payload.muted = !session.mic;
+    if (session.camera !== null)
+        payload.camera = session.camera;
     const actions: Action[] = [];
-    if (live && muted === true)
-        actions.push({id: 'unmute', label: 'Unmute'});
-    else if (live && muted === false)
-        actions.push({id: 'mute', label: 'Mute'});
+    if (live && session.mic !== null && session.actions.includes('togglemicrophone'))
+        actions.push(session.mic ? {id: 'mute', label: 'Mute'} : {id: 'unmute', label: 'Unmute'});
     if (live)
         actions.push({id: 'leave', label: 'Leave'});
-    const payload: CallPayload = {type: 'call', title: clean(meet.title) || 'Google Meet', confidence: 'confirmed'};
-    if (muted !== null)
-        payload.muted = muted;
-    if (camera !== null)
-        payload.camera = camera;
     return {
         id: meetEventId(tabId),
         source: {app: 'Google Meet', integration: 'browser'},

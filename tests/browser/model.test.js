@@ -22,29 +22,30 @@ test('meeting titles', () => {
     assert.equal(meetTitle(''), 'Google Meet');
 });
 
-test('Meet call: confirmed, mute state only when known, Leave', () => {
-    const unmuted = meetEvent(7, {inCall: true, title: 'Weekly sync', muted: false}, 'started');
+test('Meet call: confirmed, mute state only when Meet reports it, Leave', async () => {
+    const {parseSession} = await import('../../browser-extensions/build/js/model.js');
+    const page = {inCall: true, title: 'Weekly sync'};
+    const controls = mic => parseSession(JSON.stringify({mic, camera: false, actions: ['hangup', 'togglemicrophone', 'togglecamera']}));
+
+    const unmuted = meetEvent(7, page, 'started', controls(true));
     assert.equal(unmuted.id, 'browser:meet:7');
     assert.equal(unmuted.payload.confidence, 'confirmed');
     assert.equal(unmuted.payload.muted, false);
+    assert.equal(unmuted.payload.camera, false);
     assert.deepEqual(unmuted.actions.map(a => a.id), ['mute', 'leave']);
     valid(unmuted);
 
-    const muted = meetEvent(7, {inCall: true, title: 'Weekly sync', muted: true}, 'updated');
+    const muted = meetEvent(7, page, 'updated', controls(false));
     assert.deepEqual(muted.actions.map(a => a.id), ['unmute', 'leave']);
     valid(muted);
 
-    const withCamera = meetEvent(7, {inCall: true, title: 'x', muted: false, camera: true}, 'updated');
-    assert.equal(withCamera.payload.camera, true);
-    valid(withCamera);
-
-    const unknown = meetEvent(7, {inCall: true, title: 'x', muted: null, camera: null}, 'updated');
+    const unknown = meetEvent(7, page, 'updated');
     assert.equal('camera' in unknown.payload, false, 'unknown camera state is not invented');
     assert.equal('muted' in unknown.payload, false, 'unknown mute state is not invented');
-    assert.deepEqual(unknown.actions.map(a => a.id), ['leave']);
+    assert.deepEqual(unknown.actions.map(a => a.id), ['leave'], 'Leave still works through the page button');
     valid(unknown);
 
-    const ended = meetEvent(7, {inCall: true, title: 'x', muted: false}, 'ended');
+    const ended = meetEvent(7, page, 'ended', controls(true));
     assert.deepEqual(ended.actions, []);
     valid(ended);
 });
@@ -161,15 +162,4 @@ test('call controls a site reports (Media Session)', async () => {
     assert.deepEqual(plain.actions, [], 'a site that reports nothing: no buttons');
     assert.equal(plain.payload.muted, undefined);
     assert.deepEqual(checked(webCallEvent(5, 'Slack', 'ended', session)).actions, []);
-});
-
-test('Meet prefers its reported call controls, page buttons fill in', async () => {
-    const {parseSession} = await import('../../browser-extensions/build/js/model.js');
-    const page = {inCall: true, title: 'Sync', muted: false, camera: true};
-    const fromPage = checked(meetEvent(1, page, 'updated'));
-    assert.equal(fromPage.payload.muted, false);
-    const reported = checked(meetEvent(1, page, 'updated', parseSession('{"mic":false,"camera":null,"actions":[]}')));
-    assert.equal(reported.payload.muted, true, 'reported state wins');
-    assert.equal(reported.payload.camera, true, 'camera from the page when not reported');
-    assert.equal(reported.actions[0].id, 'unmute');
 });

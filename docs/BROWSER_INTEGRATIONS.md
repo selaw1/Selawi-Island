@@ -50,7 +50,7 @@ one-time manual step for you, not something the project does.
 | Site / feature | Shows | Buttons |
 |---|---|---|
 | A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk; “Muted” and “Camera on” if the site reports them | **Mute / Unmute** and **Leave** only if the site offers them through Chrome's call controls (see below); otherwise none |
-| Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” and “Camera on” (camera icon) when Meet says so | **Mute / Unmute** (presses Meet's own microphone button), **Leave** (presses Meet's leave button) |
+| Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” and “Camera on” (camera icon) when Meet says so | **Mute / Unmute** and **Leave** (Meet's own call controls; Leave falls back to Meet's leave button) |
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
 
@@ -92,8 +92,8 @@ into the call bubble, which then shows the voice waves.
 - On every https site it also notes whether the page holds the
   microphone (yes/no) and the Media Session call controls the
   page reports (microphone/camera on or off, mute/hang-up available).
-- On Meet it reads only its call controls (is there a leave button, the
-  microphone button's muted flag) and the page title. No chat, no names
+- On Meet it also reads whether its leave button exists and the page
+  title. No chat, no names
   of participants, no audio or video.
 - For downloads only the file name is sent, never the folder or the
   address it came from.
@@ -136,12 +136,13 @@ could report anything here; the worst it can do is change its own bubble.
 
 ## How Meet is detected
 
-Meet's state comes from its call controls above when Meet reports them,
-and from its buttons on the page otherwise. For the buttons, the content
-script looks for Meet's own buttons: the leave button (Material icon `call_end`) means you are in a
-call, and the microphone toggle's `data-is-muted` attribute gives the mute
-state. If Meet changes its page, detection stops (nothing wrong is shown)
-until `browser-extensions/src/meet.ts` is updated.
+Microphone, camera, Mute / Unmute and Leave come from Meet's call
+controls above (checked on real Meet: it reports all of them). The Meet
+content script only adds what those do not say: Meet's leave button
+(Material icon `call_end`) means you are in a call, and the page title is
+the meeting name. Leave presses that button if Meet ever stops offering
+“hang up”. If Meet changes its page, the call stops showing (nothing
+wrong is shown) until `browser-extensions/src/meet.ts` is updated.
 
 ## Build and test
 
