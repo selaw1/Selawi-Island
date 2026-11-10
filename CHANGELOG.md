@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase 11: performance and stability
+
+### Changed
+- The daemon bundles list changes: a burst of updates (for example many
+  downloads or builds at once) now makes the island redraw a few times
+  instead of thousands of times a second. 5000 events: 10 redraw signals
+  instead of 5000, and the daemon stays at about 5.6 MB.
+
+### Added
+- A load check in the test suite (idle CPU, memory, event floods, redraw
+  signals) and more multi-monitor cases (screen unplugged, smaller,
+  rotated, left of the main screen).
+
 ## Unreleased — Phase 10: settings app
 
 ### Added

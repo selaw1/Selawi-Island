@@ -51,11 +51,16 @@ pub struct IntegrationInfo {
     pub status: Status,
 }
 
+/// Least time between two `Changed` signals.
+pub const CHANGED_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
 pub struct Hub {
     engine: Mutex<Engine>,
     /// Wakes the expiry task whenever the next deadline may have changed.
     pub wake: Notify,
     emitter: OnceLock<SignalEmitter<'static>>,
+    /// The event list changed and `Changed` has not been sent for it yet.
+    changes: Notify,
     /// Event id prefix → the integration that owns those events.
     routes: Mutex<Vec<(String, mpsc::UnboundedSender<ActionRequest>)>>,
     integrations: Mutex<BTreeMap<&'static str, IntegrationInfo>>,
@@ -76,6 +81,7 @@ impl Hub {
             engine: Mutex::new(engine),
             wake: Notify::new(),
             emitter: OnceLock::new(),
+            changes: Notify::new(),
             routes: Mutex::new(Vec::new()),
             integrations: Mutex::new(BTreeMap::new()),
             config: watch::channel(config).0,
@@ -274,15 +280,25 @@ impl Hub {
 
     async fn after_change(&self, changed: bool) {
         self.wake.notify_one();
-        if !changed {
-            return;
+        if changed {
+            self.changes.notify_one();
         }
-        let Some(emitter) = self.emitter.get() else {
-            return;
-        };
-        let list = self.list_json().await;
-        if let Err(e) = crate::dbus::Events::changed(emitter, &list).await {
-            eprintln!("Could not emit Changed: {e}");
+    }
+
+    /// Sends `Changed` with the current list: right away after a quiet
+    /// moment, then at most once per `CHANGED_INTERVAL` while changes keep
+    /// coming (each send carries the latest list), so a source that floods
+    /// the daemon cannot make the island redraw thousands of times a second.
+    pub async fn send_changes(self: std::sync::Arc<Self>) {
+        loop {
+            self.changes.notified().await;
+            if let Some(emitter) = self.emitter.get() {
+                let list = self.list_json().await;
+                if let Err(e) = crate::dbus::Events::changed(emitter, &list).await {
+                    eprintln!("Could not emit Changed: {e}");
+                }
+            }
+            tokio::time::sleep(CHANGED_INTERVAL).await;
         }
     }
 }

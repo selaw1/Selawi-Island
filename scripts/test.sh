@@ -77,6 +77,14 @@ else
     echo "(dbus-run-session not installed: skipped)"
 fi
 
+echo "== Daemon load: idle CPU, memory, event floods"
+if command -v dbus-run-session >/dev/null && command -v gjs >/dev/null; then
+    cargo build -q -p selawi-islandd -p selawi-island
+    tests/stress/stress-check.sh || { echo "Load check failed"; exit 1; }
+else
+    echo "(needs dbus-run-session and gjs: skipped)"
+fi
+
 echo "== Preferences window (headless GTK)"
 if command -v xvfb-run >/dev/null && command -v gjs >/dev/null && command -v dbus-run-session >/dev/null &&
    gjs -c "imports.gi.versions.Gtk = '4.0'; imports.gi.Gtk; imports.gi.Adw" >/dev/null 2>&1; then

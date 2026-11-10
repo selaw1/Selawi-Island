@@ -105,6 +105,7 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
         .interface::<_, Events>(OBJECT_PATH)
         .await?;
     hub.set_emitter(iface.signal_emitter().clone());
+    tokio::spawn(hub.clone().send_changes());
 
     integrations::spawn(hub.clone(), mpris::ID, mpris::NAME, mpris::run);
     integrations::spawn(hub.clone(), upower::ID, upower::NAME, upower::run);

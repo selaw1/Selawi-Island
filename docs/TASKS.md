@@ -330,3 +330,20 @@ Remind the owner about these when they ask what to test or what is next:
 - **Tests:** settings app headless against a real daemon
   (`tests/integration/settings-app.gjs.js`), report unit tests, package
   layout check, install-local/uninstall run in a throwaway home.
+
+## T-018 — Phase 11: performance and stability
+- **Created:** 2026-11-10
+- **Status:** Done
+- **Description:** measured the daemon (idle 0 CPU, ~5.5 MB; memory
+  levels off over 50 000 events; the engine keeps at most 64 events).
+  Found every change sent a full `Changed` signal (5000 submits → 5000
+  signals): the hub now sends at once after a quiet moment and then at
+  most every 50 ms with the latest list (→ 10 signals). Audited timers:
+  the island ticks only while something shows a running time; the voice
+  meter only while waves show; browser timers only while a call,
+  microphone or download is active; media tabs send only on real changes.
+  Island logic for 64 events < 0.1 ms per redraw.
+- **Files:** `daemon/src/{hub,main}.rs`, `tests/stress/{flood.gjs.js,measure.sh,stress-check.sh}`,
+  `scripts/test.sh`, `tests/js/placement.test.js`, docs.
+- **Tests:** `tests/stress/stress-check.sh` in the suite; placement cases
+  for unplugged, smaller, rotated and negative-coordinate monitors.

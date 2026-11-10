@@ -79,3 +79,26 @@ test('snap distance follows the scale factor', () => {
     assert.notEqual(positionFromDrop(mon, spot, 860, 40, 320, 36, 1), null);
     assert.equal(positionFromDrop(mon, spot, 860, 40, 320, 36, 2), null);
 });
+
+test('a dragged spot survives a monitor change (unplugged, smaller, rotated)', () => {
+    const big = {x: 1920, y: 0, width: 3840, height: 2160};
+    // Dragged near the bottom-right of a 4K screen on the right…
+    const f = fractionsFor(big, 3400 + 1920, 2000, 320);
+    // …that screen is unplugged: the same place on the laptop screen.
+    const laptop = {x: 0, y: 0, width: 1366, height: 768};
+    const p = placePill(customSpot(laptop, f), laptop, 320, 36);
+    assert.ok(p.x >= 0 && p.x + 320 <= 1366 && p.y >= 0 && p.y + 36 <= 768, `inside the laptop screen: ${JSON.stringify(p)}`);
+    // A portrait (rotated) screen narrower than the expanded island.
+    const portrait = {x: 0, y: 0, width: 400, height: 1280};
+    const q = placePill(customSpot(portrait, f), portrait, 440, 200);
+    assert.equal(q.x, 0, 'wider than the screen: starts at its left edge');
+    assert.ok(q.y + 200 <= 1280);
+});
+
+test('monitors left of or above the primary (negative coordinates)', () => {
+    const left = {x: -2560, y: -200, width: 2560, height: 1440};
+    const p = placePill(anchorSpot('top-center', left, {margin: 6}), left, 120, 12);
+    assert.deepEqual(p, {x: -1340, y: -194});
+    const f = fractionsFor(left, -2000, 300, 320);
+    assert.deepEqual(placePill(customSpot(left, f), left, 320, 36), {x: -2000, y: 300});
+});

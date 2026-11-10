@@ -63,7 +63,9 @@ The island never creates or changes events. It talks to a **feed**:
 
 - `DaemonFeed` (default) mirrors the daemon: it watches the bus name, calls
   `List()` when the daemon appears, follows `Changed`, and shows an empty
-  island when the daemon is gone. Every event is validated again
+  island when the daemon is gone. The daemon sends `Changed` at once after
+  a quiet moment and then at most every 50 ms while changes keep coming,
+  so bursts never make the island redraw more than ~20 times a second. Every event is validated again
   (`protocol.js` `parseEventList`) before the UI sees it.
 - `SimulatedFeed` plays `data/demo-scenario.json` through the JavaScript
   copy of the engine (`services/event-store.js`). It is used only when

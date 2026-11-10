@@ -14,7 +14,7 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | **In progress** — system updates (pacman/yay) and `selawi-island run` done; Docker/Podman and file copies next; Git left out (too quick to be worth a bubble) |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
 | 10 | GTK4/libadwaita settings app, diagnostics | **Done** (manual check pending) — settings app with Island, Integrations and Status pages |
-| 11 | Profiling, stress and multi-monitor testing | Planned |
+| 11 | Profiling, stress and multi-monitor testing | **Done** — load check in the test suite, bundled `Changed` signals, multi-monitor edge cases |
 | 12 | Arch package (PKGBUILD), install/update/uninstall | **Done** (manual check on Arch pending) |
 | 13 | Other Linux distributions | Planned |
 | 14 | Windows and macOS | Planned, only after Linux is stable |

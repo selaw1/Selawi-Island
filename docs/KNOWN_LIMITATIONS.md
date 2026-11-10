@@ -89,3 +89,6 @@
 - **Restart on the Status page needs the systemd user service**
   (`selawi-islandd.service`, set up by the package and by
   `install-local.sh`); a daemon started by hand is not restarted.
+- **GNOME Shell's own drawing cost is not measured automatically** (no
+  GNOME session in the checks); the daemon's load and the island's logic
+  are. See the manual performance check in TESTING.md.

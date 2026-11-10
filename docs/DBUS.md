@@ -23,7 +23,7 @@ through D-Bus activation.
 | `List()` | method | `→ s` | All current **stored events** as a JSON array, most important first |
 | `Dismiss(id)` | method | `s → b` | Remove an event as if the user dismissed it. Returns whether it existed |
 | `InvokeAction(id, action_id)` | method | `ss → ()` | The user pressed a button. Emits `ActionInvoked` only if the event declared that action |
-| `Changed(events_json)` | signal | `s` | The list changed; same JSON as `List()` |
+| `Changed(events_json)` | signal | `s` | The list changed; same JSON as `List()`. Sent at once after a quiet moment, then at most every 50 ms while changes keep coming, always with the latest list (so a flood of submits causes a few signals, not thousands) |
 | `ActionInvoked(id, action_id)` | signal | `ss` | Sent to the event's source so it can react (pause music, leave a call…) |
 
 ## com.selawi.Island.Integrations1
