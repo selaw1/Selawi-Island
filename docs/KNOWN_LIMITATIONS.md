@@ -69,3 +69,11 @@
 - **Desktop app logos on the mic bubble** need the app to name itself on
   its audio connection (or a running app with exactly that name);
   otherwise the mic icon stays.
+- **Updates are not automatic:** Selawi Island is not on the AUR (the
+  project is private), so `yay -Syu` does not update it; run
+  `selawi-island-update`.
+- **The package registers the browser helper for Google Chrome, Chromium
+  and Firefox only**, not Brave (Brave works with the development
+  install, `./scripts/install-local.sh`).
+- **The package build (makepkg) is not run in the automated checks**
+  (no Arch system there); its steps and the installed file layout are.

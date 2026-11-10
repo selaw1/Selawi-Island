@@ -15,15 +15,18 @@ only the browser can see: **calls on any website** (Google Meet included),
 
 ## Install
 
-`./scripts/install-local.sh` installs the helper (`selawi-island-browser-host`),
-registers it with Chrome, Chromium, Brave and Firefox, and builds the
-extension into `~/.local/share/selawi-island/browser/` (needs `pnpm`).
+The Arch package (`selawi-island-update`, see [INSTALL.md](INSTALL.md))
+installs the helper (`selawi-island-browser-host`), registers it with
+Google Chrome, Chromium and Firefox, and puts the extension in
+`/usr/share/selawi-island/browser/`. (The development install,
+`./scripts/install-local.sh`, uses `~/.local/share/selawi-island/browser/`
+instead and also registers Brave.)
 
 ### Chrome / Chromium / Brave
 
 1. Open `chrome://extensions`.
 2. Turn on **Developer mode** (top right).
-3. **Load unpacked** → choose `~/.local/share/selawi-island/browser/chrome`.
+3. **Load unpacked** → choose `/usr/share/selawi-island/browser/chrome`.
 
 The extension id is always `bjooidhahonkdcdpibfadoapilihpgig`; the helper
 only accepts that extension. It also works in installed web apps (PWAs) of
@@ -37,13 +40,28 @@ signed:
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. **Load Temporary Add-on…** → choose
-   `~/.local/share/selawi-island/browser/firefox/manifest.json`.
+   `/usr/share/selawi-island/browser/firefox/manifest.json`.
 3. In `about:addons` → Selawi Island → Permissions, allow access to
    websites (needed for calls on any site).
 
-A temporary add-on is removed when Firefox restarts. Signing it for
-personal use is free (an unlisted add-on on addons.mozilla.org); that is a
-one-time manual step for you, not something the project does.
+A temporary add-on is removed when Firefox restarts.
+
+### Firefox: a signed copy (free, private)
+
+Mozilla signs add-ons for free as **unlisted**: not shown in their store,
+only for people you give the file to. Once signed, it installs
+permanently.
+
+1. `./scripts/firefox-xpi.sh` → `dist/selawi-island-firefox-<version>.xpi`.
+2. With a free Mozilla account, upload it at addons.mozilla.org → Submit
+   a New Add-on → **On your own**. Mozilla checks it automatically and
+   gives back a signed `.xpi`.
+3. Open the signed file in Firefox (or drag it onto `about:addons`) and
+   allow website access in its Permissions.
+
+Each new version needs a new upload; the script numbers versions by
+commit, so each one is higher than the last. Signing is done by you, by
+hand; the project never uploads anything.
 
 ## What it does
 

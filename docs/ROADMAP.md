@@ -15,7 +15,7 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
 | 10 | GTK4/libadwaita settings app, diagnostics | Planned |
 | 11 | Profiling, stress and multi-monitor testing | Planned |
-| 12 | Arch package (PKGBUILD), install/update/uninstall | Planned |
+| 12 | Arch package (PKGBUILD), install/update/uninstall | **Done** (manual check on Arch pending) |
 | 13 | Other Linux distributions | Planned |
 | 14 | Windows and macOS | Planned, only after Linux is stable |
 

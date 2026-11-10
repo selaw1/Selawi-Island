@@ -21,6 +21,23 @@ find gnome-extension tests/integration -name '*.js' -print0 | xargs -0 -n1 node 
 echo "== GSettings schema"
 glib-compile-schemas --strict --dry-run gnome-extension/schemas
 
+echo "== Shell scripts and the Arch package layout"
+for script in scripts/*.sh tests/integration/*.sh packaging/arch/PKGBUILD; do bash -n "$script"; done
+cargo build -q -p selawi-islandd -p selawi-island -p selawi-island-browser-host
+stage="$(mktemp -d)"
+SELAWI_PROFILE=debug ./scripts/stage-package.sh "$stage"
+for file in usr/bin/selawi-islandd usr/bin/selawi-island usr/bin/selawi-island-browser-host usr/bin/selawi-island-update \
+    usr/lib/systemd/user/selawi-islandd.service usr/share/dbus-1/services/com.selawi.Island.service \
+    usr/share/gnome-shell/extensions/selawi-island@selawi/extension.js \
+    usr/share/gnome-shell/extensions/selawi-island@selawi/schemas/gschemas.compiled \
+    usr/share/selawi-island/browser/chrome/manifest.json usr/share/selawi-island/browser/firefox/manifest.json \
+    etc/opt/chrome/native-messaging-hosts/io.selawi.island.json usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json; do
+    [ -f "$stage/$file" ] || { echo "package is missing $file"; exit 1; }
+done
+grep -q '^ExecStart=/usr/bin/selawi-islandd$' "$stage/usr/lib/systemd/user/selawi-islandd.service" ||
+    { echo "packaged service does not start /usr/bin/selawi-islandd"; exit 1; }
+rm -rf "$stage"
+
 echo "== End-to-end over a private D-Bus session"
 if command -v dbus-run-session >/dev/null; then
     cargo build -q --workspace

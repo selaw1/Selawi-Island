@@ -30,11 +30,18 @@ The end-to-end test needs `dbus-run-session` (package `dbus`) and, for the
 
 Simulated events are the test source: `gnome-extension/data/demo-scenario.json`.
 
+The package recipe itself (`makepkg`) needs Arch and is not run here:
+`scripts/test.sh` checks the shell scripts' syntax and that
+`scripts/stage-package.sh` lays out every installed file (binaries,
+systemd user service starting `/usr/bin/selawi-islandd`, D-Bus activation,
+GNOME extension with its compiled schema, browser files and the helper's
+registration for Chrome and Firefox).
+
 ## Manual checks on GNOME
 
 These need your GNOME 51 session; they cannot run in CI.
 
-Install (`./scripts/install-local.sh`, then log out/in) or run
+Install (`./scripts/update.sh` or `selawi-island-update`, then log out/in) or run
 `./scripts/dev.sh`. Watch logs with:
 
 ```bash
@@ -149,3 +156,11 @@ The demo loops about every 55 seconds. Check each item:
 17. **Monitors** — with two monitors, set Monitor to 1; plug/unplug a monitor: the island repositions.
 
 Report anything that looks wrong with the step number and any log lines.
+
+### Arch package
+
+1. From the repository: `./scripts/update.sh`. It removes an older home-folder install (settings kept), builds with makepkg, asks for your password, installs. `pacman -Q selawi-island` shows a version like `0.1.0.r412.gabc1234-1`.
+2. Log out and in: the island works as before and keeps your settings.
+3. `selawi-island-update` from any folder: pulls, rebuilds, reinstalls.
+4. Chrome: Load unpacked from `/usr/share/selawi-island/browser/chrome` (remove the old one first); a Meet call still shows.
+5. `sudo pacman -R selawi-island`, log out and in: the island is gone; reinstall brings it back with the same settings.

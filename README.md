@@ -30,18 +30,22 @@ no hosting.
 
 ## Install or update
 
-```bash
-./scripts/install-local.sh
-```
-
-This builds and installs the daemon and CLI into `~/.local/bin`, starts the
-`selawi-islandd` user service, and installs the GNOME extension. The first
-time (and after extension updates), log out and back in: GNOME on Wayland
-loads extension code only at login.
+Selawi Island installs as an Arch package built from this repository
+(see [docs/INSTALL.md](docs/INSTALL.md), also for sharing it with a friend):
 
 ```bash
-gnome-extensions enable selawi-island@selawi
+./scripts/update.sh          # first time, from this folder
+selawi-island-update         # every update after that
 ```
+
+It builds the package, installs it with pacman, starts the
+`selawi-islandd` user service and turns on the GNOME extension. Log out
+and back in afterwards: GNOME on Wayland loads extension code only at
+login.
+
+For development, `./scripts/install-local.sh` still installs into your
+home folder instead (remove that with `./scripts/uninstall.sh` before using
+the package).
 
 Then try it:
 
@@ -57,8 +61,8 @@ idle, change sizes, turn dragging off, reset its position, turn on the demo,
 and (Integrations page) choose sources, the preferred media player and
 notification options.
 
-Remove everything: `./scripts/uninstall.sh` (add `--purge` to also delete
-settings and saved events).
+Remove: `sudo pacman -R selawi-island` (settings are kept; see
+[docs/INSTALL.md](docs/INSTALL.md#remove)).
 
 What to check is in [docs/TESTING.md](docs/TESTING.md#manual-checks-on-gnome).
 
@@ -76,7 +80,7 @@ daemon/             Rust: selawi-islandd, the D-Bus service
 cli/                Rust: selawi-island command-line client
 native-messaging/   Rust: helper the browser extension talks to
 browser-extensions/ TypeScript: Chrome and Firefox extension
-packaging/          systemd user service and D-Bus activation file
+packaging/          systemd user service, D-Bus activation file, Arch PKGBUILD
 gnome-extension/    GNOME Shell extension (the island UI)
   ui/               pill, compact/expanded views, monitor placement
   services/         protocol validation, event store, simulator
@@ -85,6 +89,6 @@ tests/js/           JavaScript unit tests (run with Node)
 tests/integration/  end-to-end test on a private D-Bus bus
 tests/fixtures/     protocol cases shared by Rust and JavaScript tests
 platform/           notes for future Windows/macOS ports
-scripts/            install, dev, test, uninstall
+scripts/            install, update, package, dev, test, uninstall
 docs/               architecture, event system, testing, limitations, roadmap
 ```

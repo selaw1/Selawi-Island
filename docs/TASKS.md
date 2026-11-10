@@ -228,3 +228,23 @@
   microphone from its connection while muted, as long as the tab still
   holds the microphone (`mic-main.ts`). E2e: the Meet stand-in is a plain
   WebRTC call with Media Session controls that drops the track on mute.
+
+## T-014 — Phase 12: Arch package
+- **Created:** 2026-11-10
+- **Status:** Done (manual check on Arch pending)
+- **Description:** `packaging/arch/PKGBUILD` builds from the local
+  repository (git+file, committed code only), version from Cargo + commit
+  count; `scripts/stage-package.sh` lays out the system install (binaries,
+  `selawi-island-update`, user service with `/usr/bin`, D-Bus activation,
+  extension with compiled schema, browser files, helper registration for
+  Chrome, Chromium, Firefox); `scripts/update.sh` (installed as
+  `selawi-island-update`) pulls, removes an old home-folder install,
+  runs `makepkg -si`, enables the service and extension;
+  `scripts/firefox-xpi.sh` packs the Firefox add-on for unlisted signing;
+  `docs/INSTALL.md`.
+- **Files:** `packaging/arch/PKGBUILD`, `scripts/{stage-package,update,firefox-xpi,test}.sh`,
+  `docs/INSTALL.md`, `README.md`, docs, `.gitignore`.
+- **Tests:** `scripts/test.sh` checks script syntax and the staged file
+  layout; the PKGBUILD's pkgver/prepare/build/package ran end to end on a
+  fresh clone here (makepkg itself needs Arch: not available in this
+  sandbox).

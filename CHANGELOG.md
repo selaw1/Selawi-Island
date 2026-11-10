@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — Arch package
+
+### Added
+- Arch package built from the repository (`packaging/arch/PKGBUILD`):
+  install and update with `./scripts/update.sh` the first time, then
+  `selawi-island-update`; remove with `sudo pacman -R selawi-island`. An
+  older home-folder install is removed automatically (settings kept).
+- `docs/INSTALL.md`: setup for you or a friend with access to the private
+  repository.
+- `scripts/firefox-xpi.sh`: the Firefox extension as a file to sign for free
+  on addons.mozilla.org (unlisted, private).
+
 ## Unreleased — call controls and app logos
 
 ### Added

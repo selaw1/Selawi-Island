@@ -3,3 +3,8 @@ node_modules/
 gnome-extension/schemas/gschemas.compiled
 *.zip
 browser-extensions/build/
+packaging/arch/src/
+packaging/arch/pkg/
+packaging/arch/selawi-island/
+*.pkg.tar.*
+dist/
