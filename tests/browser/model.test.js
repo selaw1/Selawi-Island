@@ -34,7 +34,12 @@ test('Meet call: confirmed, mute state only when known, Leave', () => {
     assert.deepEqual(muted.actions.map(a => a.id), ['unmute', 'leave']);
     valid(muted);
 
-    const unknown = meetEvent(7, {inCall: true, title: 'x', muted: null}, 'updated');
+    const withCamera = meetEvent(7, {inCall: true, title: 'x', muted: false, camera: true}, 'updated');
+    assert.equal(withCamera.payload.camera, true);
+    valid(withCamera);
+
+    const unknown = meetEvent(7, {inCall: true, title: 'x', muted: null, camera: null}, 'updated');
+    assert.equal('camera' in unknown.payload, false, 'unknown camera state is not invented');
     assert.equal('muted' in unknown.payload, false, 'unknown mute state is not invented');
     assert.deepEqual(unknown.actions.map(a => a.id), ['leave']);
     valid(unknown);

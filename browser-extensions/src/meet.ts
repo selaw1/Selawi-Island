@@ -12,6 +12,7 @@ import type {MeetCommand, MeetState, PageMessage} from './model.js';
 
 const LEAVE_ICONS = ['call_end'];
 const MIC_ICONS = ['mic', 'mic_off', 'mic_none'];
+const CAMERA_ICONS = ['videocam', 'videocam_off'];
 const CHECK_MS = 1000;
 
 function iconNames(button: Element): string[] {
@@ -40,24 +41,36 @@ function leaveButton(): HTMLElement | null {
     return findButton(LEAVE_ICONS, /leave call/i);
 }
 
-function micButton(): HTMLElement | null {
-    // The in-call microphone toggle carries data-is-muted.
+// The in-call microphone and camera toggles carry data-is-muted.
+function toggle(icons: string[], label: RegExp): HTMLElement | null {
     for (const button of document.querySelectorAll<HTMLElement>('[data-is-muted]')) {
-        const label = button.getAttribute('aria-label') ?? '';
-        if (iconNames(button).some(name => MIC_ICONS.includes(name)) || /microphone/i.test(label))
+        if (iconNames(button).some(name => icons.includes(name)) || label.test(button.getAttribute('aria-label') ?? ''))
             return button;
     }
     return null;
 }
 
+function micButton(): HTMLElement | null {
+    return toggle(MIC_ICONS, /microphone/i);
+}
+
+function cameraButton(): HTMLElement | null {
+    return toggle(CAMERA_ICONS, /camera/i);
+}
+
+function flag(button: HTMLElement | null): boolean | null {
+    const value = button?.getAttribute('data-is-muted');
+    return value === 'true' ? true : value === 'false' ? false : null;
+}
+
 function read(): MeetState {
     const inCall = leaveButton() !== null;
-    const mic = inCall ? micButton() : null;
-    const flag = mic?.getAttribute('data-is-muted');
+    const cameraOff = inCall ? flag(cameraButton()) : null;
     return {
         inCall,
         title: document.title,
-        muted: flag === 'true' ? true : flag === 'false' ? false : null,
+        muted: inCall ? flag(micButton()) : null,
+        camera: cameraOff === null ? null : !cameraOff,
     };
 }
 
@@ -75,7 +88,7 @@ function report(state: MeetState): void {
 }
 
 setInterval(() => report(read()), CHECK_MS);
-window.addEventListener('pagehide', () => report({inCall: false, title: document.title, muted: null}));
+window.addEventListener('pagehide', () => report({inCall: false, title: document.title, muted: null, camera: null}));
 
 chrome.runtime.onMessage.addListener((message: MeetCommand) => {
     if (message?.kind !== 'meet-action')

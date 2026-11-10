@@ -171,3 +171,25 @@ test('browser tabs from the extension hide that browser\'s own MPRIS player only
     assert.equal(foldBrowserMedia([ev('browser:media:chrome:1', 'ended'), ev('mpris:chromium.instance1')]).length, 2,
         'ended tab: MPRIS shows again');
 });
+
+test('camera in a call: from the call itself, or carried over from the camera bubble', async () => {
+    const {foldMicIntoCalls} = await import('../../gnome-extension/ui/view-model.js');
+    const call = camera => ({...base, id: 'browser:call:3', category: 'call', state: 'started',
+        source: {app: 'Call', integration: 'browser'},
+        payload: {type: 'call', title: 'Slack', confidence: 'confirmed', camera}});
+    const capture = title => ({...base, id: 'privacy:capture', category: 'call', state: 'started',
+        source: {app: 'Google Chrome', integration: 'gnome-privacy'},
+        payload: {type: 'system', title, detail: 'Google Chrome', severity: 'info'}});
+
+    const on = describe(call(true), 0);
+    assert.equal(on.iconName, 'camera-web-symbolic');
+    assert.match(on.subtitle, /Camera on/);
+    assert.doesNotMatch(describe(call(false), 0).subtitle, /Camera/);
+
+    const folded = foldMicIntoCalls([call(undefined), capture('Camera and microphone')]);
+    assert.equal(folded.events.length, 1);
+    assert.equal(folded.events[0].payload.camera, true, 'camera carried into the call');
+    assert.equal(folded.wavesFor, 'browser:call:3');
+    const known = foldMicIntoCalls([call(false), capture('Camera and microphone')]);
+    assert.equal(known.events[0].payload.camera, false, 'the call\'s own answer wins');
+});

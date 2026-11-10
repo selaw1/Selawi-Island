@@ -151,8 +151,14 @@ export function foldMicIntoCalls(events) {
         return {events, wavesFor: null};
     const title = mic.payload.title ?? '';
     const micLive = title.includes('icrophone') && !title.endsWith('muted') && !isFinished(mic);
+    // The camera state moves into the call too, unless the call already
+    // knows it (e.g. Meet reads its own camera button).
+    const cameraOn = title.startsWith('Camera') && !isFinished(mic);
+    const withCamera = cameraOn && call.payload.camera === undefined
+        ? {...call, payload: {...call.payload, camera: true}}
+        : call;
     return {
-        events: events.filter(e => e !== mic),
+        events: events.filter(e => e !== mic).map(e => (e === call ? withCamera : e)),
         wavesFor: micLive && call.payload.muted !== true ? call.id : null,
     };
 }
@@ -209,7 +215,10 @@ export function describe(event, now) {
             vm.trailing = formatClock(event.updated_at - event.created_at);
         } else {
             vm.accent = p.confidence === 'confirmed' ? 'green' : 'orange';
-            vm.subtitle = join(app, CONFIDENCE_NOTE[p.confidence], p.muted === true ? 'Muted' : '');
+            vm.subtitle = join(app, CONFIDENCE_NOTE[p.confidence],
+                p.camera === true ? 'Camera on' : '', p.muted === true ? 'Muted' : '');
+            if (p.camera === true)
+                vm.iconName = 'camera-web-symbolic';
             vm.trailing = formatClock(now - event.created_at);
             vm.live = true;
         }

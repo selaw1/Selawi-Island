@@ -136,6 +136,7 @@ try {
     const call = await waitFor('Meet call', events => events.find(e => e.id.startsWith('browser:meet:') && e.state !== 'ended'));
     ok(call.payload.title === 'Weekly sync', 'the call appears with the meeting name');
     ok(call.payload.confidence === 'confirmed' && call.payload.muted === false, 'confirmed call, microphone on');
+    ok(call.payload.camera === true, 'the camera state comes from Meet\'s own camera button');
     ok(call.actions.map(a => a.id).join() === 'mute,leave', 'Mute and Leave buttons');
 
     invoke(call.id, 'mute');

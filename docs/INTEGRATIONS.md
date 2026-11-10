@@ -184,6 +184,14 @@ same ones behind GNOME's own top-bar privacy icons.
 One event (`privacy:capture`, call priority) that stays while the
 microphone or camera is in use. It names the apps that record; it never
 claims you are in a call (a real call bubble needs the browser extension).
+During a call shown by the browser extension, this event folds into the
+call bubble: the call carries the voice waves and, if the camera is on,
+a camera icon and “Camera on”.
+
+Chrome often opens the camera directly instead of through PipeWire; then
+GNOME (and this event) cannot see it. Google Meet still shows the camera,
+from its own camera button. To let GNOME see Chrome's camera everywhere,
+turn on `chrome://flags/#enable-webrtc-pipewire-camera`.
 
 **Voice waves:** while the microphone event is on screen and another app
 is using the microphone, the extension measures the microphone's loudness

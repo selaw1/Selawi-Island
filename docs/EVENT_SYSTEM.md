@@ -29,7 +29,7 @@ except newline.
 
 | Type | Fields | Allowed category |
 |---|---|---|
-| `call` | `title`, `confidence` (`confirmed` `probable` `audio_only` `unknown`), `muted?` (only when the source knows) | `call` |
+| `call` | `title`, `confidence` (`confirmed` `probable` `audio_only` `unknown`), `muted?`, `camera?` (only when the source knows) | `call` |
 | `media` | `title`, `artist?`, `album?`, `playing`, `position_ms?`, `duration_ms?` | `media` |
 | `progress` | `title`, `detail?`, `percent?` (0–100) | any |
 | `device` | `name`, `device_kind?`, `connected`, `battery_percent?` (0–100) | `device` |

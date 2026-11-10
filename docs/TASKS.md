@@ -160,7 +160,9 @@
 - **Description:** microphone Mute/Unmute switched to GNOME's system
   microphone mute (reflected in GNOME, state follows it, Unmute also clears
   app-level mutes; scope setting removed); compact text always left with
-  time on the right; app names without "input"; no duplicate mute popup.
+  time on the right; app names without "input"; no duplicate mute popup;
+  camera shown in calls (optional `camera` on call payloads, Meet reads its
+  camera button, the camera bubble's state carries into the call).
 - **Files:** `gnome-extension/services/{privacy-source,privacy-model,audio-source}.js`,
   `gnome-extension/{extension.js,prefs-integrations.js,ui/compact-view.js}`,
   schema, tests, docs.

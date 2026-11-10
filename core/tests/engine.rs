@@ -52,6 +52,7 @@ fn call(name: &str) -> EventInput {
             title: "Standup".into(),
             confidence: Confidence::Confirmed,
             muted: None,
+            camera: None,
         }),
         actions: vec![Action {
             id: "end".into(),

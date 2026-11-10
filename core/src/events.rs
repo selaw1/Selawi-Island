@@ -161,6 +161,10 @@ pub struct CallPayload {
     /// the source really knows (never guessed).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub muted: Option<bool>,
+    /// Whether the user's camera is on in the call. Only set when the
+    /// source really knows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub camera: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -503,6 +507,7 @@ mod tests {
             title: "Standup".into(),
             confidence: Confidence::Confirmed,
             muted: None,
+            camera: None,
         });
         assert_eq!(
             input.validate(),

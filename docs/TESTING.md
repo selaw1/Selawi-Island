@@ -94,7 +94,7 @@ journalctl -f -o cat /usr/bin/gnome-shell
 ### Browser (Google Meet, downloads)
 
 1. Load the extension (docs/BROWSER_INTEGRATIONS.md).
-2. Join a Google Meet: a **green** call with the meeting name and a timer; the orange microphone bubble disappears into it and the call shows the voice waves.
+2. Join a Google Meet: a **green** call with the meeting name and a timer; the orange microphone bubble disappears into it and the call shows the voice waves. Turn the camera on in Meet: the call shows a camera icon and “Camera on”; off: it goes away.
 3. Mute in Meet: the island shows “Muted”. Press **Unmute** in the island: Meet unmutes (its own button changes).
 4. Press **Leave** in the island: you leave the meeting and the call ends.
 5. Download a file: its name and progress, then “Downloaded”. Start another and press **Cancel**: “Cancelled”.

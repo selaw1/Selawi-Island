@@ -14,6 +14,7 @@ export interface CallPayload {
     title: string;
     confidence: 'confirmed';
     muted?: boolean;
+    camera?: boolean;
 }
 
 export interface MediaPayload {
@@ -51,6 +52,8 @@ export interface MeetState {
     title: string;
     /** null when the page does not say. */
     muted: boolean | null;
+    /** Camera on? null when the page does not say. */
+    camera: boolean | null;
 }
 
 /** What a media content script sees in its tab. */
@@ -111,6 +114,8 @@ export function meetEvent(tabId: number, meet: MeetState, state: State): EventIn
     const payload: CallPayload = {type: 'call', title: clean(meet.title) || 'Google Meet', confidence: 'confirmed'};
     if (meet.muted !== null)
         payload.muted = meet.muted;
+    if (meet.camera !== null)
+        payload.camera = meet.camera;
     return {
         id: meetEventId(tabId),
         source: {app: 'Google Meet', integration: 'browser'},

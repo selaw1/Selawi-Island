@@ -111,13 +111,15 @@ function payload(raw, category) {
     const p = {type: raw.type};
     switch (raw.type) {
     case 'call':
-        checkKeys(raw, ['type', 'title', 'confidence', 'muted'], 'payload');
+        checkKeys(raw, ['type', 'title', 'confidence', 'muted', 'camera'], 'payload');
         if (category !== 'call')
             fail('payload type does not match category');
         p.title = text(raw.title, MAX_TITLE_LEN, 'payload.title');
         p.confidence = oneOf(raw.confidence, CONFIDENCES, 'payload.confidence');
         if (raw.muted !== undefined && raw.muted !== null)
             p.muted = bool(raw.muted, 'payload.muted');
+        if (raw.camera !== undefined && raw.camera !== null)
+            p.camera = bool(raw.camera, 'payload.camera');
         break;
     case 'media':
         checkKeys(raw, ['type', 'title', 'artist', 'album', 'playing',

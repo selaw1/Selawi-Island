@@ -50,7 +50,7 @@ one-time manual step for you, not something the project does.
 | Site / feature | Shows | Buttons |
 |---|---|---|
 | A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk | None: mute and leave in the call itself |
-| Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” when Meet says so | **Mute / Unmute** (presses Meet's own microphone button), **Leave** (presses Meet's leave button) |
+| Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” and “Camera on” (camera icon) when Meet says so | **Mute / Unmute** (presses Meet's own microphone button), **Leave** (presses Meet's leave button) |
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
 

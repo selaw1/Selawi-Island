@@ -121,6 +121,22 @@
           "label": "Leave"
         }
       ]
+    },
+    {
+      "id": "browser:meet:8",
+      "source": {
+        "app": "Google Meet",
+        "integration": "browser"
+      },
+      "category": "call",
+      "state": "updated",
+      "payload": {
+        "type": "call",
+        "title": "Standup",
+        "confidence": "confirmed",
+        "muted": false,
+        "camera": true
+      }
     }
   ],
   "invalid": [
@@ -382,6 +398,24 @@
           "title": "t",
           "confidence": "confirmed",
           "muted": "yes"
+        }
+      }
+    },
+    {
+      "why": "camera not boolean",
+      "event": {
+        "id": "a",
+        "source": {
+          "app": "A",
+          "integration": "b"
+        },
+        "category": "call",
+        "state": "started",
+        "payload": {
+          "type": "call",
+          "title": "t",
+          "confidence": "confirmed",
+          "camera": 1
         }
       }
     }
