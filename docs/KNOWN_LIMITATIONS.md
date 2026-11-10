@@ -92,3 +92,7 @@
 - **GNOME Shell's own drawing cost is not measured automatically** (no
   GNOME session in the checks); the daemon's load and the island's logic
   are. See the manual performance check in TESTING.md.
+- **Plugins are known by name only while they run**: an app answered in
+  an earlier session shows in Settings by its id until it starts again.
+  A registration belongs to one D-Bus connection, so one-off `gdbus`
+  calls cannot hold one (use a helper).

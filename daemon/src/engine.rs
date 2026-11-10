@@ -20,6 +20,8 @@ pub const RESTORE_GRACE_MS: u64 = 60_000;
 pub enum SubmitError {
     TooLarge,
     Rejected(EngineError),
+    /// The id is reserved for plugins (they use Plugins1).
+    Reserved,
 }
 
 impl std::fmt::Display for SubmitError {
@@ -27,6 +29,10 @@ impl std::fmt::Display for SubmitError {
         match self {
             Self::TooLarge => write!(f, "event is larger than {MAX_INPUT_BYTES} bytes"),
             Self::Rejected(e) => write!(f, "{e}"),
+            Self::Reserved => write!(
+                f,
+                "ids starting with plugin: or plugins: are reserved for plugins (use Plugins1)"
+            ),
         }
     }
 }
@@ -115,6 +121,15 @@ impl Engine {
             removed |= self.withdraw(&id, now);
         }
         removed
+    }
+
+    /// Active (not finished) events whose id starts with `prefix`.
+    pub fn count_active(&self, prefix: &str) -> usize {
+        self.store
+            .ordered()
+            .iter()
+            .filter(|e| e.id.as_str().starts_with(prefix) && !e.state.is_terminal())
+            .count()
     }
 
     pub fn get(&self, id: &str) -> Option<&Event> {

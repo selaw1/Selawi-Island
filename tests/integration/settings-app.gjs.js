@@ -93,6 +93,26 @@ async function main() {
         'report has versions and states');
     ok(!/Secret|share/.test(text), 'report has none of the events');
 
+    // An app registers as a plugin (on its own connection): it shows under
+    // Integrations → Apps, waiting for an answer; switching it on allows it.
+    const address = GLib.getenv('DBUS_SESSION_BUS_ADDRESS');
+    const pluginBus = Gio.DBusConnection.new_for_address_sync(address,
+        Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, null, null);
+    pluginBus.call_sync('com.selawi.Island', '/com/selawi/Island', 'com.selawi.Island.Plugins1', 'Register',
+        new GLib.Variant('(s)', [JSON.stringify({manifest_version: 1, id: 'pomodoro', name: 'Pomodoro',
+            description: 'Focus timer', categories: ['custom']})]), null, Gio.DBusCallFlags.NONE, 2000, null);
+    await sleep(800);
+    const integrations = walk(stack.get_child_by_name('integrations'));
+    const appRow = integrations.find(w => w instanceof Adw.SwitchRow && w.title === 'Pomodoro');
+    ok(appRow && !appRow.active && /Waiting for your answer/.test(appRow.subtitle),
+        `a new app is listed, off, waiting (${appRow?.subtitle})`);
+    appRow.active = true;
+    await sleep(500);
+    const config = JSON.parse(Gio.DBus.session.call_sync('com.selawi.Island', '/com/selawi/Island',
+        'com.selawi.Island.Configuration1', 'Get', null, null, Gio.DBusCallFlags.NONE, 2000, null).deepUnpack()[0]);
+    ok(config.plugins?.pomodoro === true, 'switching it on allows it');
+    pluginBus.close_sync(null);
+
     const settingsLess = buildWindow(app, null, pages);
     all = walk(settingsLess);
     ok(all.some(w => w instanceof Adw.Banner && w.revealed), 'without the extension: a banner and only the status');

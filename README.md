@@ -53,7 +53,8 @@ Then try it:
 selawi-island notify "Hello from the terminal"
 ```
 
-More in [docs/CLI.md](docs/CLI.md).
+More in [docs/CLI.md](docs/CLI.md). Your own apps can show their own
+bubbles with buttons: [docs/PLUGINS.md](docs/PLUGINS.md).
 
 **Settings:** right-click the island, or open **Selawi Island** from the
 app grid (`selawi-island-settings`). Island page: hide it when idle,

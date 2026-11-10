@@ -6,3 +6,4 @@ pub mod dbus;
 pub mod engine;
 pub mod hub;
 pub mod integrations;
+pub mod plugins;

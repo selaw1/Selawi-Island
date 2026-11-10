@@ -101,7 +101,7 @@ pub struct Source {
 pub const MAX_ICON_LEN: usize = 48 * 1024;
 const PNG_DATA_PREFIX: &str = "data:image/png;base64,";
 
-fn check_icon(icon: &str) -> Result<(), ValidationError> {
+pub(crate) fn check_icon(icon: &str) -> Result<(), ValidationError> {
     let bad = || ValidationError::InvalidText {
         field: "source.icon",
         reason: "must be app:<id> or a PNG data URL",

@@ -45,12 +45,36 @@ rm -rf "$stage"
 echo "== End-to-end over a private D-Bus session"
 if command -v dbus-run-session >/dev/null; then
     cargo build -q --workspace
-    if ! out=$(dbus-run-session -- cargo test -q -p selawi-islandd --test fake_services 2>&1); then
+    if ! out=$(dbus-run-session -- cargo test -q -p selawi-islandd --test fake_services --test plugins 2>&1); then
         echo "$out"
         echo "Integration tests against fake services failed"
         exit 1
     fi
     echo "$out" | grep -E "test result"
+    if ! out=$(dbus-run-session -- cargo test -q -p selawi-island-plugin 2>&1); then
+        echo "$out"
+        echo "Rust plugin helper test failed"
+        exit 1
+    fi
+    echo "$out" | grep -E "test result: ok. [1-9]"
+    # The Python helper needs a Python with PyGObject.
+    py=""
+    for candidate in python3 python3.13 python3.12 python3.11; do
+        if command -v "$candidate" >/dev/null && "$candidate" -c "import gi" >/dev/null 2>&1; then
+            py=$candidate
+            break
+        fi
+    done
+    if [ -n "$py" ]; then
+        if ! out=$(PYTHON=$py dbus-run-session -- tests/sdk/python-plugin.sh 2>&1); then
+            echo "$out"
+            echo "Python plugin helper test failed"
+            exit 1
+        fi
+        echo "$out" | grep "^ok:"
+    else
+        echo "(no Python with PyGObject: Python plugin helper skipped)"
+    fi
     if ! out=$(dbus-run-session -- tests/integration/browser-host.sh 2>&1); then
         echo "$out"
         echo "Browser helper test failed"

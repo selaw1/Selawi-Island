@@ -5,6 +5,7 @@
 
 pub mod events;
 pub mod lifecycle;
+pub mod plugins;
 pub mod priority;
 pub mod store;
 

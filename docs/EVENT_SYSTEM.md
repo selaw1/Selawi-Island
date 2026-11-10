@@ -78,6 +78,13 @@ event arrived; they stay in the expanded list.
 At most 64 stored events. When full, the least important, oldest
 non-persistent event is evicted first.
 
+## Reserved for plugins
+
+Ids starting with `plugin:` (plugin events) or `plugins:` (the island's
+question about a new plugin) are only created through `Plugins1`;
+`Events1.Submit` refuses them. Plugin events have `source.integration`
+`plugin` and the manifest's name and icon. See [PLUGINS.md](PLUGINS.md).
+
 ## Recovery
 
 `EventStore::snapshot()` returns active persistent events;

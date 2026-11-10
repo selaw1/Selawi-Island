@@ -379,6 +379,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "selawi-island-plugin"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "selawi-core",
+ "selawi-islandd",
+ "serde_json",
+ "tokio",
+ "zbus",
+]
+
+[[package]]
 name = "selawi-islandd"
 version = "0.1.0"
 dependencies = [

@@ -12,6 +12,7 @@ const BUS_NAME = 'com.selawi.Island';
 const PATH = '/com/selawi/Island';
 const CONFIG_IFACE = 'com.selawi.Island.Configuration1';
 const INTEGRATIONS_IFACE = 'com.selawi.Island.Integrations1';
+const PLUGINS_IFACE = 'com.selawi.Island.Plugins1';
 
 const SOURCES = [
     ['mpris', 'Media players', 'Spotify, browsers, VLC and other players'],
@@ -165,6 +166,46 @@ export function integrationsPage(settings, window) {
     notifications.add(bannersRow);
     page.add(notifications);
 
+    // ---- apps (plugins)
+    const apps = new Adw.PreferencesGroup({
+        title: 'Apps',
+        description: 'Apps that show their own events on the island. New apps ask first; they show nothing until allowed.',
+    });
+    const noApps = new Adw.ActionRow({title: 'No apps have asked yet'});
+    apps.add(noApps);
+    page.add(apps);
+    let appRows = [];
+    let plugins = [];
+
+    function appSubtitle(plugin) {
+        const parts = [];
+        if (plugin.description)
+            parts.push(plugin.description);
+        if (!plugin.decided)
+            parts.push('Waiting for your answer');
+        else if (!plugin.running)
+            parts.push('Not running');
+        return parts.join(' · ');
+    }
+
+    function renderApps() {
+        for (const row of appRows)
+            apps.remove(row);
+        appRows = plugins.map(plugin => {
+            const row = new Adw.SwitchRow({title: plugin.name, subtitle: appSubtitle(plugin), active: plugin.allowed});
+            row.connect('notify::active', () => {
+                if (syncing || !config)
+                    return;
+                const next = JSON.parse(JSON.stringify(config));
+                next.plugins = {...next.plugins ?? {}, [plugin.id]: row.active};
+                setConfig(next);
+            });
+            apps.add(row);
+            return row;
+        });
+        noApps.visible = appRows.length === 0;
+    }
+
     // ---- syncing with the daemon
     const daemonRows = [...switches.values(), modeRow, preferredRow, bodyRow];
 
@@ -183,6 +224,7 @@ export function integrationsPage(settings, window) {
                 const status = statusText(integrations.find(i => i.id === id));
                 row.subtitle = status ? `${description} · ${status}` : description;
             }
+            renderApps();
             modeRow.selected = config.media?.mode === 'one' ? 1 : 0;
             const preferred = config.media?.preferred_player ?? null;
             const known = new Map(players.map(p => [p.id, p.name]));
@@ -211,6 +253,12 @@ export function integrationsPage(settings, window) {
         } catch {
             config = null;
         }
+        try {
+            const [pluginsJson] = await call(PLUGINS_IFACE, 'List');
+            plugins = JSON.parse(pluginsJson);
+        } catch {
+            plugins = [];
+        }
         render();
     }
 
@@ -224,7 +272,7 @@ export function integrationsPage(settings, window) {
     }
 
     const bus = Gio.DBus.session;
-    const subscriptions = [CONFIG_IFACE, INTEGRATIONS_IFACE].map(iface =>
+    const subscriptions = [CONFIG_IFACE, INTEGRATIONS_IFACE, PLUGINS_IFACE].map(iface =>
         bus.signal_subscribe(BUS_NAME, iface, 'Changed', PATH, null,
             Gio.DBusSignalFlags.NONE, () => refresh()));
     const watchId = Gio.bus_watch_name(Gio.BusType.SESSION, BUS_NAME,

@@ -125,6 +125,10 @@ impl Hub {
     }
 
     pub async fn submit_json(&self, json: &str) -> Result<(), SubmitError> {
+        // Plugin events only come through Plugins1, sealed.
+        if reserved_id(json) {
+            return Err(SubmitError::Reserved);
+        }
         // Events sent from outside for an integration that is turned off
         // (e.g. "pacman:…" from the pacman hook) are dropped quietly.
         if let Some(owner) = owning_integration(json) {
@@ -198,6 +202,11 @@ impl Hub {
             .await
             .get(id)
             .is_some_and(|e| !e.state.is_terminal())
+    }
+
+    /// Active events whose id starts with `prefix`.
+    pub async fn count_active(&self, prefix: &str) -> usize {
+        self.engine.lock().await.count_active(prefix)
     }
 
     pub async fn has_action(&self, id: &str, action_id: &str) -> bool {
@@ -303,6 +312,14 @@ impl Hub {
     }
 }
 
+/// Ids reserved for plugins (`plugin:…`) and their questions (`plugins:…`).
+fn reserved_id(json: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|v| v.get("id")?.as_str().map(str::to_string))
+        .is_some_and(|id| id.starts_with("plugin:") || id.starts_with("plugins:"))
+}
+
 /// The known integration an event id belongs to ("pacman:transaction" →
 /// "pacman"), if any.
 fn owning_integration(json: &str) -> Option<&'static str> {
@@ -330,5 +347,8 @@ mod tests {
         assert_eq!(owning_integration(r#"{"id":"cli-run-1-2"}"#), None);
         assert_eq!(owning_integration(r#"{"id":"browser:call:1"}"#), None);
         assert_eq!(owning_integration("not json"), None);
+        assert!(super::reserved_id(r#"{"id":"plugin:x:y"}"#));
+        assert!(super::reserved_id(r#"{"id":"plugins:request:x"}"#));
+        assert!(!super::reserved_id(r#"{"id":"pluginx"}"#));
     }
 }

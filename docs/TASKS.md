@@ -15,6 +15,7 @@ Remind the owner about these when they ask what to test or what is next:
 - **Copied:** Ctrl+C text, an image, files in Files.
 - **Charging:** plug in and unplug; icon, green and percentage.
 - **Settings app:** right-click the island; Status page, Restart, Copy report.
+- **Plugins:** `cargo run -p selawi-island-plugin --example countdown`, Allow, run again; Settings → Apps.
 
 ## T-001 — Milestone 1: foundation and island UI
 - **Created:** 2026-11-09
@@ -347,3 +348,23 @@ Remind the owner about these when they ask what to test or what is next:
   `scripts/test.sh`, `tests/js/placement.test.js`, docs.
 - **Tests:** `tests/stress/stress-check.sh` in the suite; placement cases
   for unplugged, smaller, rotated and negative-coordinate monitors.
+
+## T-019 — Phase 9: plugins
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** `core::plugins` (manifest v1 parsing, `seal`: namespace
+  `plugin:<id>:`, manifest name/icon, integration `plugin`, declared
+  categories only, no critical priority; token-bucket rate limit);
+  daemon `Plugins1` (Register/Submit/Remove/List, Changed, unicast
+  ActionInvoked; ask-first question `plugins:request:<id>` with
+  Allow/Don't allow routed to `config.plugins`; 8-event cap; events
+  withdrawn on disconnect and when turned off; `Events1.Submit` refuses
+  reserved ids and plugin buttons are not broadcast); settings Apps
+  group; Python (PyGObject) and Rust helpers; docs/PLUGINS.md.
+- **Files:** `core/src/{plugins,events,lib}.rs`, `daemon/src/{plugins,dbus,hub,engine,config,main,lib}.rs`,
+  `daemon/tests/plugins.rs`, `sdk/python/selawi_island.py`, `sdk/rust/**`,
+  `tests/sdk/*`, `gnome-extension/settings/integrations-page.js`,
+  `tests/integration/settings-app.gjs.js`, packaging, docs.
+- **Tests:** core unit tests (manifests, sealing, declared kinds, rate),
+  daemon end to end over D-Bus, both helpers end to end, settings Apps
+  group headless.

@@ -44,6 +44,7 @@ Three layers. Each may depend only on the layers listed after it.
 | Settings pages | `gnome-extension/settings/` | Island page (GSettings), Integrations page (daemon `Configuration1` + GSettings), Status page (service, extension state via GNOME Shell's `org.gnome.Shell.Extensions`, sources, Restart via the systemd user manager, “Copy report” built by the pure `report.js`) |
 | Settings app | `settings-app/` (`selawi-island-settings`) | GJS GTK 4 + libadwaita app showing the shared pages; opened by right-clicking the island; works when the extension is off or broken |
 | Preferences window | `gnome-extension/prefs.js` | The same pages in GNOME's extension preferences window |
+| Plugins | `core/src/plugins.rs` (manifest, sealing, rate limit), `daemon/src/plugins.rs` (`Plugins1`), `sdk/python`, `sdk/rust` | Apps showing their own events: ask-first approval, own id namespace, manifest's name and icon, buttons sent only to the app, events gone when it disconnects. See PLUGINS.md |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
 | Extension | `gnome-extension/` | Draws the island from a feed |
 
@@ -96,11 +97,10 @@ call duration or playing media is on screen).
 
 ## Planned (not built yet)
 
-- Interfaces `Plugins1`, `Configuration1`, `Diagnostics1`.
+- Interface `Diagnostics1` (the settings app's Status page covers it for now).
 - When Windows/macOS work starts, the Linux integrations move behind
   platform traits; until then they live in the daemon (no premature
   abstraction).
-- Plugins — see the roadmap.
 
 ## Other platforms
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Phase 9: plugins
+
+### Added
+- **Plugins** (`com.selawi.Island.Plugins1`): your own apps can show
+  their own bubbles with buttons. An app registers with a manifest; the
+  island asks you once (**Allow** / **Don't allow**) and shows nothing
+  until you allow it. Its events live in its own namespace with its own
+  name and icon (it cannot pose as another app or show undeclared kinds),
+  buttons go only to it, at most 8 events and about 10 updates a second,
+  and its events go when it exits. Settings → Integrations → **Apps**
+  lists them with on/off switches.
+- Helpers: Python (`import selawi_island`, installed by the package) and
+  Rust (`sdk/rust`, with a focus-timer example). Guide: docs/PLUGINS.md.
+
 ## Unreleased — Phase 11: performance and stability
 
 ### Changed

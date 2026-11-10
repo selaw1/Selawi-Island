@@ -42,6 +42,6 @@ tested in CI; list what needs manual checking in the milestone report.
 ## Docs to keep current
 `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/TESTING.md`,
 `docs/KNOWN_LIMITATIONS.md`, `docs/TASKS.md`, `docs/DBUS.md`, `docs/CLI.md`,
-`docs/INTEGRATIONS.md`, `docs/BROWSER_INTEGRATIONS.md`,
+`docs/INTEGRATIONS.md`, `docs/BROWSER_INTEGRATIONS.md`, `docs/PLUGINS.md`,
 `CHANGELOG.md`.
 Describe what exists, not what is planned, except in the roadmap.

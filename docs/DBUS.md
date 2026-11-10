@@ -51,13 +51,36 @@ pacman hooks, through `Submit`). `Submit` quietly drops any event whose id
 starts with a known integration id that is turned off (`"pacman:…"` while
 `integrations.pacman` is false); the call still succeeds.
 
+## com.selawi.Island.Plugins1
+
+Apps showing their own events (guide: [PLUGINS.md](PLUGINS.md)). A
+registration belongs to the D-Bus connection that made it.
+
+| Member | Kind | Signature | Meaning |
+|---|---|---|---|
+| `Register(manifest_json)` | method | `s → (sb)` | Registers the calling connection as the plugin described by the manifest. Returns its id and whether the user has allowed it. The first time, the island asks the user (a question event `plugins:request:<id>` with Allow / Don't allow). Another connection cannot register an id that is in use |
+| `Submit(event_json)` | method | `s → ()` | Adds or updates one of the plugin's events (protocol v1 event input; `source` may be left out). Stored as `plugin:<id>:<its id>` with `source` = the manifest's name and icon, integration `plugin`. Only declared categories, no `critical` priority, `call` priority only for call events, at most 8 events, about 10 per second (bursts of 30) |
+| `Remove(id)` | method | `s → b` | Removes one of the plugin's events (its own id) at once |
+| `List()` | method | `→ s` | Known plugins as JSON: `id`, `name`, `description`, `icon`, `categories`, `allowed`, `decided`, `running` (for Settings) |
+| `ActionInvoked(id, action_id)` | signal | `ss` | A button on one of the plugin's events was pressed. Sent **only to that plugin's connection**, with its own id; plugin events' buttons are not broadcast on `Events1.ActionInvoked` |
+| `Changed(plugins_json)` | signal | `s` | The list or an answer changed; same JSON as `List()` |
+
+The user's answers are the configuration's `plugins` map (`{"pomodoro":
+true}`); a plugin not in it has not been answered and shows nothing.
+Turning one off removes its events. Its events also go when its
+connection closes.
+
 ### Errors
 
 | Name | When |
 |---|---|
-| `com.selawi.Island.Error.InvalidEvent` | Malformed JSON, failed validation, too large, or a rejected state change (e.g. updating a finished event) |
+| `com.selawi.Island.Error.InvalidEvent` | Malformed JSON, failed validation, too large, a rejected state change (e.g. updating a finished event), an id reserved for plugins (`plugin:`, `plugins:`) on `Events1.Submit`, or (`Plugins1`) a category not in the manifest or more than 8 events |
 | `com.selawi.Island.Error.UnknownAction` | No such event, or it has no such action |
 | `com.selawi.Island.Error.InvalidConfig` | The configuration was malformed, invalid or could not be saved |
+| `com.selawi.Island.Error.InvalidPlugin` | `Register`: malformed manifest, its id is in use by another connection, or this connection registered another plugin |
+| `com.selawi.Island.Error.NotRegistered` | `Plugins1`: the connection has not registered |
+| `com.selawi.Island.Error.NotAllowed` | `Plugins1.Submit`: the user has not allowed the plugin |
+| `com.selawi.Island.Error.RateLimited` | `Plugins1.Submit`: too many events too fast |
 
 ## Try it with gdbus
 

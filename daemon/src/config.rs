@@ -77,6 +77,10 @@ pub struct Config {
     pub integrations: BTreeMap<String, bool>,
     pub media: MediaConfig,
     pub notifications: NotificationConfig,
+    /// Plugin id → allowed to show events. A plugin that is not listed
+    /// has not been answered yet and shows nothing.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub plugins: BTreeMap<String, bool>,
 }
 
 impl Config {
@@ -85,6 +89,11 @@ impl Config {
             .get(integration)
             .copied()
             .unwrap_or(!OFF_BY_DEFAULT.contains(&integration))
+    }
+
+    /// Whether the user allowed this plugin.
+    pub fn plugin_allowed(&self, plugin: &str) -> bool {
+        self.plugins.get(plugin).copied().unwrap_or(false)
     }
 
     /// The configuration with every known integration's on/off state
@@ -103,6 +112,11 @@ impl Config {
         for key in config.integrations.keys() {
             if !KNOWN_INTEGRATIONS.contains(&key.as_str()) {
                 return Err(format!("unknown integration {key:?}"));
+            }
+        }
+        for key in config.plugins.keys() {
+            if !selawi_core::plugins::valid_plugin_id(key) {
+                return Err(format!("invalid plugin id {key:?}"));
             }
         }
         if let Some(player) = &config.media.preferred_player {
@@ -173,6 +187,16 @@ pub fn default_path() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plugins_are_off_until_allowed() -> Result<(), String> {
+        let config = Config::parse(r#"{"plugins":{"pomodoro":true,"spam":false}}"#)?;
+        assert!(config.plugin_allowed("pomodoro"));
+        assert!(!config.plugin_allowed("spam"));
+        assert!(!config.plugin_allowed("never-asked"));
+        assert!(Config::parse(r#"{"plugins":{"Bad Id":true}}"#).is_err());
+        Ok(())
+    }
 
     #[test]
     fn missing_keys_mean_defaults() -> Result<(), String> {

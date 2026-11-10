@@ -4,7 +4,8 @@
 //! - `com.selawi.Island.Events1`: submit, list, dismiss, actions.
 //! - `com.selawi.Island.Integrations1`: what each built-in integration is doing.
 //! - `com.selawi.Island.Configuration1`: daemon settings (integrations, media,
-//!   notifications).
+//!   notifications, plugins).
+//! - `com.selawi.Island.Plugins1`: apps showing their own events (plugins.rs).
 //!
 //! See docs/DBUS.md for the full contract.
 
@@ -30,6 +31,14 @@ pub enum IslandError {
     UnknownAction(String),
     /// The configuration JSON was malformed, invalid, or could not be saved.
     InvalidConfig(String),
+    /// The plugin manifest was malformed, or the plugin id is taken.
+    InvalidPlugin(String),
+    /// `Plugins1`: the connection has not registered a plugin.
+    NotRegistered(String),
+    /// `Plugins1`: the user has not allowed this plugin.
+    NotAllowed(String),
+    /// `Plugins1`: too many events too fast.
+    RateLimited(String),
 }
 
 pub struct Core;
@@ -86,7 +95,10 @@ impl Events {
             )));
         }
         self.hub.route_action(id, action_id).await;
-        Self::action_invoked(&emitter, id, action_id).await?;
+        // A plugin's buttons go to that plugin only (Plugins1.ActionInvoked).
+        if !id.starts_with(selawi_core::plugins::PLUGIN_ID_PREFIX) && !id.starts_with("plugins:") {
+            Self::action_invoked(&emitter, id, action_id).await?;
+        }
         Ok(())
     }
 

@@ -26,6 +26,8 @@
 | `tests/integration/settings-app.gjs.js` (in `prefs-check.sh`) | The settings app's window headless against a real daemon: three pages, Status shows the running service, the missing GNOME Shell, each source's state; Copy report holds versions and states but not a notification that was on the island; without the extension's settings only Status is shown, with a banner |
 | `tests/js/report.test.js` | Extension states as GNOME 51 reports them, the report's text, no network or device names |
 | `tests/stress/stress-check.sh` | Load check on a private bus (debug build): the idle daemon uses no CPU (≤ 20 ms in 5 s), 5000 submits are handled with at most 100 `Changed` signals, at most 64 events are kept, memory stays under 40 MB. `tests/stress/measure.sh` prints the same numbers for a release build |
+| `daemon/tests/plugins.rs` | A plugin's whole life over real D-Bus: refused before registering, asked about, nothing shown before Allow, sealed events (own namespace, manifest name and icon, cannot pose as Slack), undeclared category refused, `Events1` cannot use plugin ids, buttons sent only to the app, another app cannot take its id, 8-event cap, rate limit, events gone when it disconnects or is turned off |
+| `sdk/rust/tests/helper.rs`, `tests/sdk/python-plugin.sh` | The Rust and Python helpers against the daemon: register, learn the answer, show, update, end, receive button presses |
 | `tests/integration/browser-host.sh` | The real helper against the real daemon: a call arrives, spoofed and unknown messages are refused, Mute pressed in the island reaches the browser, closing the browser ends the call |
 | `tests/integration/browser-e2e.sh` | The built extension in real Chromium (Playwright, Xvfb) with stand-in pages: Meet as a plain WebRTC call with standard call controls (“Google Meet”, logo, camera, Mute/Unmute and Leave through the page's handlers, the call goes on while muted with the microphone dropped from the connection), a download (appears, finishes), YouTube (song and artist, Pause/Play reach the page, a paused tab stays, the song title stays during an ad, Next presses the page's button), SoundCloud playing at the same time with its time read from the page, closing a tab ends its media, a real WebRTC call with the fake microphone on a stand-in Slack page shows as a green “Slack” call and ends on hang-up, and a connection without microphone is not a call. Stable over repeated runs |
 | `node --check` | Every extension file parses |
@@ -183,6 +185,12 @@ On your machine, with a call or music playing for a while:
 
 1. `top -p $(pgrep selawi-islandd)`: near 0 % CPU.
 2. GNOME's own CPU (`gnome-shell` in `top`) does not rise noticeably while the island shows a timer; with voice waves it rises a little, only while the microphone is in use.
+
+### Plugins
+
+1. `cargo run -p selawi-island-plugin --example countdown`: the island asks “Focus timer wants to show things on the island”. Press **Allow**, run it again: a “Focus” bubble with “25:00 left” and **Stop**.
+2. Settings → Integrations → Apps: “Focus timer”, on. Turn it off: the bubble goes.
+3. Python: `python -c 'from selawi_island import Island'` works after installing the package.
 
 ### Settings app
 

@@ -10,9 +10,10 @@ pkgdesc='Dynamic Island-style activity center for GNOME: calls, media, devices, 
 arch=('x86_64' 'aarch64')
 license=('LicenseRef-private')
 depends=('gnome-shell' 'dbus' 'systemd' 'glib2' 'gcc-libs' 'gjs' 'gtk4' 'libadwaita')
-makedepends=('git' 'rust' 'nodejs' 'pnpm')
+makedepends=('git' 'rust' 'nodejs' 'pnpm' 'python')
 optdepends=(
     'gst-plugins-good: voice waves while the microphone is in use'
+    'python-gobject: the Python plugin helper (import selawi_island)'
     'google-chrome: browser integration (calls, media tabs, downloads)'
     'chromium: browser integration (calls, media tabs, downloads)'
     'firefox: browser integration (calls, media tabs, downloads)'

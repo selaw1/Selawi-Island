@@ -17,6 +17,7 @@ use selawi_islandd::hub::Hub;
 use selawi_islandd::integrations::{
     self, bluez, health, mpris, network, notifications, storage, upower,
 };
+use selawi_islandd::plugins::{PluginHost, Plugins};
 use tokio::signal::unix::{signal, SignalKind};
 
 const USAGE: &str = "\
@@ -89,12 +90,19 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
     let config_path = config::default_path();
     let config = Config::load(config_path.as_deref());
     let hub = Arc::new(Hub::with_config(engine, config, config_path));
+    let plugin_host = PluginHost::new(hub.clone());
 
     let connection = zbus::connection::Builder::session()
         .serve_at(OBJECT_PATH, Core)
         .serve_at(OBJECT_PATH, Events { hub: hub.clone() })
         .serve_at(OBJECT_PATH, Integrations { hub: hub.clone() })
         .serve_at(OBJECT_PATH, Configuration { hub: hub.clone() })
+        .serve_at(
+            OBJECT_PATH,
+            Plugins {
+                host: plugin_host.clone(),
+            },
+        )
         .name(BUS_NAME)
         .build()
         .await?;
@@ -106,6 +114,7 @@ async fn run(options: Options) -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     hub.set_emitter(iface.signal_emitter().clone());
     tokio::spawn(hub.clone().send_changes());
+    plugin_host.start(connection.clone());
 
     integrations::spawn(hub.clone(), mpris::ID, mpris::NAME, mpris::run);
     integrations::spawn(hub.clone(), upower::ID, upower::NAME, upower::run);

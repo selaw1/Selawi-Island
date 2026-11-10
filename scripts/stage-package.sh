@@ -86,5 +86,12 @@ for hook in packaging/pacman/*.hook; do
     install -Dm644 "$hook" "$DEST/usr/share/libalpm/hooks/$(basename "$hook")"
 done
 
+# Plugin helper for Python apps (import selawi_island).
+if command -v python3 >/dev/null; then
+    site=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib', vars={'base': '/usr'}))")
+    install -Dm644 sdk/python/selawi_island.py "$DEST$site/selawi_island.py"
+fi
+install -Dm644 docs/PLUGINS.md "$DEST/usr/share/doc/selawi-island/PLUGINS.md"
+
 install -Dm644 README.md "$DEST/usr/share/doc/selawi-island/README.md"
 install -Dm644 docs/INSTALL.md "$DEST/usr/share/doc/selawi-island/INSTALL.md"
