@@ -16,8 +16,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 10 | GTK4/libadwaita settings app, diagnostics | **Done** (manual check pending) — settings app with Island, Integrations and Status pages |
 | 11 | Profiling, stress and multi-monitor testing | **Done** — load check in the test suite, bundled `Changed` signals, multi-monitor edge cases |
 | 12 | Arch package (PKGBUILD), install/update/uninstall | **Done** (manual check on Arch pending) |
-| 13 | Other Linux distributions | Planned |
-| 14 | Windows and macOS | Planned, only after Linux is stable |
+| 13 | Other Linux distributions | Not planned (owner's decision: Arch only) |
+| 14 | Windows and macOS | Not planned (owner's decision: Linux only) |
 
 ## Phase 3 acceptance criteria (met)
 
