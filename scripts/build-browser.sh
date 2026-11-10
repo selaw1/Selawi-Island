@@ -14,14 +14,16 @@ cd browser-extensions
 rm -rf build
 ../node_modules/.bin/tsc -p tsconfig.json
 
-# meet.js runs as a plain page script: no import/export allowed there.
-sed -i '/^export {};$/d' build/js/meet.js
-if grep -qE '^(import|export)' build/js/meet.js; then
-    echo "meet.js must not import or export anything"; exit 1
-fi
+# Content scripts run as plain page scripts: no import/export allowed.
+for script in meet media; do
+    sed -i '/^export {};$/d' "build/js/$script.js"
+    if grep -qE '^(import|export)' "build/js/$script.js"; then
+        echo "$script.js must not import or export anything"; exit 1
+    fi
+done
 
 for browser in chrome firefox; do
     mkdir -p "build/$browser"
-    cp "$browser/manifest.json" build/js/background.js build/js/model.js build/js/meet.js "build/$browser/"
+    cp "$browser/manifest.json" build/js/background.js build/js/model.js build/js/meet.js build/js/media.js "build/$browser/"
 done
 echo "Built browser-extensions/build/chrome and browser-extensions/build/firefox"

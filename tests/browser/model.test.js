@@ -79,3 +79,33 @@ test('helpers', () => {
     assert.equal(fileName(''), 'Download');
     assert.equal(fileName('/tmp/a\u0007b.txt'), 'a b.txt');
 });
+
+test('media tabs: controls the page offers, paused expires, valid for the island', async () => {
+    const {mediaEvent, PAUSED_TTL_MS} = await import('../../browser-extensions/build/js/model.js');
+    const state = {site: 'YouTube', title: 'Midnight City', artist: 'M83', album: '', playing: true,
+        positionMs: 61_500.4, durationMs: 243_000, canNext: true, canPrevious: false};
+    const playing = mediaEvent('chrome', 12, state, 'started');
+    assert.equal(playing.id, 'browser:media:chrome:12');
+    assert.equal(playing.source.app, 'YouTube');
+    assert.equal(playing.persistent, true);
+    assert.deepEqual(playing.payload, {type: 'media', title: 'Midnight City', artist: 'M83',
+        playing: true, position_ms: 61_500, duration_ms: 243_000});
+    assert.deepEqual(playing.actions.map(a => a.id), ['play_pause', 'next'], 'no Previous when the page has none');
+    assert.equal(playing.actions[0].label, 'Pause');
+    valid(playing);
+
+    const paused = mediaEvent('firefox', 3, {...state, playing: false, canPrevious: true}, 'updated');
+    assert.equal(paused.persistent, false);
+    assert.equal(paused.ttl_ms, PAUSED_TTL_MS);
+    assert.deepEqual(paused.actions.map(a => a.label), ['Previous', 'Play', 'Next']);
+    valid(paused);
+
+    const ad = mediaEvent('chrome', 12, {...state, positionMs: null, durationMs: null}, 'updated');
+    assert.equal('position_ms' in ad.payload, false, 'no timer during an ad');
+    valid(ad);
+
+    const ended = mediaEvent('chrome', 12, state, 'ended');
+    assert.deepEqual(ended.actions, []);
+    assert.equal(ended.payload.playing, false);
+    valid(ended);
+});

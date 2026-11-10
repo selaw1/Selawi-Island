@@ -2,13 +2,15 @@
 // keeps track of Meet tabs, and follows browser downloads.
 
 import {
-    type DownloadLike, type EventInput, type FromHost, type MeetCommand, type MeetState,
-    type PageMessage, type State, type ToHost,
-    downloadEvent, meetEvent, meetTitle,
+    type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
+    type MediaState, type MeetCommand, type MeetState, type PageMessage, type State, type ToHost,
+    downloadEvent, mediaEvent, meetEvent, meetTitle,
 } from './model.js';
 
 const HOST = 'io.selawi.island';
-const BROWSER: 'chrome' | 'firefox' = typeof (globalThis as {browser?: unknown}).browser === 'undefined' ? 'chrome' : 'firefox';
+// Newer Chrome also has a `browser` object, so look at the extension's own
+// address instead: moz-extension:// only exists in Firefox.
+const BROWSER: BrowserFamily = chrome.runtime.getURL('').startsWith('moz-extension:') ? 'firefox' : 'chrome';
 
 // ---- connection to the island -------------------------------------------
 
@@ -50,6 +52,15 @@ function onHostMessage(message: FromHost): void {
         }
         return;
     }
+    const media = /^browser:media:(?:chrome|firefox):(\d+)$/.exec(message.id);
+    if (media) {
+        const action = message.action;
+        if (action === 'play_pause' || action === 'next' || action === 'previous') {
+            const command: MediaCommand = {kind: 'media-action', action};
+            chrome.tabs.sendMessage(Number(media[1]), command).catch(() => {});
+        }
+        return;
+    }
     const download = /^browser:download:(\d+)$/.exec(message.id);
     if (download && message.action === 'cancel')
         chrome.downloads.cancel(Number(download[1])).catch(() => {});
@@ -67,9 +78,37 @@ function endCall(tabId: number): void {
     publish(meetEvent(tabId, meet, 'ended'));
 }
 
+// ---- media tabs -----------------------------------------------------------
+
+const playing = new Map<number, MediaState>();
+
+function endMedia(tabId: number): void {
+    const media = playing.get(tabId);
+    if (!media)
+        return;
+    playing.delete(tabId);
+    publish(mediaEvent(BROWSER, tabId, media, 'ended'));
+}
+
+function onMedia(tabId: number, state: MediaState | null): void {
+    if (!state) {
+        endMedia(tabId);
+        return;
+    }
+    const known = playing.has(tabId);
+    playing.set(tabId, state);
+    publish(mediaEvent(BROWSER, tabId, state, known ? 'updated' : 'started'));
+}
+
 chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     const tabId = sender.tab?.id;
-    if (message?.kind !== 'meet' || tabId === undefined)
+    if (tabId === undefined)
+        return;
+    if (message?.kind === 'media') {
+        onMedia(tabId, message.state);
+        return;
+    }
+    if (message?.kind !== 'meet')
         return;
     const state: MeetState = {...message.state, title: meetTitle(String(message.state.title ?? ''))};
     if (!state.inCall) {
@@ -81,7 +120,10 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     publish(meetEvent(tabId, state, known ? 'updated' : 'started'));
 });
 
-chrome.tabs.onRemoved.addListener(tabId => endCall(tabId));
+chrome.tabs.onRemoved.addListener(tabId => {
+    endCall(tabId);
+    endMedia(tabId);
+});
 
 // ---- downloads ------------------------------------------------------------
 

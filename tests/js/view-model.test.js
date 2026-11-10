@@ -156,3 +156,18 @@ test('a confirmed call absorbs the microphone event and takes its waves', async 
     assert.match(muted.subtitle, /Muted/);
     assert.doesNotMatch(describe(call(undefined), 0).subtitle, /Muted/, 'unknown mute state is not shown');
 });
+
+test('browser tabs from the extension hide that browser\'s own MPRIS player only', async () => {
+    const {foldBrowserMedia} = await import('../../gnome-extension/ui/view-model.js');
+    const ev = (id, state = 'started') => ({...base, id, category: 'media', state,
+        payload: {type: 'media', title: id, playing: true}});
+    const list = [
+        ev('browser:media:chrome:12'), ev('browser:media:chrome:14'),
+        ev('mpris:chromium.instance4512'), ev('mpris:firefox.instance_1_9'), ev('mpris:spotify'),
+    ];
+    assert.deepEqual(foldBrowserMedia(list).map(e => e.id),
+        ['browser:media:chrome:12', 'browser:media:chrome:14', 'mpris:firefox.instance_1_9', 'mpris:spotify']);
+    assert.equal(foldBrowserMedia([ev('mpris:chromium.instance1')]).length, 1, 'no extension tabs: MPRIS stays');
+    assert.equal(foldBrowserMedia([ev('browser:media:chrome:1', 'ended'), ev('mpris:chromium.instance1')]).length, 2,
+        'ended tab: MPRIS shows again');
+});

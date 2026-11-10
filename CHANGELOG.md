@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — Phase 6 (part 2)
+
+### Added
+- Media in each browser tab (YouTube, YouTube Music, SoundCloud): several
+  tabs at once, with Previous / Play–Pause / Next pressing the page's own
+  controls.
+- During YouTube ads the song title stays and the ad's timer is hidden.
+- While the extension shows a browser's tabs, that browser's own single
+  media player is hidden (no doubles).
+
+### Fixed
+- Newer Chrome was detected as Firefox by the extension.
+
 ## Unreleased — Phase 6 (part 1)
 
 ### Added

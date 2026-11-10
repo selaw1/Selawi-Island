@@ -103,6 +103,36 @@ function describePrivacy(event, now, vm) {
     vm.waves = mic && !finished;
 }
 
+const BROWSER_FAMILIES = {
+    chromium: 'chrome', chrome: 'chrome', 'google-chrome': 'chrome', brave: 'chrome',
+    vivaldi: 'chrome', opera: 'chrome', 'microsoft-edge': 'chrome', msedge: 'chrome',
+    firefox: 'firefox', librewolf: 'firefox', waterfox: 'firefox', floorp: 'firefox',
+};
+
+/**
+ * A browser reports only one media player to Linux (MPRIS). When the
+ * browser extension reports that browser's tabs itself
+ * (`browser:media:<family>:<tab>`), the browser's own MPRIS player is a
+ * duplicate and is hidden. Other browsers' players stay.
+ *
+ * @param {object[]} events - ordered events
+ * @returns {object[]} the list to show
+ */
+export function foldBrowserMedia(events) {
+    const covered = new Set();
+    for (const e of events) {
+        const match = /^browser:media:(chrome|firefox):/.exec(e.id);
+        if (match && !isFinished(e))
+            covered.add(match[1]);
+    }
+    if (covered.size === 0)
+        return events;
+    return events.filter(e => {
+        const match = /^mpris:([a-z-]+)/.exec(e.id);
+        return !(match && covered.has(BROWSER_FAMILIES[match[1]]));
+    });
+}
+
 /**
  * During a confirmed call (e.g. Google Meet through the browser
  * extension) the separate "Microphone / camera in use" event is folded

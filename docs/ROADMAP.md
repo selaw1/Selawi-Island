@@ -9,8 +9,8 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 3 | Rust daemon, D-Bus (`com.selawi.Island`), lifecycle/routing via `selawi-core`, systemd user service, `DaemonFeed` in the extension, CLI basics | **Done** (checked on GNOME 51) |
 | 4 | Linux integrations: notifications, MPRIS, Bluetooth (BlueZ), power, audio | **Done** (checked on GNOME 51) |
 | 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** (checked on GNOME 51); brightness and GPU left out on purpose |
-| 6 | Browser extensions (Chromium, Firefox) + native messaging | **In progress** — Meet calls and downloads done; per-tab media next |
-| 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | Planned |
+| 6 | Browser extensions (Chromium, Firefox) + native messaging | **Done** — Meet, per-tab media with ads hidden, downloads; web Zoom/Teams/Slack left for when real pages can be checked |
+| 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | **Next** |
 | 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | Planned |
 | 9 | Plugin manifests, versioned protocol, isolation | Planned |
 | 10 | GTK4/libadwaita settings app, diagnostics | Planned |
@@ -52,11 +52,14 @@ Status key: **Done** · **In progress** · **Next** · Planned
 - Left out on purpose: brightness and keyboard backlight (GNOME's own
   display), low disk space (GNOME's notification), GPU usage (unreliable).
 
-## Phase 6 status
+## Phase 6 (done)
 
-Done: native messaging helper, Chrome/Firefox extension, Google Meet (call,
+Native messaging helper; Chrome/Firefox extension; Google Meet (call,
 mute state, Mute/Unmute and Leave pressing Meet's buttons, mic bubble
-folded into the call), downloads with progress and Cancel.
+folded into the call); per-tab media for YouTube, YouTube Music and
+SoundCloud with Previous/Play-Pause/Next, ads hidden, the browser's own
+duplicate player hidden; downloads with progress and Cancel.
 
-Next: per-tab media (several tabs in one browser), keeping the song name
-during YouTube ads, browser Zoom / Teams, Slack huddles in the browser.
+Not done: Zoom, Teams and Slack calls in the browser. Their pages could not
+be checked from the development machine; they show as “Microphone in use”
+with the backup mute meanwhile.

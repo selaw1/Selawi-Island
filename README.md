@@ -17,8 +17,8 @@ no hosting.
 | CLI `selawi-island` (notify, progress, list, dismiss, send, status) | Implemented, tested |
 | Demo events | Simulated, off by default |
 | Automatic detection: music players, battery, Bluetooth, notifications, audio devices, network/VPN, USB drives, opt-in system warnings | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
-| Browser extension: Google Meet calls (mute, leave), downloads | Implemented ([BROWSER_INTEGRATIONS](docs/BROWSER_INTEGRATIONS.md)) |
-| Per-tab browser media, other web meetings | Next (see [ROADMAP](docs/ROADMAP.md)) |
+| Browser extension: Google Meet calls (mute, leave), media in each tab (YouTube, YouTube Music, SoundCloud), downloads | Implemented ([BROWSER_INTEGRATIONS](docs/BROWSER_INTEGRATIONS.md)) |
+| Zoom/Teams/Slack calls in the browser, other chat apps | Next (see [ROADMAP](docs/ROADMAP.md)) |
 
 ## Requirements (all free)
 

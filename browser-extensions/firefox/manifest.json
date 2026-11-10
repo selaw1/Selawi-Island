@@ -2,14 +2,51 @@
   "manifest_version": 3,
   "name": "Selawi Island",
   "version": "0.1.0",
-  "description": "Shows Google Meet calls and downloads in the Selawi Island on your desktop.",
+  "description": "Shows Google Meet calls, media in each tab (YouTube, YouTube Music, SoundCloud) and downloads in the Selawi Island on your desktop.",
   "browser_specific_settings": {
-    "gecko": { "id": "island@selawi.local", "strict_min_version": "128.0" }
+    "gecko": {
+      "id": "island@selawi.local",
+      "strict_min_version": "128.0"
+    }
   },
-  "permissions": ["nativeMessaging", "downloads"],
-  "host_permissions": ["https://meet.google.com/*"],
-  "background": { "scripts": ["background.js"], "type": "module" },
+  "permissions": [
+    "nativeMessaging",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://music.youtube.com/*",
+    "https://soundcloud.com/*"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "type": "module"
+  },
   "content_scripts": [
-    { "matches": ["https://meet.google.com/*"], "js": ["meet.js"], "run_at": "document_idle" }
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "meet.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://music.youtube.com/*",
+        "https://soundcloud.com/*"
+      ],
+      "js": [
+        "media.js"
+      ],
+      "run_at": "document_idle"
+    }
   ]
 }

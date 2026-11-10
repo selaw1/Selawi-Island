@@ -16,6 +16,16 @@ export interface CallPayload {
     muted?: boolean;
 }
 
+export interface MediaPayload {
+    type: 'media';
+    title: string;
+    artist?: string;
+    album?: string;
+    playing: boolean;
+    position_ms?: number;
+    duration_ms?: number;
+}
+
 export interface ProgressPayload {
     type: 'progress';
     title: string;
@@ -26,12 +36,12 @@ export interface ProgressPayload {
 export interface EventInput {
     id: string;
     source: {app: string; integration: 'browser'};
-    category: 'call' | 'transfer';
+    category: 'call' | 'transfer' | 'media';
     state: State;
     persistent: boolean;
     priority?: 'call';
     ttl_ms?: number;
-    payload: CallPayload | ProgressPayload;
+    payload: CallPayload | ProgressPayload | MediaPayload;
     actions: Action[];
 }
 
@@ -43,9 +53,28 @@ export interface MeetState {
     muted: boolean | null;
 }
 
+/** What a media content script sees in its tab. */
+export interface MediaState {
+    /** Site name shown as the app, e.g. "YouTube". */
+    site: string;
+    title: string;
+    artist: string;
+    album: string;
+    playing: boolean;
+    positionMs: number | null;
+    durationMs: number | null;
+    canNext: boolean;
+    canPrevious: boolean;
+}
+
+export type MediaAction = 'play_pause' | 'next' | 'previous';
+
 /** Messages between content scripts and the background script. */
-export type PageMessage = {kind: 'meet'; state: MeetState};
+export type PageMessage =
+    | {kind: 'meet'; state: MeetState}
+    | {kind: 'media'; state: MediaState | null};
 export type MeetCommand = {kind: 'meet-action'; action: 'mute' | 'unmute' | 'leave'};
+export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
 /** Messages between the background script and the native host. */
 export type ToHost =
@@ -150,4 +179,59 @@ export function downloadEvent(item: DownloadLike, state: State): EventInput {
         payload,
         actions: state === 'started' || state === 'updated' ? [{id: 'cancel', label: 'Cancel'}] : [],
     };
+}
+
+/** A paused tab disappears this long after its last change (as for MPRIS). */
+export const PAUSED_TTL_MS = 5 * 60 * 1000;
+
+export type BrowserFamily = 'chrome' | 'firefox';
+
+export function mediaEventId(family: BrowserFamily, tabId: number): string {
+    return `browser:media:${family}:${tabId}`;
+}
+
+function millis(value: number | null): number | undefined {
+    return value !== null && Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
+}
+
+export function mediaEvent(family: BrowserFamily, tabId: number, media: MediaState, state: State): EventInput {
+    const live = state === 'started' || state === 'updated';
+    const payload: MediaPayload = {
+        type: 'media',
+        title: clean(media.title) || clean(media.site) || 'Media',
+        playing: live && media.playing,
+    };
+    const artist = clean(media.artist);
+    const album = clean(media.album);
+    if (artist)
+        payload.artist = artist;
+    if (album)
+        payload.album = album;
+    const duration = millis(media.durationMs);
+    const position = millis(media.positionMs);
+    if (duration !== undefined && duration > 0)
+        payload.duration_ms = duration;
+    if (position !== undefined)
+        payload.position_ms = duration ? Math.min(position, duration) : position;
+
+    const actions: Action[] = [];
+    if (live) {
+        if (media.canPrevious)
+            actions.push({id: 'previous', label: 'Previous'});
+        actions.push({id: 'play_pause', label: media.playing ? 'Pause' : 'Play'});
+        if (media.canNext)
+            actions.push({id: 'next', label: 'Next'});
+    }
+    const event: EventInput = {
+        id: mediaEventId(family, tabId),
+        source: {app: clean(media.site, 64) || 'Browser', integration: 'browser'},
+        category: 'media',
+        state,
+        persistent: live && media.playing,
+        payload,
+        actions,
+    };
+    if (live && !media.playing)
+        event.ttl_ms = PAUSED_TTL_MS;
+    return event;
 }

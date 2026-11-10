@@ -217,12 +217,11 @@ those for web meetings.
 | Volume, brightness, keyboard backlight | GNOME already shows its own on-screen display |
 | Low disk space | GNOME already sends a notification, which the island shows |
 | GPU usage | Readings differ by vendor and are not reliable |
-| Song names during browser ads | Browsers report one title per player; per-tab media and ad detection are the next browser step |
 
 ## Not yet implemented
 
 | Integration | Plan |
 |---|---|
-| Google Meet calls, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
-| Per-tab browser media, ads, browser Zoom/Teams | Phase 6, next |
+| Google Meet calls, per-tab media (YouTube, YouTube Music, SoundCloud) with ads hidden, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
+| Zoom / Teams / Slack calls in the browser | Not yet: needs the real pages to build against (they show as “Microphone in use” meanwhile) |
 | Calls (Slack, Zoom, Teams, Discord…) | Phase 7 |

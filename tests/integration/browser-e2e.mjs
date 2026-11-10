@@ -57,14 +57,43 @@ writeFileSync(join(profile, 'NativeMessagingHosts', 'io.selawi.island.json'), JS
     allowed_origins: ['chrome-extension://bjooidhahonkdcdpibfadoapilihpgig/'],
 }));
 
+// One second of silence, looped, so the stand-in pages really play.
+function silentWav() {
+    const rate = 8000, samples = rate;
+    const buf = Buffer.alloc(44 + samples * 2);
+    buf.write('RIFF', 0); buf.writeUInt32LE(36 + samples * 2, 4); buf.write('WAVE', 8);
+    buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
+    buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+    buf.write('data', 36); buf.writeUInt32LE(samples * 2, 40);
+    return `data:audio/wav;base64,${buf.toString('base64')}`;
+}
+const YOUTUBE = `<!doctype html><html><head><title>Midnight City - YouTube</title></head><body>
+<div class="html5-video-player"><audio loop autoplay src="${silentWav()}"></audio></div>
+<button class="ytp-next-button" onclick="document.body.dataset.next='pressed'">next</button>
+<button class="ytp-prev-button" style="display:none">prev</button>
+<script>navigator.mediaSession.metadata = new MediaMetadata({title: 'Midnight City', artist: 'M83'});</script>
+</body></html>`;
+const SOUNDCLOUD = `<!doctype html><html><head><title>Night Drive by Artist | SoundCloud</title></head><body>
+<div class="playbackTimeline__timePassed"><span aria-hidden="true">1:23</span></div>
+<div class="playbackTimeline__duration"><span aria-hidden="true">3:35</span></div>
+<button class="skipControl__next">next</button><button class="playControls__play">play</button>
+<script>navigator.mediaSession.metadata = new MediaMetadata({title: 'Night Drive', artist: 'Artist'});
+navigator.mediaSession.playbackState = 'playing';</script>
+</body></html>`;
+
 const context = await chromium.launchPersistentContext(profile, {
     headless: false,
     acceptDownloads: true,
-    args: [`--disable-extensions-except=${EXTENSION}`, `--load-extension=${EXTENSION}`],
+    args: [`--disable-extensions-except=${EXTENSION}`, `--load-extension=${EXTENSION}`,
+        '--autoplay-policy=no-user-gesture-required'],
 });
 try {
     await context.route('https://meet.google.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: MEET}));
+    await context.route('https://www.youtube.com/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: YOUTUBE}));
+    await context.route('https://soundcloud.com/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: SOUNDCLOUD}));
     await context.route('https://files.example/**', route =>
         route.fulfill({status: 200, body: Buffer.alloc(256 * 1024),
             headers: {'content-type': 'application/octet-stream', 'content-disposition': 'attachment; filename="report.pdf"'}}));
@@ -99,6 +128,49 @@ try {
     const finished = await waitFor('download finished', events =>
         events.find(e => e.id === shown.id && (e.state === 'ended' || e.state === 'failed')));
     ok(finished.state === 'ended', 'the download finishes as Done');
+
+    // ---- media tabs ----------------------------------------------------
+    const youtube = await context.newPage();
+    await youtube.goto('https://www.youtube.com/watch?v=midnight');
+    const tune = await waitFor('YouTube tab', events => events.find(e =>
+        e.id.startsWith('browser:media:chrome:') && e.source.app === 'YouTube' && e.payload.playing));
+    ok(tune.payload.title === 'Midnight City' && tune.payload.artist === 'M83', 'a YouTube tab shows its song and artist');
+    ok(tune.actions.map(a => a.id).join() === 'play_pause,next', 'Play/Pause and Next (no Previous on this page)');
+
+    invoke(tune.id, 'play_pause');
+    await waitFor('paused', events => events.find(e => e.id === tune.id && e.payload.playing === false));
+    await sleep(2500);
+    ok(list().find(e => e.id === tune.id)?.state !== 'ended', 'a paused tab stays (it does not end by itself)');
+    ok(await youtube.evaluate(() => document.querySelector('audio').paused), 'Pause in the island paused the page');
+    invoke(tune.id, 'play_pause');
+    await waitFor('playing again', events => events.find(e => e.id === tune.id && e.payload.playing === true));
+    ok(true, 'Play resumes it');
+
+    await youtube.evaluate(() => {
+        document.querySelector('.html5-video-player').classList.add('ad-showing');
+        navigator.mediaSession.metadata = new MediaMetadata({title: 'BUY_SHOES_AD_30S_V2', artist: 'Advertiser'});
+    });
+    const during = await waitFor('ad', events => events.find(e => e.id === tune.id && !('position_ms' in e.payload)));
+    ok(during.payload.title === 'Midnight City', 'during an ad the song title stays (ad name hidden)');
+    await youtube.evaluate(() => {
+        document.querySelector('.html5-video-player').classList.remove('ad-showing');
+        navigator.mediaSession.metadata = new MediaMetadata({title: 'Midnight City', artist: 'M83'});
+    });
+
+    invoke(tune.id, 'next');
+    await sleep(800);
+    ok(await youtube.evaluate(() => document.body.dataset.next === 'pressed'), 'Next in the island pressed the page\'s Next button');
+
+    const soundcloud = await context.newPage();
+    await soundcloud.goto('https://soundcloud.com/artist/track');
+    await waitFor('two tabs', events => events.filter(e => e.id.startsWith('browser:media:chrome:') && e.state !== 'ended').length === 2);
+    const sc = list().find(e => e.source.app === 'SoundCloud');
+    ok(sc.payload.title === 'Night Drive' && sc.payload.position_ms === 83_000 && sc.payload.duration_ms === 215_000,
+        'a SoundCloud tab plays at the same time, with its time read from the page');
+
+    await youtube.close();
+    await waitFor('YouTube tab ended', events => events.find(e => e.id === tune.id && e.state === 'ended'));
+    ok(true, 'closing a tab ends its media');
 } finally {
     await context.close();
 }

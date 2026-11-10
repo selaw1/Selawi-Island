@@ -123,3 +123,20 @@
   against the daemon, and the built extension in real Chromium with a
   stand-in Meet page — all passing.
 - **Remaining:** check on the real Meet; per-tab media and ads; Zoom/Teams web.
+
+## T-008 — Phase 6 (part 2): media in each tab, ads
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** media content script (YouTube, YouTube Music,
+  SoundCloud) reading the media keys data and the page's player; one
+  event per tab with only the controls the page offers; last real title
+  kept during YouTube ads; the browser's own MPRIS player hidden while the
+  extension shows its tabs; browser family detected from the extension's
+  own address (newer Chrome also has `browser`).
+- **Files:** `browser-extensions/src/{media,background,model}.ts`,
+  manifests, `scripts/build-browser.sh`, `gnome-extension/ui/{view-model,island}.js`,
+  tests, docs.
+- **Tests:** real Chromium with stand-in YouTube and SoundCloud pages
+  (found and fixed: Chrome mistaken for Firefox; a paused clip at 0:00
+  ending its tab); stable over repeated runs.
+- **Remaining:** check on the real sites; Zoom/Teams/Slack web calls.
