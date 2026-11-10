@@ -212,3 +212,16 @@ test('logos replace the main icon; camera, muted and paused move next to the tim
     assert.deepEqual(noLogo.indicators, [], 'without a logo the main icon already shows the camera');
     assert.equal(noLogo.iconName, 'camera-web-symbolic');
 });
+
+test('playing media is shown before paused media', async () => {
+    const {playingFirst} = await import('../../gnome-extension/ui/view-model.js');
+    const media = (id, playing) => ({...base, id, state: 'updated', payload: {type: 'media', title: id, playing}});
+    const call = {...base, id: 'call', state: 'started', payload: {type: 'call', title: 'x', confidence: 'confirmed'}};
+    // Ordered newest first: the paused one started last.
+    const ids = list => playingFirst(list).map(e => e.id);
+    assert.deepEqual(ids([media('paused', false), media('playing', true)]), ['playing', 'paused']);
+    assert.deepEqual(ids([media('newer', true), media('older', true)]), ['newer', 'older'], 'both playing: newest first');
+    assert.deepEqual(ids([call, media('paused', false), media('playing', true)]), ['call', 'playing', 'paused'],
+        'other events keep their place');
+    assert.deepEqual(ids([media('a', false), media('b', false)]), ['a', 'b'], 'both paused: unchanged');
+});

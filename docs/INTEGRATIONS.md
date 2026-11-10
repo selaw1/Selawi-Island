@@ -56,6 +56,8 @@ Rhythmbox, and others.
 - **Previous / Pause–Play / Next** buttons, only when the player says it
   supports them. They control the player directly.
 - A dismissed player comes back on a new track or when playback resumes.
+- With several players (or tabs), the island shows the one that is
+  playing, not a paused one; if several play, the one started last.
 - **Several players:** “All players” shows each one. “One player” shows
   the preferred player while it plays; otherwise the player that started
   playing most recently (or, if none is playing, the preferred one). A

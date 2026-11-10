@@ -183,3 +183,12 @@
 - **Tests:** protocol cases (valid and invalid icons), fake MPRIS player
   with a desktop entry, view model logo and indicators, browser e2e (Meet
   and YouTube stand-ins carry their favicon as a PNG).
+
+## T-012 — Playing media first
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** the island orders media so playing comes before
+  paused (`playingFirst` in the view model); among playing ones the newest
+  stays first. Other events keep their places.
+- **Files:** `gnome-extension/ui/{view-model,island}.js`, `tests/js/view-model.test.js`, docs.
+- **Tests:** view model test (paused/playing, both playing, mixed with a call).

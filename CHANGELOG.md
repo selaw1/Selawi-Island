@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — playing media first
+
+### Changed
+- With two media at once, the closed island shows the one that is playing,
+  not a paused one. If both play, the one started last, as before.
+
 ## Unreleased — logos
 
 ### Added

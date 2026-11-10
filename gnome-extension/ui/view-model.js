@@ -134,6 +134,23 @@ export function foldBrowserMedia(events) {
 }
 
 /**
+ * Playing media comes before paused media, so the island shows what is
+ * actually playing. Media events keep their places in the list; only
+ * their order among themselves changes (newest playing first, as before).
+ *
+ * @param {object[]} events - ordered events
+ * @returns {object[]} the list to show
+ */
+export function playingFirst(events) {
+    const isMedia = e => e.payload.type === 'media';
+    const media = events.filter(isMedia);
+    const playing = e => e.payload.playing === true && !isFinished(e);
+    const sorted = [...media.filter(playing), ...media.filter(e => !playing(e))];
+    let next = 0;
+    return events.map(e => (isMedia(e) ? sorted[next++] : e));
+}
+
+/**
  * During a confirmed call (e.g. Google Meet through the browser
  * extension) the separate "Microphone / camera in use" event is folded
  * into the call: it is hidden, and the call shows the voice waves while

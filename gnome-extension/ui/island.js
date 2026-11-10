@@ -18,7 +18,7 @@ import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
 import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
 import {smooth} from './level.js';
-import {describe, foldBrowserMedia, foldMicIntoCalls} from './view-model.js';
+import {describe, foldBrowserMedia, foldMicIntoCalls, playingFirst} from './view-model.js';
 
 const MORPH_MS = 420;
 const FADE_MS = 180;
@@ -164,8 +164,9 @@ export class Island {
     // During a confirmed call the "microphone in use" event is shown as
     // part of the call (foldMicIntoCalls), and a browser's own media
     // player is hidden while the extension shows its tabs (foldBrowserMedia).
+    // Playing media is shown before paused media (playingFirst).
     _events() {
-        const folded = foldMicIntoCalls(foldBrowserMedia(this._feed?.events() ?? []));
+        const folded = foldMicIntoCalls(playingFirst(foldBrowserMedia(this._feed?.events() ?? [])));
         this._wavesFor = folded.wavesFor;
         return folded.events;
     }
