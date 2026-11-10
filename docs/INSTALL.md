@@ -31,7 +31,9 @@ Then **log out and back in**. The island appears at the top of the screen.
 selawi-island-update
 ```
 
-It pulls the latest code, rebuilds and reinstalls. Log out and back in
+It pulls the latest code, rebuilds and reinstalls. The first build takes a few minutes; later
+ones reuse the downloads and compiled files (kept in
+`~/.cache/selawi-island`) and only rebuild what changed. Log out and back in
 afterwards, and reload the browser extension (below).
 
 `yay -Syu` does not update Selawi Island: it is not on the AUR (the

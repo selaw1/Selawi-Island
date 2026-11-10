@@ -15,6 +15,9 @@
 ### Fixed
 - `selawi-island-update` no longer leaves the PKGBUILD looking edited
   (makepkg writes the version into it; the update now puts it back).
+- Updates are much faster: the package build reuses your Cargo download
+  cache and keeps compiled output in `~/.cache/selawi-island`, so only
+  what changed is rebuilt.
 
 ## Unreleased — call controls and app logos
 
