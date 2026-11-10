@@ -7,15 +7,11 @@ Remind the owner about these when they ask what to test or what is next:
 - **Slack in Chrome** (huddle or call): do Mute / Leave buttons appear in
   the island? (Yes means Slack uses Chrome's standard call controls.)
 - **Slack desktop app** call: the orange mic bubble shows Slack's logo.
-- **System updates:** `yay -S cowsay`, then `yay -R cowsay`; and the next
-  `yay -Syu` (“Updating N packages” → “Updated”).
-- **`selawi-island run -- sleep 5`**, then `selawi-island run -- false`.
-- **GNOME notifications:** a screenshot (Print Screen) and a GNOME Clocks
-  timer show in the island.
-- **Copied:** Ctrl+C text, an image, files in Files.
-- **Charging:** plug in and unplug; icon, green and percentage.
-- **Settings app:** right-click the island; Status page, Restart, Copy report.
-- **Plugins:** `cargo run -p selawi-island-plugin --example countdown`, Allow, run again; Settings → Apps.
+
+Checked on the owner's machine (2026-11-10): commands (`selawi-island
+run`), system updates with yay, GNOME notifications (screenshot, Clocks),
+Copied, charging icon and colors, settings app, Selawigram calls (name,
+logo, Mute / Leave, clean after leaving).
 
 ## T-001 — Milestone 1: foundation and island UI
 - **Created:** 2026-11-09
