@@ -1,0 +1,3 @@
+#!/bin/sh
+# Starts the Selawi Island settings app (GJS, GTK 4 + libadwaita).
+exec gjs -m /usr/share/selawi-island/settings/main.js "$@"

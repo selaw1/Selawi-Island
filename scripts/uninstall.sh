@@ -19,7 +19,9 @@ rm -f "$HOME/.local/bin/selawi-islandd" "$HOME/.local/bin/selawi-island" \
       "$HOME/.mozilla/native-messaging-hosts/io.selawi.island.json" \
       "$CONFIG/systemd/user/selawi-islandd.service" \
       "$DATA/dbus-1/services/com.selawi.Island.service"
-rm -rf "$DATA/doc/selawi-island" "$DATA/selawi-island/browser"
+rm -rf "$DATA/doc/selawi-island" "$DATA/selawi-island/browser" "$DATA/selawi-island/settings"
+rm -f "$HOME/.local/bin/selawi-island-settings" "$DATA/applications/com.selawi.Island.Settings.desktop" \
+      "$DATA/icons/hicolor/scalable/apps/com.selawi.Island.Settings.svg"
 for dir in google-chrome google-chrome-beta google-chrome-unstable chromium BraveSoftware/Brave-Browser; do
     rm -f "$CONFIG/$dir/NativeMessagingHosts/io.selawi.island.json"
 done

@@ -1,4 +1,5 @@
-// The "Integrations" preferences page. Daemon settings are read and
+// The "Integrations" settings page (shared by the settings app and the
+// extension's preferences window). Daemon settings are read and
 // changed over D-Bus (com.selawi.Island.Configuration1); extension-only
 // settings (audio, GNOME banners) are GSettings.
 

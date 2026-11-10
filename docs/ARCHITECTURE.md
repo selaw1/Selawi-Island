@@ -41,7 +41,9 @@ Three layers. Each may depend only on the layers listed after it.
 | Banner blocker | `gnome-extension/ui/banner-blocker.js` | Hides GNOME's notification banners while the daemon's notifications integration is active |
 | Browser extension | `browser-extensions/` (TypeScript) | Google Meet calls and downloads; talks to the helper by native messaging. See [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
 | Browser helper | `native-messaging/` (Rust, `selawi-island-browser-host`) | Started by the browser; checks every event (`browser:` ids only) and submits it over D-Bus; sends button presses back |
-| Preferences | `gnome-extension/prefs.js`, `prefs-integrations.js` | Island page (GSettings) and Integrations page (daemon `Configuration1` + GSettings) |
+| Settings pages | `gnome-extension/settings/` | Island page (GSettings), Integrations page (daemon `Configuration1` + GSettings), Status page (service, extension state via GNOME Shell's `org.gnome.Shell.Extensions`, sources, Restart via the systemd user manager, “Copy report” built by the pure `report.js`) |
+| Settings app | `settings-app/` (`selawi-island-settings`) | GJS GTK 4 + libadwaita app showing the shared pages; opened by right-clicking the island; works when the extension is off or broken |
+| Preferences window | `gnome-extension/prefs.js` | The same pages in GNOME's extension preferences window |
 | CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
 | Extension | `gnome-extension/` | Draws the island from a feed |
 
@@ -96,7 +98,7 @@ call duration or playing media is on screen).
 - When Windows/macOS work starts, the Linux integrations move behind
   platform traits; until then they live in the daemon (no premature
   abstraction).
-- Settings app, browser extensions, plugins — see the roadmap.
+- Plugins — see the roadmap.
 
 ## Other platforms
 

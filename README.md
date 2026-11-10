@@ -55,11 +55,13 @@ selawi-island notify "Hello from the terminal"
 
 More in [docs/CLI.md](docs/CLI.md).
 
-**Preferences:** right-click the island, or run
-`gnome-extensions prefs selawi-island@selawi`. There you can hide it when
-idle, change sizes, turn dragging off, reset its position, turn on the demo,
-and (Integrations page) choose sources, the preferred media player and
-notification options.
+**Settings:** right-click the island, or open **Selawi Island** from the
+app grid (`selawi-island-settings`). Island page: hide it when idle,
+sizes, dragging, position, demo. Integrations page: sources, preferred
+media player, notification options. Status page: is the service running
+(Restart), is the extension on or in error (Turn on), what each source is
+doing, and **Copy report** for asking for help. The same pages are in
+`gnome-extensions prefs selawi-island@selawi`.
 
 Remove: `sudo pacman -R selawi-island` (settings are kept; see
 [docs/INSTALL.md](docs/INSTALL.md#remove)).

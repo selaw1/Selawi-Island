@@ -9,7 +9,7 @@ pkgrel=1
 pkgdesc='Dynamic Island-style activity center for GNOME: calls, media, devices, notifications'
 arch=('x86_64' 'aarch64')
 license=('LicenseRef-private')
-depends=('gnome-shell' 'dbus' 'systemd' 'glib2' 'gcc-libs')
+depends=('gnome-shell' 'dbus' 'systemd' 'glib2' 'gcc-libs' 'gjs' 'gtk4' 'libadwaita')
 makedepends=('git' 'rust' 'nodejs' 'pnpm')
 optdepends=(
     'gst-plugins-good: voice waves while the microphone is in use'

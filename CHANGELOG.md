@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Phase 10: settings app
+
+### Added
+- **Selawi Island** settings app (app grid, `selawi-island-settings`,
+  opened by right-clicking the island): Island, Integrations and a new
+  **Status** page — service running (Restart), GNOME extension on / off /
+  error (Turn on), each source's state, and **Copy report** (versions and
+  states only, for asking for help). It also opens when the extension is
+  broken.
+- The extension's preferences window shows the same three pages.
+
 ## Unreleased — notifications from GNOME, Copied, battery
 
 ### Fixed

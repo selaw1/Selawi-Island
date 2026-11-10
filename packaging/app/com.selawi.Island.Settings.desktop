@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Selawi Island
+Comment=Settings and status for the island at the top of your screen
+Exec=selawi-island-settings
+Icon=com.selawi.Island.Settings
+Terminal=false
+Categories=GTK;GNOME;Settings;DesktopSettings;
+Keywords=island;dynamic;notifications;media;calls;
+StartupNotify=true

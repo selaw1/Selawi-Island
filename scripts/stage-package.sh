@@ -31,10 +31,22 @@ install -Dm644 packaging/dbus/com.selawi.Island.service "$DEST/usr/share/dbus-1/
 EXT="$DEST/usr/share/gnome-shell/extensions/$UUID"
 install -d "$EXT"
 cp -r gnome-extension/metadata.json gnome-extension/extension.js gnome-extension/prefs.js \
-      gnome-extension/prefs-integrations.js gnome-extension/stylesheet.css \
+      gnome-extension/stylesheet.css gnome-extension/settings \
       gnome-extension/ui gnome-extension/services gnome-extension/data gnome-extension/schemas "$EXT/"
 glib-compile-schemas "$EXT/schemas"
 chmod -R u=rwX,go=rX "$EXT"
+
+# Settings app: its code, the shared settings pages, launcher, app grid
+# entry and icon.
+APP="$DEST/usr/share/selawi-island/settings"
+install -d "$APP/pages"
+install -m644 settings-app/main.js settings-app/window.js "$APP/"
+install -m644 gnome-extension/settings/*.js "$APP/pages/"
+install -Dm755 packaging/app/selawi-island-settings "$DEST/usr/bin/selawi-island-settings"
+install -Dm644 packaging/app/com.selawi.Island.Settings.desktop \
+    "$DEST/usr/share/applications/com.selawi.Island.Settings.desktop"
+install -Dm644 packaging/app/com.selawi.Island.Settings.svg \
+    "$DEST/usr/share/icons/hicolor/scalable/apps/com.selawi.Island.Settings.svg"
 
 # Browser extension files (loaded by hand) and the helper's registration
 # with each browser.

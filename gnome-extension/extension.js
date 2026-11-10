@@ -4,6 +4,8 @@
 // (audio devices). Events come from a feed: the Selawi Island daemon over
 // D-Bus, or the built-in demo simulator.
 
+import Shell from 'gi://Shell';
+
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {AudioSource} from './services/audio-source.js';
@@ -20,7 +22,7 @@ export default class SelawiIslandExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         this._logger = this.getLogger();
-        this._island = new Island(this._settings, this._logger, () => this.openPreferences());
+        this._island = new Island(this._settings, this._logger, () => this._openSettings());
         this._banners = new BannerBlocker();
         // Voice waves: measured only while the island shows them and
         // another app is using the microphone.
@@ -94,6 +96,16 @@ export default class SelawiIslandExtension extends Extension {
         this._island.setFeed(this._feed);
         this._resetAudio();
         this._updateBanners();
+    }
+
+    // The Selawi Island settings app if it is installed (it also works
+    // when the extension is broken); otherwise the extension's own window.
+    _openSettings() {
+        const app = Shell.AppSystem.get_default().lookup_app('com.selawi.Island.Settings.desktop');
+        if (app)
+            app.activate();
+        else
+            this.openPreferences();
     }
 
     // Sources that only GNOME Shell can see; they need the daemon.

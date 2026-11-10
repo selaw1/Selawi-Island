@@ -11,7 +11,7 @@ mkdir -p "$WORK/schemas"
 cp gnome-extension/schemas/*.xml "$WORK/schemas/"
 glib-compile-schemas "$WORK/schemas"
 sed "s#resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js#./shim.js#" gnome-extension/prefs.js > "$WORK/prefs.js"
-cp gnome-extension/prefs-integrations.js "$WORK/"
+cp -r gnome-extension/settings "$WORK/"
 cat > "$WORK/shim.js" <<SHIM
 import Gio from 'gi://Gio';
 export class ExtensionPreferences {
@@ -28,6 +28,7 @@ DAEMON=\$!
 for _ in \$(seq 50); do ./target/debug/selawi-island status >/dev/null 2>&1 && break; sleep 0.1; done
 status=0
 GSETTINGS_BACKEND=memory timeout 60 xvfb-run -a gjs -m tests/integration/prefs.gjs.js "$WORK" || status=\$?
+[ \$status = 0 ] && { GSETTINGS_BACKEND=memory SELAWI_ISLAND_SCHEMA_DIR="$WORK/schemas" timeout 60 xvfb-run -a gjs -m tests/integration/settings-app.gjs.js || status=\$?; }
 kill \$DAEMON 2>/dev/null
 exit \$status
 RUN

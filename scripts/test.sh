@@ -32,7 +32,10 @@ for file in usr/bin/selawi-islandd usr/bin/selawi-island usr/bin/selawi-island-b
     usr/share/gnome-shell/extensions/selawi-island@selawi/schemas/gschemas.compiled \
     usr/share/selawi-island/browser/chrome/manifest.json usr/share/selawi-island/browser/firefox/manifest.json \
     etc/opt/chrome/native-messaging-hosts/io.selawi.island.json usr/lib/mozilla/native-messaging-hosts/io.selawi.island.json \
-    usr/share/libalpm/hooks/selawi-island-install-pre.hook usr/share/libalpm/hooks/selawi-island-remove-post.hook; do
+    usr/share/libalpm/hooks/selawi-island-install-pre.hook usr/share/libalpm/hooks/selawi-island-remove-post.hook \
+    usr/bin/selawi-island-settings usr/share/selawi-island/settings/main.js usr/share/selawi-island/settings/pages/pages.js \
+    usr/share/gnome-shell/extensions/selawi-island@selawi/settings/status-page.js \
+    usr/share/applications/com.selawi.Island.Settings.desktop usr/share/icons/hicolor/scalable/apps/com.selawi.Island.Settings.svg; do
     [ -f "$stage/$file" ] || { echo "package is missing $file"; exit 1; }
 done
 grep -q '^ExecStart=/usr/bin/selawi-islandd$' "$stage/usr/lib/systemd/user/selawi-islandd.service" ||

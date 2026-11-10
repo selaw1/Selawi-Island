@@ -24,6 +24,10 @@ for the build if needed), installs it with pacman (it asks for your
 password), and turns the daemon and the GNOME extension on.
 
 Then **log out and back in**. The island appears at the top of the screen.
+Settings: right-click the island, or open **Selawi Island** from the app
+grid. If something does not work, its **Status** page says what is
+running; **Copy report** copies versions and states (never your events) to
+paste when asking for help.
 
 ## Update
 

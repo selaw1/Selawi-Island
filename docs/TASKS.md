@@ -14,6 +14,7 @@ Remind the owner about these when they ask what to test or what is next:
   timer show in the island.
 - **Copied:** Ctrl+C text, an image, files in Files.
 - **Charging:** plug in and unplug; icon, green and percentage.
+- **Settings app:** right-click the island; Status page, Restart, Copy report.
 
 ## T-001 — Milestone 1: foundation and island UI
 - **Created:** 2026-11-09
@@ -307,3 +308,25 @@ Remind the owner about these when they ask what to test or what is next:
   tests, docs.
 - **Tests:** notification unit tests and fake GTK notification server;
   `tests/js/shell-model.test.js`; battery view-model tests.
+
+## T-017 — Phase 10: settings app
+- **Created:** 2026-11-10
+- **Status:** Done (manual check pending)
+- **Description:** settings pages moved to `gnome-extension/settings/`
+  (Island, Integrations, new Status, pure `report.js`), shared by the
+  extension's preferences window and a new GJS GTK 4 + libadwaita app
+  (`settings-app/`: view switcher, narrow layout, banner when the
+  extension's settings are missing). Status uses D-Bus only:
+  `com.selawi.Island` (versions, events count, integrations),
+  `org.gnome.Shell.Extensions` on `org.gnome.Shell` (GetExtensionInfo,
+  GetExtensionErrors, EnableExtension, ExtensionStateChanged), systemd user
+  manager `RestartUnit`. Copy report leaves out events and source details.
+  Right-click opens the app when installed. Packaged with launcher,
+  desktop entry and icon; also in install-local.sh / uninstall.sh.
+- **Files:** `gnome-extension/{prefs.js,settings/*,extension.js}`,
+  `settings-app/{main,window}.js`, `packaging/app/*`,
+  `scripts/{stage-package,install-local,uninstall,test}.sh`, PKGBUILD
+  depends (gjs, gtk4, libadwaita), tests, docs.
+- **Tests:** settings app headless against a real daemon
+  (`tests/integration/settings-app.gjs.js`), report unit tests, package
+  layout check, install-local/uninstall run in a throwaway home.

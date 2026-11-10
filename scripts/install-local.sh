@@ -20,7 +20,7 @@ install_extension() {
     local src=gnome-extension
     rm -rf "$EXT_DEST"
     mkdir -p "$EXT_DEST"
-    cp -r "$src"/metadata.json "$src"/extension.js "$src"/prefs.js "$src"/prefs-integrations.js "$src"/stylesheet.css \
+    cp -r "$src"/metadata.json "$src"/extension.js "$src"/prefs.js "$src"/stylesheet.css "$src"/settings \
           "$src"/ui "$src"/services "$src"/data "$src"/schemas "$EXT_DEST"/
     glib-compile-schemas "$EXT_DEST/schemas"
     echo "Extension installed to $EXT_DEST"
@@ -97,9 +97,25 @@ JSON
     fi
 }
 
+install_settings_app() {
+    local app="$DATA/selawi-island/settings"
+    rm -rf "$app"
+    install -d "$app/pages"
+    install -m644 settings-app/main.js settings-app/window.js "$app/"
+    install -m644 gnome-extension/settings/*.js "$app/pages/"
+    sed "s|/usr/share/selawi-island/settings|$app|" packaging/app/selawi-island-settings > "$BIN/selawi-island-settings"
+    chmod 755 "$BIN/selawi-island-settings"
+    sed "s|^Exec=selawi-island-settings|Exec=$BIN/selawi-island-settings|" packaging/app/com.selawi.Island.Settings.desktop \
+        | install -Dm644 /dev/stdin "$DATA/applications/com.selawi.Island.Settings.desktop"
+    install -Dm644 packaging/app/com.selawi.Island.Settings.svg \
+        "$DATA/icons/hicolor/scalable/apps/com.selawi.Island.Settings.svg"
+    echo "Settings app installed (Selawi Island in your app grid)"
+}
+
 if [ "${1:-}" != "--extension-only" ]; then
     install_daemon
     install_browser
+    install_settings_app
 fi
 install_extension
 echo "On Wayland, GNOME loads extension code once per login: log out and back in after updating the extension."

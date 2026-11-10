@@ -23,6 +23,8 @@
 | `tests/integration/dbus-smoke.sh` (run and pacman part) | `selawi-island run` passes output and exit codes through and shows Running → Done / Failed (exit 3); a missing program exits 127; the pacman hook shows “Updating 2 packages” → “Updated 2 packages”, rejects odd package names, and nothing is shown while System updates is off. The root → user hand-off and the “Did not finish” watcher were checked by hand with a throwaway user (not in CI: needs root and a user session) |
 | `daemon/tests/fake_services.rs` (notifications) | A `Notify` call and a GNOME-route `AddNotification` call (Files) to fake servers both reach the island |
 | `tests/js/shell-model.test.js` | GNOME Shell notifications (text setting, urgency, empty titles), “Copied” kinds and that it never opens the island |
+| `tests/integration/settings-app.gjs.js` (in `prefs-check.sh`) | The settings app's window headless against a real daemon: three pages, Status shows the running service, the missing GNOME Shell, each source's state; Copy report holds versions and states but not a notification that was on the island; without the extension's settings only Status is shown, with a banner |
+| `tests/js/report.test.js` | Extension states as GNOME 51 reports them, the report's text, no network or device names |
 | `tests/integration/browser-host.sh` | The real helper against the real daemon: a call arrives, spoofed and unknown messages are refused, Mute pressed in the island reaches the browser, closing the browser ends the call |
 | `tests/integration/browser-e2e.sh` | The built extension in real Chromium (Playwright, Xvfb) with stand-in pages: Meet as a plain WebRTC call with standard call controls (“Google Meet”, logo, camera, Mute/Unmute and Leave through the page's handlers, the call goes on while muted with the microphone dropped from the connection), a download (appears, finishes), YouTube (song and artist, Pause/Play reach the page, a paused tab stays, the song title stays during an ad, Next presses the page's button), SoundCloud playing at the same time with its time read from the page, closing a tab ends its media, a real WebRTC call with the fake microphone on a stand-in Slack page shows as a green “Slack” call and ends on hang-up, and a connection without microphone is not a call. Stable over repeated runs |
 | `node --check` | Every extension file parses |
@@ -167,6 +169,14 @@ Report anything that looks wrong with the step number and any log lines.
 3. Copy a big folder in Files and switch to another window: when it finishes, “Files · File Operations”.
 4. Ctrl+C some text → “Copied” for a moment, the island stays closed; copy an image → “Copied image”; copy files in Files → “Copied files”. Close the app you copied from: no new “Copied”.
 5. Integrations → turn off Copied: no bubble.
+
+### Settings app
+
+1. Right-click the island: the **Selawi Island** settings app opens (also in the app grid, with its icon).
+2. Status page: “Running · version …”, Island “On”, the sources with their state. Press **Restart**: the island blinks off and comes back; the page shows the service running again.
+3. `gnome-extensions disable selawi-island@selawi`: the Status page shows “Off” with **Turn on**; pressing it brings the island back.
+4. **Copy** report and paste it somewhere: versions and states only, no network or device names, no notifications.
+5. Make the window narrow: the page tabs move to the bottom.
 
 ### Battery
 

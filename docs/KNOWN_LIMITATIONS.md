@@ -86,3 +86,6 @@
 - **Pasting is not shown** (GNOME does not announce it), and **file copy
   progress from GNOME Files is not available** to other apps; only its
   “completed” notification shows.
+- **Restart on the Status page needs the systemd user service**
+  (`selawi-islandd.service`, set up by the package and by
+  `install-local.sh`); a daemon started by hand is not restarted.
