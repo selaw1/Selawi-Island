@@ -113,7 +113,7 @@ mod tests {
 
     fn meet_event() -> serde_json::Value {
         json!({
-            "id": "browser:meet:12",
+            "id": "browser:call:12",
             "source": {"app": "Google Meet", "integration": "browser"},
             "category": "call", "state": "started", "persistent": true,
             "payload": {"type": "call", "title": "Weekly sync", "confidence": "confirmed", "muted": false},
@@ -180,12 +180,12 @@ mod tests {
     #[test]
     fn actions_serialize_for_the_extension() -> Result<(), serde_json::Error> {
         let json = serde_json::to_string(&ToBrowser::Action {
-            id: "browser:meet:12".into(),
+            id: "browser:call:12".into(),
             action: "mute".into(),
         })?;
         assert_eq!(
             json,
-            r#"{"type":"action","id":"browser:meet:12","action":"mute"}"#
+            r#"{"type":"action","id":"browser:call:12","action":"mute"}"#
         );
         Ok(())
     }

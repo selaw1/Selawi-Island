@@ -36,22 +36,7 @@ async function waitFor(what, check) {
 const FAVICON = '<link rel="icon" href="data:image/png;base64,' +
     'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGUlEQVR4nGN4amn6nxLMMGrAqAGjBgwXAwC1ulIfmdOREQAAAABJRU5ErkJggg==">';
 
-// Like real Meet: a leave button on the page, and microphone / camera
-// state and controls through Chrome's Media Session call controls.
-const MEET = `<!doctype html><html><head><title>Meet - Weekly sync</title>${FAVICON}</head><body>
-<button id="leave" aria-label="Leave call"><i class="google-material-icons">call_end</i></button>
-<script>
-const session = navigator.mediaSession;
-window.meetMuted = false;
-session.setActionHandler('togglemicrophone', () => {
-  window.meetMuted = !window.meetMuted;
-  session.setMicrophoneActive(!window.meetMuted);
-});
-session.setActionHandler('togglecamera', () => {});
-session.setActionHandler('hangup', () => { document.body.innerHTML = '<p>You left the meeting</p>'; });
-session.setMicrophoneActive(true);
-session.setCameraActive(true);
-</script></body></html>`;
+
 
 // Chromium looks for native host registrations inside its profile folder
 // when it runs with its own profile (for the real Chrome it is
@@ -106,6 +91,27 @@ async function startCall() {
 startCall();
 </script></body></html>`;
 
+// Like real Meet: an ordinary WebRTC call that reports its microphone and
+// camera and offers mute / hang up through Chrome's Media Session call
+// controls. Muting drops the microphone from the connection (as some
+// sites do) while the page keeps holding it.
+const MEET = SLACK.replace('<title>Slack | huddle</title>', `<title>Meet - abc-defg-hij</title>${FAVICON}`)
+  .replace('for (const t of mic.getTracks()) a.addTrack(t, mic);', 'for (const t of mic.getTracks()) window.sender = a.addTrack(t, mic); window.micTrack = mic.getAudioTracks()[0];')
+  .replace('startCall();', `
+startCall().then(() => {
+  const session = navigator.mediaSession;
+  window.meetMuted = false;
+  session.setActionHandler('togglemicrophone', () => {
+    window.meetMuted = !window.meetMuted;
+    window.sender.replaceTrack(window.meetMuted ? null : window.micTrack);
+    session.setMicrophoneActive(!window.meetMuted);
+  });
+  session.setActionHandler('togglecamera', () => {});
+  session.setActionHandler('hangup', () => { window.left = true; window.hangUp(); });
+  session.setMicrophoneActive(true);
+  session.setCameraActive(true);
+});`);
+
 // The same call, on a page that also reports its microphone and offers
 // mute / hang up through Chrome's Media Session call controls.
 const TEAMS = SLACK.replace('<title>Slack | huddle</title>', '<title>Teams</title>').replace('startCall();', `
@@ -156,9 +162,9 @@ try {
     const page = await context.newPage();
     await page.goto('https://meet.google.com/abc-defg-hij');
 
-    const call = await waitFor('Meet call', events => events.find(e => e.id.startsWith('browser:meet:') &&
+    const call = await waitFor('Meet call', events => events.find(e => e.id.startsWith('browser:call:') &&
         e.state !== 'ended' && e.payload.muted !== undefined));
-    ok(call.payload.title === 'Weekly sync', 'the call appears with the meeting name');
+    ok(call.payload.title === 'Google Meet', 'Meet is found like any other call, as "Google Meet"');
     ok(call.payload.confidence === 'confirmed' && call.payload.muted === false, 'confirmed call, microphone on');
     ok(call.payload.camera === true, 'the camera state comes from Meet\'s call controls');
     const withLogo = await waitFor('Meet logo', events => events.find(e => e.id === call.id && e.source.icon));
@@ -169,13 +175,16 @@ try {
     await waitFor('muted', events => events.find(e => e.id === call.id && e.payload.muted === true));
     ok(await page.evaluate(() => window.meetMuted) === true, 'Mute in the island used Meet\'s own mute');
 
+    await page.waitForTimeout(3000);
+    ok(list().some(e => e.id === call.id && e.state !== 'ended'),
+        'muted with the microphone dropped from the connection: the call goes on');
     invoke(call.id, 'unmute');
     await waitFor('unmuted', events => events.find(e => e.id === call.id && e.payload.muted === false));
     ok(true, 'Unmute works the same way');
 
     invoke(call.id, 'leave');
     await waitFor('call ended', events => events.find(e => e.id === call.id && e.state === 'ended'));
-    ok(await page.locator('#leave').count() === 0, 'Leave used Meet\'s hang up and the call ended');
+    ok(await page.evaluate(() => window.left) === true, 'Leave used Meet\'s hang up and the call ended');
 
     const download = page.waitForEvent('download');
     await page.evaluate(() => { location.href = 'https://files.example/report'; });

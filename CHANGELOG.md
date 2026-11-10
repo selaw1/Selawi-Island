@@ -14,10 +14,11 @@
   name and logo instead of “Google Chrome”.
 
 ### Changed
-- Meet's microphone, camera, Mute / Unmute and Leave now come only from
-  Meet's call controls (confirmed on real Meet); the reader of Meet's
-  mute and camera buttons is gone. The page is still read for “in a call”
-  and the meeting name.
+- No Meet-specific code any more: Meet is found like any other web call
+  (shown as “Google Meet”, without the meeting name), with microphone,
+  camera, Mute / Unmute and Leave from its standard call controls
+  (confirmed on real Meet). A call now goes on while muted as long as the
+  page holds the microphone.
 
 ### Fixed
 - A logo in the expanded island no longer sits on a coloured square.

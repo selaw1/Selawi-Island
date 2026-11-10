@@ -133,7 +133,7 @@ test('muted microphone: no waves, crossed-out icon, still timed', () => {
 
 test('a confirmed call absorbs the microphone event and takes its waves', async () => {
     const {foldMicIntoCalls} = await import('../../gnome-extension/ui/view-model.js');
-    const call = (muted, state = 'started') => ({...base, id: 'browser:meet:1', category: 'call', state,
+    const call = (muted, state = 'started') => ({...base, id: 'browser:call:1', category: 'call', state,
         source: {app: 'Google Meet', integration: 'browser'},
         payload: {type: 'call', title: 'Weekly sync', confidence: 'confirmed', muted}});
     const mic = (title = 'Microphone') => ({...base, id: 'privacy:capture', category: 'call', state: 'started',
@@ -143,8 +143,8 @@ test('a confirmed call absorbs the microphone event and takes its waves', async 
         payload: {type: 'notification', title: 'x'}};
 
     let r = foldMicIntoCalls([call(false), mic(), note]);
-    assert.deepEqual(r.events.map(e => e.id), ['browser:meet:1', 'n']);
-    assert.equal(r.wavesFor, 'browser:meet:1');
+    assert.deepEqual(r.events.map(e => e.id), ['browser:call:1', 'n']);
+    assert.equal(r.wavesFor, 'browser:call:1');
     assert.equal(foldMicIntoCalls([call(true), mic()]).wavesFor, null, 'muted in Meet: no waves');
     assert.equal(foldMicIntoCalls([call(false), mic('Microphone muted')]).wavesFor, null, 'muted by the island: no waves');
     r = foldMicIntoCalls([mic(), note]);
@@ -195,7 +195,7 @@ test('camera in a call: from the call itself, or carried over from the camera bu
 });
 
 test('logos replace the main icon; camera, muted and paused move next to the time', () => {
-    const meet = describe({...base, id: 'browser:meet:1', category: 'call', state: 'started',
+    const meet = describe({...base, id: 'browser:call:1', category: 'call', state: 'started',
         source: {app: 'Google Meet', integration: 'browser', icon: 'data:image/png;base64,AAAA'},
         payload: {type: 'call', title: 'Standup', confidence: 'confirmed', camera: true, muted: true}}, 0);
     assert.equal(meet.logo, 'data:image/png;base64,AAAA');

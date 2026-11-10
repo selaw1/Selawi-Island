@@ -222,3 +222,9 @@
   all three controls through Media Session, so `meet.ts` no longer reads
   Meet's mute/camera buttons; it only reports “in a call” (leave button)
   and the title, and presses leave as a fallback.
+- **Follow-up 3:** `meet.ts` removed: Meet goes through the general call
+  detection (`rtc-main.ts` now runs on Meet too) and the standard call
+  controls; no meeting name. A call survives a site dropping the
+  microphone from its connection while muted, as long as the tab still
+  holds the microphone (`mic-main.ts`). E2e: the Meet stand-in is a plain
+  WebRTC call with Media Session controls that drops the track on mute.

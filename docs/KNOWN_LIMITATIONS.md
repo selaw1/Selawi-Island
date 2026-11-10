@@ -5,8 +5,8 @@
 - **Automatic detection covers media, battery, Bluetooth, notifications,
   audio devices, network/VPN, USB drives and (opt-in) memory and CPU
   temperature.** Calls and per-tab browser media come later.
-- **Google Meet, YouTube and SoundCloud support depends on their pages**
-  (Meet's call buttons, YouTube's ad marker and next/previous buttons,
+- **YouTube and SoundCloud support depends on their pages**
+  (YouTube's ad marker and next/previous buttons,
   SoundCloud's player controls). Tested with stand-in pages built like
   them, not yet on the real sites. If a site changes, that part simply
   stops showing; media titles come from the standard media keys data and
@@ -61,6 +61,8 @@
 - **Quick preferences only.** The full settings app is Phase 10.
 - **Integrations were tested against fake services**, not yet against
   your real players and devices (see `docs/TESTING.md`).
+- **Calls show the site's name, not the meeting's name** (e.g. “Google
+  Meet”): there is no per-site code.
 - **Mute / Leave on web calls** only for sites that use Chrome's Media
   Session call controls; other sites get the plain call bubble. Firefox has
   no such controls.

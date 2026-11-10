@@ -195,8 +195,8 @@ call bubble: the call carries the voice waves and, if the camera is on,
 a camera icon and “Camera on”.
 
 Chrome often opens the camera directly instead of through PipeWire; then
-GNOME (and this event) cannot see it. Google Meet still shows the camera,
-from its own camera button. To let GNOME see Chrome's camera everywhere,
+GNOME (and this event) cannot see it. Sites that report their camera
+through Chrome's call controls (Google Meet does) still show it. To let GNOME see Chrome's camera everywhere,
 turn on `chrome://flags/#enable-webrtc-pipewire-camera`.
 
 **Voice waves:** while the microphone event is on screen and another app
@@ -246,6 +246,6 @@ those for web meetings.
 
 | Integration | Plan |
 |---|---|
-| Google Meet calls, per-tab media (YouTube, YouTube Music, SoundCloud) with ads hidden, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
+| Calls on any website (Google Meet included), per-tab media (YouTube, YouTube Music, SoundCloud) with ads hidden, browser downloads | Implemented — see [BROWSER_INTEGRATIONS.md](BROWSER_INTEGRATIONS.md) |
 | Calls on any website (Slack, Teams, Zoom, Discord…) | Implemented: site name, timer and voice waves, no buttons |
 | Calls (Slack, Zoom, Teams, Discord…) | Phase 7 |

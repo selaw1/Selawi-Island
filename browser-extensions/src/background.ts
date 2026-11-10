@@ -1,11 +1,10 @@
 // Background script: talks to the native host (which talks to the island),
-// keeps track of Meet tabs, and follows browser downloads.
+// follows calls, media tabs and downloads.
 
 import {
     type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
-    type MediaState, type MeetCommand, type MeetState, type PageMessage, type SessionCommand, type SessionState,
-    type State, type ToHost,
-    NO_SESSION, downloadEvent, hasSession, mediaEvent, micEvent, meetEvent, meetTitle, parseSession, sessionCommand,
+    type MediaState, type PageMessage, type SessionCommand, type SessionState, type State, type ToHost,
+    NO_SESSION, downloadEvent, hasSession, mediaEvent, micEvent, parseSession, sessionCommand,
     siteName, webCallEvent,
 } from './model.js';
 
@@ -120,18 +119,6 @@ chrome.tabs.onUpdated.addListener((tabId, change) => {
 function onHostMessage(message: FromHost): void {
     if (message?.type !== 'action' || typeof message.id !== 'string')
         return;
-    const meet = /^browser:meet:(\d+)$/.exec(message.id);
-    if (meet) {
-        const action = message.action;
-        // Meet's own call controls; its leave button on the page otherwise.
-        if (sendSessionAction(Number(meet[1]), action))
-            return;
-        if (action === 'leave') {
-            const command: MeetCommand = {kind: 'meet-action', action};
-            chrome.tabs.sendMessage(Number(meet[1]), command).catch(() => {});
-        }
-        return;
-    }
     const media = /^browser:media:(?:chrome|firefox):(\d+)$/.exec(message.id);
     if (media) {
         const action = message.action;
@@ -180,9 +167,6 @@ function onSession(tabId: number, frameId: number, state: SessionState): void {
     else
         return;
     // Show the change on a call this tab already has.
-    const meet = calls.get(tabId);
-    if (meet)
-        publish(meetEvent(tabId, meet, 'updated', sessionOf(tabId)), tabId);
     const call = webCalls.get(tabId);
     if (call)
         publish(webCallEvent(tabId, call.site, 'updated', sessionOf(tabId)), tabId);
@@ -218,18 +202,9 @@ function endMic(tabId: number): void {
         return;
     mics.delete(tabId);
     publish(micEvent(tabId, mic.site, 'ended'), tabId);
-}
-
-// ---- Google Meet ----------------------------------------------------------
-
-const calls = new Map<number, MeetState>();
-
-function endCall(tabId: number): void {
-    const meet = calls.get(tabId);
-    if (!meet)
-        return;
-    calls.delete(tabId);
-    publish(meetEvent(tabId, meet, 'ended', sessionOf(tabId)), tabId);
+    // A call kept going only by the held microphone ends with it.
+    if (webCalls.get(tabId)?.frames.size === 0)
+        endWebCall(tabId);
 }
 
 // ---- media tabs -----------------------------------------------------------
@@ -274,7 +249,9 @@ function onWebCall(tabId: number, frameId: number, active: boolean, tabUrl: stri
     if (!call)
         return;
     call.frames.delete(frameId);
-    if (call.frames.size === 0)
+    // Some sites drop the microphone from the connection while muted:
+    // the call goes on as long as the tab still holds the microphone.
+    if (call.frames.size === 0 && !mics.has(tabId))
         endWebCall(tabId);
 }
 
@@ -302,24 +279,11 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
         onSession(tabId, sender.frameId ?? 0, parseSession(typeof message.raw === 'string' ? message.raw : null));
         return;
     }
-    if (message?.kind === 'media') {
+    if (message?.kind === 'media')
         onMedia(tabId, message.state);
-        return;
-    }
-    if (message?.kind !== 'meet')
-        return;
-    const state: MeetState = {inCall: message.state?.inCall === true, title: meetTitle(String(message.state?.title ?? ''))};
-    if (!state.inCall) {
-        endCall(tabId);
-        return;
-    }
-    const known = calls.has(tabId);
-    calls.set(tabId, state);
-    publish(meetEvent(tabId, state, known ? 'updated' : 'started', sessionOf(tabId)), tabId);
 });
 
 chrome.tabs.onRemoved.addListener(tabId => {
-    endCall(tabId);
     endMedia(tabId);
     endWebCall(tabId);
     endMic(tabId);

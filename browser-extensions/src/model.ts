@@ -53,12 +53,6 @@ export interface EventInput {
     actions: Action[];
 }
 
-/** What the Meet content script sees on the page. */
-export interface MeetState {
-    inCall: boolean;
-    title: string;
-}
-
 /** What a media content script sees in its tab. */
 export interface MediaState {
     /** Site name shown as the app, e.g. "YouTube". */
@@ -131,13 +125,11 @@ export function sessionCommand(session: SessionState, action: string): SessionAc
 
 /** Messages between content scripts and the background script. */
 export type PageMessage =
-    | {kind: 'meet'; state: MeetState}
     | {kind: 'media'; state: MediaState | null}
     | {kind: 'call'; active: boolean}
     | {kind: 'session'; raw: string | null}
     | {kind: 'mic'; active: boolean};
 export type SessionCommand = {kind: 'session-action'; action: SessionAction};
-export type MeetCommand = {kind: 'meet-action'; action: 'leave'};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
 /** Messages between the background script and the native host. */
@@ -150,45 +142,6 @@ const MAX_TITLE = 256;
 
 function clean(text: string, max = MAX_TITLE): string {
     return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
-}
-
-/** "Meet - Weekly sync" → "Weekly sync"; the meeting code if that is all there is. */
-export function meetTitle(documentTitle: string): string {
-    const title = clean(documentTitle.replace(/^\(\d+\)\s*/, '').replace(/^(Google\s+)?Meet\s*[-–—:]\s*/i, ''));
-    return title && !/^(Google\s+)?Meet$/i.test(title) ? title : 'Google Meet';
-}
-
-export function meetEventId(tabId: number): string {
-    return `browser:meet:${tabId}`;
-}
-
-/**
- * Meet: the meeting name from the page; microphone, camera and Mute /
- * Unmute from Meet's Media Session call controls. Leave is always offered
- * (Meet's "hang up" control, or its leave button on the page).
- */
-export function meetEvent(tabId: number, meet: MeetState, state: State, session: SessionState = NO_SESSION): EventInput {
-    const live = state !== 'ended' && state !== 'failed';
-    const payload: CallPayload = {type: 'call', title: clean(meet.title) || 'Google Meet', confidence: 'confirmed'};
-    if (session.mic !== null)
-        payload.muted = !session.mic;
-    if (session.camera !== null)
-        payload.camera = session.camera;
-    const actions: Action[] = [];
-    if (live && session.mic !== null && session.actions.includes('togglemicrophone'))
-        actions.push(session.mic ? {id: 'mute', label: 'Mute'} : {id: 'unmute', label: 'Unmute'});
-    if (live)
-        actions.push({id: 'leave', label: 'Leave'});
-    return {
-        id: meetEventId(tabId),
-        source: {app: 'Google Meet', integration: 'browser'},
-        category: 'call',
-        state,
-        persistent: true,
-        priority: 'call',
-        payload,
-        actions,
-    };
 }
 
 /** The parts of a browser download item that matter here. */

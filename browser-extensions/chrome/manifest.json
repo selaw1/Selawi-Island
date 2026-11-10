@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Selawi Island",
   "version": "0.1.0",
-  "description": "Shows calls on any website, Google Meet, media in each tab (YouTube, YouTube Music, SoundCloud) and downloads in the Selawi Island on your desktop.",
+  "description": "Shows calls on any website (Google Meet, Slack, Teams\u2026), media in each tab (YouTube, YouTube Music, SoundCloud) and downloads in the Selawi Island on your desktop.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoAVPA3j7xAa+PaT2XO4kUi/1IcJhCdH6+UnqXkdvMpXnShLd2i654CIF/Yj9O67pFL6M31zjxJMhnEOp0EsCJoPq4KWw6lzZ3ZVbJ9UsKSnIvMnDCriAzvvTQSQCClrNqp1PQyOSXAFhjL4KxOxS+hwvrThnEBSO5jcX3dpiR+tmCtsv6FC/lDVSyS+HzTFZKlCVz6UZIPORPjK8HIavlvA2cwCSqcF4r1IQoIHS8pAWKbBF+t7BeS3hdIPJg4HrBzJOm7qG8CCbR18CSl41S7mzM6QNQ+bltIInp3r9srNsnOUY9INDbLt0s8zknwp+Lah1TdJUEUbLYA+199u6XQIDAQAB",
   "minimum_chrome_version": "116",
   "permissions": [
@@ -14,15 +14,6 @@
     "type": "module"
   },
   "content_scripts": [
-    {
-      "matches": [
-        "https://meet.google.com/*"
-      ],
-      "js": [
-        "meet.js"
-      ],
-      "run_at": "document_idle"
-    },
     {
       "matches": [
         "https://www.youtube.com/*",
@@ -39,9 +30,6 @@
       "matches": [
         "https://*/*"
       ],
-      "exclude_matches": [
-        "https://meet.google.com/*"
-      ],
       "js": [
         "rtc-main.js"
       ],
@@ -52,9 +40,6 @@
     {
       "matches": [
         "https://*/*"
-      ],
-      "exclude_matches": [
-        "https://meet.google.com/*"
       ],
       "js": [
         "call.js"

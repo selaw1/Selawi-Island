@@ -5,7 +5,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-    downloadEvent, fileName, formatBytes, meetEvent, meetTitle,
+    downloadEvent, fileName, formatBytes,
 } from '../../browser-extensions/build/js/model.js';
 import {validateInput} from '../../gnome-extension/services/protocol.js';
 
@@ -13,42 +13,6 @@ const valid = event => {
     const r = validateInput(event);
     assert.ok(r.ok, r.error);
 };
-
-test('meeting titles', () => {
-    assert.equal(meetTitle('Meet - Weekly sync'), 'Weekly sync');
-    assert.equal(meetTitle('Meet – abc-defg-hij'), 'abc-defg-hij');
-    assert.equal(meetTitle('(2) Meet - Design review'), 'Design review');
-    assert.equal(meetTitle('Google Meet'), 'Google Meet');
-    assert.equal(meetTitle(''), 'Google Meet');
-});
-
-test('Meet call: confirmed, mute state only when Meet reports it, Leave', async () => {
-    const {parseSession} = await import('../../browser-extensions/build/js/model.js');
-    const page = {inCall: true, title: 'Weekly sync'};
-    const controls = mic => parseSession(JSON.stringify({mic, camera: false, actions: ['hangup', 'togglemicrophone', 'togglecamera']}));
-
-    const unmuted = meetEvent(7, page, 'started', controls(true));
-    assert.equal(unmuted.id, 'browser:meet:7');
-    assert.equal(unmuted.payload.confidence, 'confirmed');
-    assert.equal(unmuted.payload.muted, false);
-    assert.equal(unmuted.payload.camera, false);
-    assert.deepEqual(unmuted.actions.map(a => a.id), ['mute', 'leave']);
-    valid(unmuted);
-
-    const muted = meetEvent(7, page, 'updated', controls(false));
-    assert.deepEqual(muted.actions.map(a => a.id), ['unmute', 'leave']);
-    valid(muted);
-
-    const unknown = meetEvent(7, page, 'updated');
-    assert.equal('camera' in unknown.payload, false, 'unknown camera state is not invented');
-    assert.equal('muted' in unknown.payload, false, 'unknown mute state is not invented');
-    assert.deepEqual(unknown.actions.map(a => a.id), ['leave'], 'Leave still works through the page button');
-    valid(unknown);
-
-    const ended = meetEvent(7, page, 'ended', controls(true));
-    assert.deepEqual(ended.actions, []);
-    valid(ended);
-});
 
 test('downloads: progress, done, cancelled, only the file name', () => {
     const item = {id: 3, filename: '/home/yousef/Downloads/archlinux-x86_64.iso', bytesReceived: 512 * 1024 * 1024,
@@ -142,7 +106,7 @@ const checked = event => {
 };
 
 test('call controls a site reports (Media Session)', async () => {
-    const {NO_SESSION, parseSession, sessionCommand, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
+    const {NO_SESSION, parseSession, sessionCommand, siteName: siteNameOf, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
     // Bad or hostile input is ignored.
     assert.deepEqual(parseSession(null), NO_SESSION);
     assert.deepEqual(parseSession('not json'), NO_SESSION);
@@ -158,6 +122,7 @@ test('call controls a site reports (Media Session)', async () => {
     assert.equal(call.payload.muted, false);
     assert.equal(call.payload.camera, false);
     assert.deepEqual(call.actions.map(a => a.id), ['mute', 'leave']);
+    assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij'), 'Google Meet');
     const plain = checked(webCallEvent(5, 'Slack', 'started'));
     assert.deepEqual(plain.actions, [], 'a site that reports nothing: no buttons');
     assert.equal(plain.payload.muted, undefined);

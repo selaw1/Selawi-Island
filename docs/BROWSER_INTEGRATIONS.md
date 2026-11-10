@@ -1,13 +1,13 @@
 # Browser integrations
 
 A small extension for Chrome (and Chromium, Brave) and Firefox shows what
-only the browser can see: **calls on any website**, **Google Meet**,
+only the browser can see: **calls on any website** (Google Meet included),
 **media in each tab** (YouTube, YouTube Music, SoundCloud) and
 **downloads**.
 
 ```text
- any site ─ rtc-main.js → call.js ┐
- Meet tab ─ meet.js ─┐
+ any site ─ rtc-main.js → call.js ─────────────┐
+ any site ─ session-main.js, mic-main.js → session.js ┤
  media tabs ─ media.js ┤
                      ├─ background.js ─ native messaging ─ selawi-island-browser-host ─ D-Bus ─ selawi-islandd ─ island
  downloads API ──────┘                                     (checks every event)
@@ -49,12 +49,11 @@ one-time manual step for you, not something the project does.
 
 | Site / feature | Shows | Buttons |
 |---|---|---|
-| A call on any website (Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk; “Muted” and “Camera on” if the site reports them | **Mute / Unmute** and **Leave** only if the site offers them through Chrome's call controls (see below); otherwise none |
-| Google Meet (`meet.google.com`) | Green call: meeting name, timer, “Muted” and “Camera on” (camera icon) when Meet says so | **Mute / Unmute** and **Leave** (Meet's own call controls; Leave falls back to Meet's leave button) |
+| A call on any website (Google Meet, Slack, Teams, Zoom, Discord, WhatsApp, Telegram, Webex, Jitsi…) | Green call with the site's name and a timer; voice waves when you talk; “Muted” and “Camera on” if the site reports them | **Mute / Unmute** and **Leave** only if the site offers them through Chrome's call controls (see below); otherwise none |
 | YouTube, YouTube Music, SoundCloud | Each tab on its own (several can play at once): title, artist, running time | **Previous** / **Play–Pause** / **Next**, only those the page offers |
 | Downloads | File name, “512 MB of 1.2 GB”, progress bar; then Downloaded / Cancelled / Download failed | **Cancel** |
 
-**Logos:** calls, Meet and media tabs show the site's own icon (its
+**Logos:** calls and media tabs show the site's own icon (its
 favicon) instead of a generic one. The extension redraws the icon as a
 small 64×64 PNG before sending it, so the island never loads anything
 from a website. Microphone-off and camera-on then show as small icons
@@ -70,7 +69,7 @@ tab disappears 5 minutes after its last change, as for other players.
 Media on other sites (Netflix, Twitch…) still shows through the browser's
 own player, one at a time.
 
-During a Meet call, the separate “Microphone in use” bubble is folded
+During a call, the separate “Microphone in use” bubble is folded
 into the call bubble, which then shows the voice waves.
 
 ## Privacy
@@ -92,8 +91,7 @@ into the call bubble, which then shows the voice waves.
 - On every https site it also notes whether the page holds the
   microphone (yes/no) and the Media Session call controls the
   page reports (microphone/camera on or off, mute/hang-up available).
-- On Meet it also reads whether its leave button exists and the page
-  title. No chat, no names
+ No chat, no names
   of participants, no audio or video.
 - For downloads only the file name is sent, never the folder or the
   address it came from.
@@ -106,10 +104,12 @@ into the call bubble, which then shows the voice waves.
 Every web call uses the browser's WebRTC connection. A small script runs
 in each https page before the page's own code and wraps it: when a
 connection is connected and sending a live microphone track, the tab is
-in a call; when it closes or the microphone track stops, the call ends.
-This works the same on every site, with no per-site code. The site name
-comes from the tab's address (known sites get their proper names). Meet
-keeps its own, richer support.
+in a call. Some sites drop the microphone from the connection while you
+are muted, so the call goes on as long as the page still holds the
+microphone; when the connection closes and the microphone is released,
+the call ends. This works the same on every site, with no per-site code,
+Google Meet included. The site name comes from the tab's address (known
+sites get their proper names).
 
 ## Which site uses the microphone
 
@@ -134,16 +134,6 @@ Sites that do not use it keep the plain call bubble. Which sites use it is
 up to them (Google Meet does); Firefox does not have these controls. A page
 could report anything here; the worst it can do is change its own bubble.
 
-## How Meet is detected
-
-Microphone, camera, Mute / Unmute and Leave come from Meet's call
-controls above (checked on real Meet: it reports all of them). The Meet
-content script only adds what those do not say: Meet's leave button
-(Material icon `call_end`) means you are in a call, and the page title is
-the meeting name. Leave presses that button if Meet ever stops offering
-“hang up”. If Meet changes its page, the call stops showing (nothing
-wrong is shown) until `browser-extensions/src/meet.ts` is updated.
-
 ## Build and test
 
 ```bash
@@ -155,4 +145,4 @@ to `browser-extensions/build/{chrome,firefox}`. Tests: `tests/browser/`
 (event building, validated by the island's own validator),
 `tests/integration/browser-host.sh` (the helper against the daemon), and
 `tests/integration/browser-e2e.sh` (the built extension in real Chromium
-with stand-in Meet, YouTube and SoundCloud pages).
+with stand-in Meet, Slack, Teams, YouTube and SoundCloud pages).

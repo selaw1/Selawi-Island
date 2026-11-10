@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Selawi Island",
   "version": "0.1.0",
-  "description": "Shows calls on any website, Google Meet, media in each tab (YouTube, YouTube Music, SoundCloud) and downloads in the Selawi Island on your desktop.",
+  "description": "Shows calls on any website (Google Meet, Slack, Teams\u2026), media in each tab (YouTube, YouTube Music, SoundCloud) and downloads in the Selawi Island on your desktop.",
   "browser_specific_settings": {
     "gecko": {
       "id": "island@selawi.local",
@@ -25,15 +25,6 @@
   "content_scripts": [
     {
       "matches": [
-        "https://meet.google.com/*"
-      ],
-      "js": [
-        "meet.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
         "https://www.youtube.com/*",
         "https://m.youtube.com/*",
         "https://music.youtube.com/*",
@@ -48,9 +39,6 @@
       "matches": [
         "https://*/*"
       ],
-      "exclude_matches": [
-        "https://meet.google.com/*"
-      ],
       "js": [
         "rtc-main.js"
       ],
@@ -61,9 +49,6 @@
     {
       "matches": [
         "https://*/*"
-      ],
-      "exclude_matches": [
-        "https://meet.google.com/*"
       ],
       "js": [
         "call.js"
