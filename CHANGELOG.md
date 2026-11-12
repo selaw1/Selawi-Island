@@ -6,9 +6,8 @@
 - MIT license (`LICENSE`), also set in every `Cargo.toml`, `package.json`
   and the Arch package, which installs it to
   `/usr/share/licenses/selawi-island/`.
-- README: status brought up to date, screenshots and demo from
-  `docs/media/`, links to the case study and known limitations, and how
-  the project was built.
+- README: status brought up to date, links to the case study and known
+  limitations, and how the project was built.
 
 ### Changed
 - Test data uses neutral names and example domains.

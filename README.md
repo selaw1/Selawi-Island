@@ -7,13 +7,6 @@ and system events, and expands when you need more detail.
 Open source (MIT). Runs entirely on your own computer: no accounts, no
 cloud, no hosting.
 
-| Compact | Expanded |
-|---|---|
-| ![The island showing music in its compact form](docs/media/island-compact.png) | ![The island expanded with media controls](docs/media/island-expanded.png) |
-| ![A web call with the site's name, timer and Mute / Leave](docs/media/call.png) | ![The Selawi Island settings app](docs/media/settings.png) |
-
-Demo: [docs/media/demo.mp4](docs/media/demo.mp4)
-
 - Case study: <https://yousef.selawii.com/work/selawi-island>
 - What it cannot do (yet): [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md)
 
