@@ -33,7 +33,8 @@ The full project specification is the master plan the owner provided
   (`gnome-extension/services/protocol.js`), `docs/EVENT_SYSTEM.md` and
   `tests/fixtures/protocol-cases.json` together.
 - Create directories only when code needs them.
-- No license file: this is a private project.
+- Open source under the MIT license (`LICENSE`); keep new dependencies
+  MIT-compatible (no GPL or AGPL).
 
 ## Checks
 Run `./scripts/test.sh` before every commit. GNOME UI behaviour cannot be

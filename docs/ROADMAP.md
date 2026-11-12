@@ -54,12 +54,12 @@ Status key: **Done** · **In progress** · **Next** · Planned
 
 ## Phase 6 (done)
 
-Native messaging helper; Chrome/Firefox extension; Google Meet (call,
-mute state, Mute/Unmute and Leave pressing Meet's buttons, mic bubble
-folded into the call); per-tab media for YouTube, YouTube Music and
+Native messaging helper; Chrome/Firefox extension; per-tab media for YouTube, YouTube Music and
 SoundCloud with Previous/Play-Pause/Next, ads hidden, the browser's own
 duplicate player hidden; downloads with progress and Cancel.
 
 Calls on any website (Slack, Teams, Zoom, Discord…) are detected the same
 way everywhere, from the browser's WebRTC connection: the site's name, a
-timer and voice waves, no buttons (by choice: mute and leave in the call).
+timer and voice waves. Since Phase 7, Mute / Leave and the muted and
+camera state come from the browser's standard call controls when a site
+offers them; Google Meet has no code of its own any more.

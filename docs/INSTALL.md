@@ -8,8 +8,6 @@ than the usual Rust and Node build tools, and there is no hosting.
 
 - Arch Linux (or an Arch-based distribution) with **GNOME 51**
 - `sudo pacman -S --needed base-devel git`
-- Access to the private GitHub repository (the owner adds you under
-  Settings → Collaborators)
 
 ## First install
 
@@ -40,8 +38,7 @@ ones reuse the downloads and compiled files (kept in
 `~/.cache/selawi-island`) and only rebuild what changed. Log out and back in
 afterwards, and reload the browser extension (below).
 
-`yay -Syu` does not update Selawi Island: it is not on the AUR (the
-project is private). You can also build by hand in `packaging/arch` with
+`yay -Syu` does not update Selawi Island: it is not on the AUR. You can also build by hand in `packaging/arch` with
 `makepkg -si` or `yay -Bi .`.
 
 ## Browser extension (optional)

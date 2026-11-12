@@ -3,6 +3,7 @@ name = "selawi-core"
 description = "Platform-independent event engine for Selawi Island"
 edition.workspace = true
 version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [dependencies]

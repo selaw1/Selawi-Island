@@ -9,3 +9,8 @@ packaging/arch/selawi-island/
 *.pkg.tar.*
 dist/
 __pycache__/
+# Keys and secrets
+*.jks
+*.keystore
+*.pem
+.env

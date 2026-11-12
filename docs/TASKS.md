@@ -414,3 +414,20 @@ app (name, logo, Mute / Leave, clean after leaving).
 - **Tests:** model tests (declared name, listed site keeps its name,
   hostile names); browser e2e with an unknown site that names itself and
   stand-in Slack/Meet/Teams pages that declare another name.
+
+## T-023 — Open source
+- **Created:** 2026-11-12
+- **Status:** Done
+- **Description:** MIT license; dependency licenses checked (79 Rust
+  crates and 4 JavaScript dev packages: MIT, Apache-2.0, Unlicense,
+  Unicode-3.0; `r-efi` offers MIT among its options; no GPL or AGPL).
+  README status table, intro, screenshots block, case study and
+  limitations links, “How it was built” and License sections. Roadmap
+  Phase 6 notes and known limitations brought up to date; “private”
+  wording removed from the install docs. Test names and domains neutral.
+- **Files:** `LICENSE`, `Cargo.toml` (workspace and members),
+  `package.json`, `CLAUDE.md`, `README.md`, `docs/media/README.md`,
+  `packaging/arch/PKGBUILD`, `scripts/{stage-package,test}.sh`,
+  `.gitignore`, tests, docs.
+- **Tests:** `./scripts/test.sh` (the package layout check now includes
+  the license file).

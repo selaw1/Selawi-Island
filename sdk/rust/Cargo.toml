@@ -3,6 +3,7 @@ name = "selawi-island-plugin"
 description = "Show your app's own events on Selawi Island (Plugins1 over D-Bus)"
 edition.workspace = true
 version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [dependencies]

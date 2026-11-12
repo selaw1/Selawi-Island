@@ -3,6 +3,7 @@ name = "selawi-island-browser-host"
 description = "Native messaging host: connects the Selawi Island browser extensions to the daemon"
 edition.workspace = true
 version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [[bin]]

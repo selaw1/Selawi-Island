@@ -158,7 +158,7 @@ try {
         route.fulfill({status: 200, contentType: 'text/html', body: SLACK}));
     await context.route('https://teams.microsoft.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: TEAMS}));
-    await context.route('https://chat.example/**', route =>
+    await context.route('https://example.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: NAMED}));
     await context.route('https://p2p.example/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: DATA_ONLY}));
@@ -274,7 +274,7 @@ try {
 
     // ---- a site that names itself (<meta name="application-name">) ---------
     const named = await context.newPage();
-    await named.goto('https://chat.example/call');
+    await named.goto('https://example.com/call');
     const namedCall = await waitFor('call named by its page', events => events.find(e =>
         e.id.startsWith('browser:call:') && e.state !== 'ended' && e.payload.title === 'Example Chat'));
     ok(true, 'a site the island does not know shows the name it declares');

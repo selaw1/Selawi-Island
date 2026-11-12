@@ -498,7 +498,7 @@ async fn notifications_are_observed_without_replacing_the_server() -> TestResult
             "Slack",
             0,
             "",
-            "Sam",
+            "Alex",
             "<b>Lunch</b> &amp; coffee?",
             &[],
             HashMap::new(),
@@ -516,7 +516,7 @@ async fn notifications_are_observed_without_replacing_the_server() -> TestResult
         })
     })
     .await?;
-    assert_eq!(title, "Sam");
+    assert_eq!(title, "Alex");
     assert_eq!(body.as_deref(), Some("Lunch & coffee?"));
 
     watcher.abort();

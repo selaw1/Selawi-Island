@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — open source
+
+### Added
+- MIT license (`LICENSE`), also set in every `Cargo.toml`, `package.json`
+  and the Arch package, which installs it to
+  `/usr/share/licenses/selawi-island/`.
+- README: status brought up to date, screenshots and demo from
+  `docs/media/`, links to the case study and known limitations, and how
+  the project was built.
+
+### Changed
+- Test data uses neutral names and example domains.
+- `.gitignore` keeps key and secret files out (`*.jks`, `*.keystore`,
+  `*.pem`, `.env`).
+
 ## Unreleased — sites name themselves
 
 ### Changed

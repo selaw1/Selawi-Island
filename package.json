@@ -1,6 +1,7 @@
 {
   "name": "selawi-island-dev",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Development tooling: JavaScript tests and the browser extension build. Nothing here is installed.",
   "scripts": {
