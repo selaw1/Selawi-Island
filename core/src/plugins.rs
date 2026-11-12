@@ -32,7 +32,7 @@ const MAX_DESCRIPTION_LEN: usize = 200;
 pub struct Manifest {
     pub manifest_version: u32,
     /// Stable, unique: lowercase letters, digits, `.` and `-`
-    /// ("pomodoro", "com.example.selawigram").
+    /// ("pomodoro", "com.example.chat").
     pub id: String,
     /// Shown as the event's app name and in Settings.
     pub name: String,
@@ -217,7 +217,7 @@ mod tests {
         ] {
             assert!(parse_manifest(&bad).is_err(), "accepted: {bad}");
         }
-        assert!(parse_manifest(&format!(r#"{{{base},"id":"com.example.selawigram"}}"#)).is_ok());
+        assert!(parse_manifest(&format!(r#"{{{base},"id":"com.example.chat"}}"#)).is_ok());
         Ok(())
     }
 

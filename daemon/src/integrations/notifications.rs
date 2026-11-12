@@ -246,11 +246,10 @@ mod tests {
 
     #[test]
     fn plain_notification() -> Result<(), &'static str> {
-        let input =
-            notification_input(&note("Slack", "Yousef", "Lunch?"), 7, true).ok_or("none")?;
+        let input = notification_input(&note("Slack", "Sam", "Lunch?"), 7, true).ok_or("none")?;
         assert_eq!(input.id.as_str(), "notifications:slack:7");
         assert_eq!(input.group.as_deref(), Some("notifications:slack"));
-        assert_eq!(payload(&input), ("Yousef", Some("Lunch?")));
+        assert_eq!(payload(&input), ("Sam", Some("Lunch?")));
         assert_eq!(input.ttl_ms, Some(DEFAULT_TTL_MS));
         assert!(input.actions.is_empty());
         Ok(())

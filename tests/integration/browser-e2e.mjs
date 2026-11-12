@@ -74,8 +74,9 @@ navigator.mediaSession.playbackState = 'playing';</script>
 </body></html>`;
 
 // A page that makes a real WebRTC call to itself with the fake microphone,
-// like any web call (Slack huddle, Teams, Zoom…) does underneath.
-const SLACK = `<!doctype html><html><head><title>Slack | huddle</title></head><body><script>
+// like any web call (Slack huddle, Teams, Zoom…) does underneath. It also
+// declares another name for itself: a site the island knows keeps its own.
+const SLACK = `<!doctype html><html><head><title>Slack | huddle</title><meta name="application-name" content="Pretend Name"></head><body><script>
 async function startCall() {
   const mic = await navigator.mediaDevices.getUserMedia({audio: true});
   const a = new RTCPeerConnection(), b = new RTCPeerConnection();
@@ -90,6 +91,10 @@ async function startCall() {
 }
 startCall();
 </script></body></html>`;
+
+// A site the island does not know, which names itself.
+const NAMED = SLACK.replace('<title>Slack | huddle</title><meta name="application-name" content="Pretend Name">',
+  '<title>Call</title><meta name="application-name" content="Example Chat">');
 
 // Like real Meet: an ordinary WebRTC call that reports its microphone and
 // camera and offers mute / hang up through Chrome's Media Session call
@@ -153,6 +158,8 @@ try {
         route.fulfill({status: 200, contentType: 'text/html', body: SLACK}));
     await context.route('https://teams.microsoft.com/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: TEAMS}));
+    await context.route('https://chat.example/**', route =>
+        route.fulfill({status: 200, contentType: 'text/html', body: NAMED}));
     await context.route('https://p2p.example/**', route =>
         route.fulfill({status: 200, contentType: 'text/html', body: DATA_ONLY}));
     await context.route('https://files.example/**', route =>
@@ -264,6 +271,19 @@ try {
     ok(true, 'hanging up ends the call');
     await waitFor('microphone released', events => events.find(e => e.id === micHint.id && e.state === 'ended'));
     ok(true, 'stopping the microphone clears the site');
+
+    // ---- a site that names itself (<meta name="application-name">) ---------
+    const named = await context.newPage();
+    await named.goto('https://chat.example/call');
+    const namedCall = await waitFor('call named by its page', events => events.find(e =>
+        e.id.startsWith('browser:call:') && e.state !== 'ended' && e.payload.title === 'Example Chat'));
+    ok(true, 'a site the island does not know shows the name it declares');
+    const namedMic = await waitFor('microphone named by its page', events => events.find(e =>
+        e.id.startsWith('browser:mic:') && e.state !== 'ended' && e.source.app === 'Example Chat'));
+    ok(true, 'the microphone bubble uses the same name');
+    await named.evaluate(() => window.hangUp());
+    await waitFor('named call ended', events => events.find(e => e.id === namedCall.id && e.state === 'ended'));
+    await waitFor('named microphone released', events => events.find(e => e.id === namedMic.id && e.state === 'ended'));
 
     // ---- a site that reports its call controls (Media Session) ------------
     const teams = await context.newPage();

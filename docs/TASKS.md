@@ -11,8 +11,8 @@ Remind the owner about these when they ask what to test or what is next:
 
 Checked on the owner's machine (2026-11-10): commands (`selawi-island
 run`), system updates with yay, GNOME notifications (screenshot, Clocks),
-Copied, charging icon and colors, settings app, Selawigram calls (name,
-logo, Mute / Leave, clean after leaving).
+Copied, charging icon and colors, settings app, calls in the owner's own web
+app (name, logo, Mute / Leave, clean after leaving).
 
 ## T-001 — Milestone 1: foundation and island UI
 - **Created:** 2026-11-09
@@ -375,7 +375,7 @@ logo, Mute / Leave, clean after leaving).
   sources with the app id from `source.policy.id`), and the daemon no
   longer monitors `org.gtk.Notifications` (portal deliveries bypass it;
   avoids duplicates). Tile icons get `success/warning/error-color` so
-  multi-colour symbolic icons stay visible. `selawii.com` → “Selawigram”.
+  multi-colour symbolic icons stay visible.
 - **Files:** `gnome-extension/{ui/banner-blocker.js,services/shell-notifications.js,services/shell-model.js,stylesheet.css}`,
   `daemon/src/integrations/notifications.rs`, `daemon/tests/fake_services.rs`,
   `browser-extensions/src/model.ts`, tests, docs.
@@ -396,3 +396,21 @@ logo, Mute / Leave, clean after leaving).
   `daemon/tests/fake_services.rs`, docs.
 - **Tests:** new fake NetworkManager test with a 400-signal scan flood
   (failed before the fix, passes 5/5 after).
+
+## T-022 — Sites name themselves
+- **Created:** 2026-11-12
+- **Status:** Done (manual check pending)
+- **Description:** removed the one personal site from the extension's
+  list of site names. For sites not in the list, the extension now uses
+  the name the page declares in `<meta name="application-name">` (read
+  by `session.ts` in the top frame; cleaned, at most 40 characters),
+  else the address. Listed sites always keep their own name. A name that
+  arrives after a call or microphone started updates the bubble. Test
+  data no longer uses the owner's name or home folder.
+- **Files:** `browser-extensions/src/{model,session,background}.ts`,
+  `tests/browser/model.test.js`, `tests/integration/browser-e2e.mjs`,
+  `tests/js/view-model.test.js`, `daemon/src/integrations/notifications.rs`,
+  `daemon/tests/fake_services.rs`, `core/src/plugins.rs`, docs.
+- **Tests:** model tests (declared name, listed site keeps its name,
+  hostile names); browser e2e with an unknown site that names itself and
+  stand-in Slack/Meet/Teams pages that declare another name.

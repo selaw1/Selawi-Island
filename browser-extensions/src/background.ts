@@ -5,7 +5,7 @@ import {
     type BrowserFamily, type DownloadLike, type EventInput, type FromHost, type MediaCommand,
     type MediaState, type PageMessage, type SessionCommand, type SessionState, type State, type ToHost,
     NO_SESSION, downloadEvent, hasSession, mediaEvent, micEvent, parseSession, sessionCommand,
-    siteName, webCallEvent,
+    parseSiteName, siteName, webCallEvent,
 } from './model.js';
 
 const HOST = 'io.selawi.island';
@@ -184,7 +184,7 @@ function onMic(tabId: number, frameId: number, active: boolean, tabUrl: string):
             mic.frames.add(frameId);
             return;
         }
-        const site = siteName(tabUrl);
+        const site = siteName(tabUrl, declaredNames.get(tabId) ?? null);
         mics.set(tabId, {frames: new Set([frameId]), site});
         publish(micEvent(tabId, site, 'started'), tabId);
         return;
@@ -241,7 +241,7 @@ function onWebCall(tabId: number, frameId: number, active: boolean, tabUrl: stri
             call.frames.add(frameId);
             return;
         }
-        const site = siteName(tabUrl);
+        const site = siteName(tabUrl, declaredNames.get(tabId) ?? null);
         webCalls.set(tabId, {frames: new Set([frameId]), site});
         publish(webCallEvent(tabId, site, 'started', sessionOf(tabId)), tabId);
         return;
@@ -263,6 +263,31 @@ function endWebCall(tabId: number): void {
     publish(webCallEvent(tabId, call.site, 'ended', sessionOf(tabId)), tabId);
 }
 
+// ---- the name a site gives itself -------------------------------------------
+
+// Tab → the name its page declares (<meta name="application-name">).
+const declaredNames = new Map<number, string>();
+
+function onSiteName(tabId: number, raw: string | null, tabUrl: string): void {
+    const name = parseSiteName(raw);
+    if (name)
+        declaredNames.set(tabId, name);
+    else
+        declaredNames.delete(tabId);
+    // The name can arrive after a call or the microphone started.
+    const site = siteName(tabUrl, name);
+    const call = webCalls.get(tabId);
+    if (call && call.site !== site) {
+        call.site = site;
+        publish(webCallEvent(tabId, site, 'updated', sessionOf(tabId)), tabId);
+    }
+    const mic = mics.get(tabId);
+    if (mic && mic.site !== site) {
+        mic.site = site;
+        publish(micEvent(tabId, site, 'updated'), tabId);
+    }
+}
+
 chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
     const tabId = sender.tab?.id;
     if (tabId === undefined)
@@ -279,6 +304,11 @@ chrome.runtime.onMessage.addListener((message: PageMessage, sender) => {
         onSession(tabId, sender.frameId ?? 0, parseSession(typeof message.raw === 'string' ? message.raw : null));
         return;
     }
+    if (message?.kind === 'site-name') {
+        if ((sender.frameId ?? 0) === 0)
+            onSiteName(tabId, typeof message.raw === 'string' ? message.raw : null, sender.tab?.url ?? sender.url ?? '');
+        return;
+    }
     if (message?.kind === 'media')
         onMedia(tabId, message.state);
 });
@@ -290,6 +320,7 @@ chrome.tabs.onRemoved.addListener(tabId => {
     logos.delete(tabId);
     refetch.delete(tabId);
     sessions.delete(tabId);
+    declaredNames.delete(tabId);
 });
 
 // ---- downloads ------------------------------------------------------------

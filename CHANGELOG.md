@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — sites name themselves
+
+### Changed
+- A call or microphone on a site the island does not know by name now
+  shows the name the site gives itself (the standard
+  `<meta name="application-name">` tag), instead of its address. Known
+  sites (Slack, Google Meet, Teams…) keep their own names, so a page
+  cannot rename them. No personal site is named in the extension any more.
+
 ## Unreleased — fixes after testing (2)
 
 ### Fixed
@@ -18,7 +27,6 @@
   already watches, so nothing shows twice.
 - A colored icon tile (green while charging) draws its icon in one solid
   color: the battery's green charge no longer disappears on the green tile.
-- Calls on chat.selawii.com are named “Selawigram”.
 
 ## Unreleased — Phase 9: plugins
 

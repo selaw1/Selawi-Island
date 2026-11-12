@@ -39,7 +39,7 @@ notifications through the browser (see
 | Field | Rule |
 |---|---|
 | `manifest_version` | `1` |
-| `id` | Stable and unique: 1–40 lowercase letters, digits, `.` or `-` (`com.example.selawigram`) |
+| `id` | Stable and unique: 1–40 lowercase letters, digits, `.` or `-` (`com.example.chat`) |
 | `name` | Shown as the app name on every event and in Settings (1–40 characters) |
 | `description` | Optional, up to 200 characters; shown when asking and in Settings |
 | `icon` | Optional: `app:<desktop id>` (an installed app's icon) or a PNG data URL, like `source.icon` |

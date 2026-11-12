@@ -15,7 +15,7 @@ const valid = event => {
 };
 
 test('downloads: progress, done, cancelled, only the file name', () => {
-    const item = {id: 3, filename: '/home/yousef/Downloads/archlinux-x86_64.iso', bytesReceived: 512 * 1024 * 1024,
+    const item = {id: 3, filename: '/home/user/Downloads/archlinux-x86_64.iso', bytesReceived: 512 * 1024 * 1024,
         totalBytes: 1200 * 1024 * 1024, state: 'in_progress'};
     const running = downloadEvent(item, 'started');
     assert.equal(running.id, 'browser:download:3');
@@ -106,7 +106,7 @@ const checked = event => {
 };
 
 test('call controls a site reports (Media Session)', async () => {
-    const {NO_SESSION, parseSession, sessionCommand, siteName: siteNameOf, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
+    const {NO_SESSION, parseSession, parseSiteName, sessionCommand, siteName: siteNameOf, webCallEvent} = await import('../../browser-extensions/build/js/model.js');
     // Bad or hostile input is ignored.
     assert.deepEqual(parseSession(null), NO_SESSION);
     assert.deepEqual(parseSession('not json'), NO_SESSION);
@@ -123,7 +123,16 @@ test('call controls a site reports (Media Session)', async () => {
     assert.equal(call.payload.camera, false);
     assert.deepEqual(call.actions.map(a => a.id), ['mute', 'leave']);
     assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij'), 'Google Meet');
-    assert.equal(siteNameOf('https://chat.selawii.com/call/1'), 'Selawigram');
+    // A site the island does not know goes by the name it declares, else its address.
+    assert.equal(siteNameOf('https://chat.example/call/1'), 'chat.example');
+    assert.equal(siteNameOf('https://chat.example/call/1', 'Example Chat'), 'Example Chat');
+    assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij', 'Pretend Name'), 'Google Meet',
+        'a listed site keeps its own name');
+    assert.equal(parseSiteName('  Example\u0007 Chat  '), 'Example Chat');
+    assert.equal(parseSiteName('x'.repeat(100)).length, 40);
+    assert.equal(parseSiteName('   '), null);
+    assert.equal(parseSiteName(42), null);
+    assert.equal(parseSiteName(null), null);
     const plain = checked(webCallEvent(5, 'Slack', 'started'));
     assert.deepEqual(plain.actions, [], 'a site that reports nothing: no buttons');
     assert.equal(plain.payload.muted, undefined);

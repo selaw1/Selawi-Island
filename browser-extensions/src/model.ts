@@ -128,7 +128,8 @@ export type PageMessage =
     | {kind: 'media'; state: MediaState | null}
     | {kind: 'call'; active: boolean}
     | {kind: 'session'; raw: string | null}
-    | {kind: 'mic'; active: boolean};
+    | {kind: 'mic'; active: boolean}
+    | {kind: 'site-name'; raw: string | null};
 export type SessionCommand = {kind: 'session-action'; action: SessionAction};
 export type MediaCommand = {kind: 'media-action'; action: MediaAction};
 
@@ -272,23 +273,39 @@ const SITE_NAMES: Array<[RegExp, string]> = [
     [/(^|\.)webex\.com$/, 'Webex'],
     [/(^|\.)jit\.si$/, 'Jitsi'],
     [/(^|\.)whereby\.com$/, 'Whereby'],
-    [/(^|\.)selawii\.com$/, 'Selawigram'],
     [/^meet\.google\.com$/, 'Google Meet'],
 ];
 
-/** "https://app.slack.com/huddle/…" → "Slack"; unknown sites by their address. */
-export function siteName(url: string): string {
+const MAX_SITE_NAME = 40;
+
+/**
+ * The name a page gives itself in `<meta name="application-name">` (a web
+ * standard), or null when it gives none or something unusable.
+ */
+export function parseSiteName(raw: unknown): string | null {
+    if (typeof raw !== 'string')
+        return null;
+    const name = clean(raw, MAX_SITE_NAME);
+    return name || null;
+}
+
+/**
+ * "https://app.slack.com/huddle/…" → "Slack". A site not in the list goes
+ * by the name it declares for itself, else by its address. Listed sites
+ * always keep their own name, so a page cannot rename them.
+ */
+export function siteName(url: string, declared: string | null = null): string {
     let host = '';
     try {
         host = new URL(url).hostname.toLowerCase();
     } catch {
-        return 'Web call';
+        return declared ?? 'Web call';
     }
     for (const [pattern, name] of SITE_NAMES) {
         if (pattern.test(host))
             return name;
     }
-    return clean(host.replace(/^www\./, ''), 64) || 'Web call';
+    return declared ?? (clean(host.replace(/^www\./, ''), 64) || 'Web call');
 }
 
 export function webCallEventId(tabId: number): string {

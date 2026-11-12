@@ -63,6 +63,9 @@
   your real players and devices (see `docs/TESTING.md`).
 - **Calls show the site's name, not the meeting's name** (e.g. “Google
   Meet”): there is no per-site code.
+- **A site the island does not know shows the name it declares** for
+  itself (`application-name`), as the site wrote it. Known sites always
+  keep their own names.
 - **Mute / Leave on web calls** only for sites that use Chrome's Media
   Session call controls; other sites get the plain call bubble. Firefox has
   no such controls.

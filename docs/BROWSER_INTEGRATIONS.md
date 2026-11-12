@@ -126,8 +126,10 @@ in a call. Some sites drop the microphone from the connection while you
 are muted, so the call goes on as long as the page still holds the
 microphone; when the connection closes and the microphone is released,
 the call ends. This works the same on every site, with no per-site code,
-Google Meet included. The site name comes from the tab's address (known
-sites get their proper names).
+Google Meet included. Known sites get their proper names (Slack, Google
+Meet, Teams…). Any other site goes by the name it gives itself in the
+standard `<meta name="application-name">` tag, or else by its address; a
+page cannot rename a known site.
 
 ## Which site uses the microphone
 
