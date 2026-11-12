@@ -3,6 +3,7 @@ name = "selawi-islandd"
 description = "Selawi Island daemon: event engine on the D-Bus session bus"
 edition.workspace = true
 version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [lib]

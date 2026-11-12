@@ -124,8 +124,8 @@ test('call controls a site reports (Media Session)', async () => {
     assert.deepEqual(call.actions.map(a => a.id), ['mute', 'leave']);
     assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij'), 'Google Meet');
     // A site the island does not know goes by the name it declares, else its address.
-    assert.equal(siteNameOf('https://chat.example/call/1'), 'chat.example');
-    assert.equal(siteNameOf('https://chat.example/call/1', 'Example Chat'), 'Example Chat');
+    assert.equal(siteNameOf('https://example.com/call/1'), 'example.com');
+    assert.equal(siteNameOf('https://example.com/call/1', 'Example Chat'), 'Example Chat');
     assert.equal(siteNameOf('https://meet.google.com/abc-defg-hij', 'Pretend Name'), 'Google Meet',
         'a listed site keeps its own name');
     assert.equal(parseSiteName('  Example\u0007 Chat  '), 'Example Chat');

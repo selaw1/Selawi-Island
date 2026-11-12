@@ -94,4 +94,5 @@ fi
 install -Dm644 docs/PLUGINS.md "$DEST/usr/share/doc/selawi-island/PLUGINS.md"
 
 install -Dm644 README.md "$DEST/usr/share/doc/selawi-island/README.md"
+install -Dm644 LICENSE "$DEST/usr/share/licenses/selawi-island/LICENSE"
 install -Dm644 docs/INSTALL.md "$DEST/usr/share/doc/selawi-island/INSTALL.md"

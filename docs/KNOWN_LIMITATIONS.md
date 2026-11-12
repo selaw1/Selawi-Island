@@ -1,19 +1,17 @@
 # Known limitations
 
-## Current (after Phase 3)
+## Current
 
-- **Automatic detection covers media, battery, Bluetooth, notifications,
-  audio devices, network/VPN, USB drives and (opt-in) memory and CPU
-  temperature.** Calls and per-tab browser media come later.
+- **Only Arch Linux with GNOME 51** is supported; other distributions,
+  Windows and macOS are not planned (docs/ROADMAP.md).
 - **YouTube and SoundCloud support depends on their pages**
   (YouTube's ad marker and next/previous buttons,
   SoundCloud's player controls). Tested with stand-in pages built like
   them, not yet on the real sites. If a site changes, that part simply
   stops showing; media titles come from the standard media keys data and
   are the most robust part.
-- **Calls on other sites have no buttons** (by choice) and show the site's
-  name, not the meeting's. The extension needs access to all https sites
-  for this, which Chrome warns about.
+- **Calls on any site need access to all https sites**, which Chrome warns
+  about.
 - **Per-tab media covers YouTube, YouTube Music and SoundCloud.** Other
   sites still show through the browser's single player.
 - **Firefox needs a signed add-on** to keep it after a restart; until then
@@ -44,8 +42,8 @@
 - **Actions reach only D-Bus sources.** `ActionInvoked` is a signal; the CLI
   exits after sending, so CLI events offer no action buttons (only Dismiss).
 - **Any program of the same user can send events.** The session bus is
-  per-user, so other users cannot, but there is no per-app permission yet
-  (plugin permissions come in Phase 9).
+  per-user, so other users cannot, but only apps that use the
+  plugin interface (`Plugins1`) are asked for permission first.
 - **The CLI is stateless.** `progress update/finish` read the current event
   from the daemon first; if it already expired, they fail with a message.
 - **Demo uses the JavaScript engine copy**, not the daemon.
@@ -58,7 +56,6 @@
 - **Only GNOME 51** is declared in `metadata.json`.
 - **A 1-second timer runs in the extension while a call timer or playing
   media is visible.** Everything else is event-driven.
-- **Quick preferences only.** The full settings app is Phase 10.
 - **Integrations were tested against fake services**, not yet against
   your real players and devices (see `docs/TESTING.md`).
 - **Calls show the site's name, not the meeting's name** (e.g. “Google
@@ -72,8 +69,7 @@
 - **Desktop app logos on the mic bubble** need the app to name itself on
   its audio connection (or a running app with exactly that name);
   otherwise the mic icon stays.
-- **Updates are not automatic:** Selawi Island is not on the AUR (the
-  project is private), so `yay -Syu` does not update it; run
+- **Updates are not automatic:** Selawi Island is not on the AUR, so `yay -Syu` does not update it; run
   `selawi-island-update`.
 - **The package registers the browser helper for Google Chrome, Chromium
   and Firefox only**, not Brave (Brave works with the development
