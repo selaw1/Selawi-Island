@@ -157,6 +157,53 @@ fn failure_text(input: &Value) -> String {
     .into()
 }
 
+/// Names the Claude app is installed under in the app grid.
+const CLAUDE_APP_NAMES: [&str; 2] = ["Claude", "Claude Desktop"];
+
+/// Whether a desktop file's name is worth reading: it mentions Claude.
+pub fn may_be_claude_app(file_name: &str) -> bool {
+    file_name.ends_with(".desktop") && file_name.to_ascii_lowercase().contains("claude")
+}
+
+/// Whether a desktop entry is the Claude app: an application named
+/// "Claude" that is shown in the app grid.
+pub fn is_claude_app(desktop_file: &str) -> bool {
+    let mut in_entry = false;
+    let (mut name, mut application, mut hidden) = (None, false, false);
+    for line in desktop_file.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_entry = line == "[Desktop Entry]";
+            continue;
+        }
+        if !in_entry {
+            continue;
+        }
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        match (key.trim(), value.trim()) {
+            ("Name", value) => name = Some(value.to_string()),
+            ("Type", value) => application = value == "Application",
+            ("NoDisplay" | "Hidden", "true") => hidden = true,
+            _ => {}
+        }
+    }
+    application && !hidden && name.is_some_and(|n| CLAUDE_APP_NAMES.contains(&n.as_str()))
+}
+
+/// A desktop file's id, as the island accepts it ("claude-desktop" from
+/// "claude-desktop.desktop").
+pub fn desktop_id(file_name: &str) -> Option<String> {
+    let id = file_name.strip_suffix(".desktop")?;
+    let ok = !id.is_empty()
+        && id.len() <= 120
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+    ok.then(|| id.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -256,5 +303,43 @@ mod tests {
             Step::Nothing
         );
         assert_eq!(step(json!("not an object")), Step::Nothing);
+    }
+
+    #[test]
+    fn finds_the_claude_app_in_the_app_grid() {
+        let claude =
+            "[Desktop Entry]\nType=Application\nName=Claude\nIcon=claude\nExec=claude-desktop %u\n";
+        assert!(is_claude_app(claude));
+        assert!(is_claude_app(
+            &claude.replace("Name=Claude", "Name=Claude Desktop")
+        ));
+        assert!(
+            !is_claude_app(&format!("{claude}NoDisplay=true\n")),
+            "hidden from the app grid"
+        );
+        assert!(!is_claude_app(
+            &claude.replace("Name=Claude", "Name=Claude Code Helper")
+        ));
+        assert!(!is_claude_app(
+            &claude.replace("Type=Application", "Type=Link")
+        ));
+        assert!(
+            !is_claude_app("[Desktop Action new]\nName=Claude\n[Desktop Entry]\nType=Application\nName=Notes\n"),
+            "only the main entry's name counts"
+        );
+        assert!(may_be_claude_app("claude-desktop.desktop"));
+        assert!(may_be_claude_app("com.anthropic.Claude.desktop"));
+        assert!(!may_be_claude_app("org.gnome.Nautilus.desktop"));
+        assert!(!may_be_claude_app("claude-notes.txt"));
+        assert_eq!(
+            desktop_id("claude-desktop.desktop").as_deref(),
+            Some("claude-desktop")
+        );
+        assert_eq!(
+            desktop_id("com.anthropic.Claude.desktop").as_deref(),
+            Some("com.anthropic.Claude")
+        );
+        assert_eq!(desktop_id("bad name.desktop"), None);
+        assert_eq!(desktop_id("claude"), None);
     }
 }

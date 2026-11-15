@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Claude Code in orange
+
+### Changed
+- Claude Code bubbles are orange and show the installed Claude app's logo
+  (a gear without it). When Claude needs your approval or an answer, a
+  question mark appears and the island opens by itself.
+- Checked: the VS Code extension shows Claude Code working and done.
+
 ## Unreleased — Claude Code in the island
 
 ### Added

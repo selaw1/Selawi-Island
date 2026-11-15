@@ -466,3 +466,22 @@ app (name, logo, Mute / Leave, clean after leaving).
   on / yes / no).
 - **Remaining:** manual check in the terminal, the VS Code extension and
   the desktop app (docs/TESTING.md).
+
+## T-025 — Claude Code: orange, logo, attention
+- **Created:** 2026-11-15
+- **Status:** Done (manual check pending)
+- **Description:** agent bubbles use the orange accent. The hook looks
+  for the installed Claude app (a desktop entry named “Claude” or “Claude
+  Desktop”, shown in the app grid, whose file name mentions Claude, in
+  `XDG_DATA_HOME` then `XDG_DATA_DIRS`) and sends `app:<desktop id>`; no
+  logo file is shipped. Waiting for you: question-mark icon, or a
+  question-mark indicator next to the timer when the logo shows;
+  `needsAttention()` makes the island open when an event starts waiting,
+  as for a new event. The owner confirmed the VS Code extension shows
+  working and done.
+- **Files:** `cli/src/{agent,main}.rs`, `gnome-extension/ui/{view-model,island}.js`,
+  `tests/js/view-model.test.js`, `tests/integration/dbus-smoke.sh`, docs.
+- **Tests:** desktop-entry matching and ids; view model (orange, logo,
+  indicator, attention); private-bus check of the logo with and without
+  a Claude app entry.
+- **Remaining:** check the approval step and the island opening on GNOME.

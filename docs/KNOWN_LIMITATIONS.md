@@ -61,9 +61,10 @@
 - **Calls show the site's name, not the meeting's name** (e.g. “Google
   Meet”): there is no per-site code.
 - **Claude Code shows only where its hooks run on your computer.** The
-  terminal works; the VS Code extension and the desktop app have been
-  reported to skip some hooks in some versions; cloud sessions cannot
-  reach the island. The hooks take effect in sessions started after
+  VS Code extension works (checked); the desktop app is not checked yet;
+  cloud sessions cannot reach the island.
+- **The Claude logo comes from the installed Claude app.** Without an app
+  grid entry named “Claude”, the bubble shows a gear. The hooks take effect in sessions started after
   turning them on.
 - **Claude Code bubbles say what kind of tool runs, not what it does
   exactly** (never the command or search), and only file names, not

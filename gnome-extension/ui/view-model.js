@@ -233,6 +233,15 @@ function isFinished(event) {
 }
 
 /**
+ * Whether an event waits for you to act: an agent (Claude Code) asking for
+ * your approval or an answer. The island opens for it like for a new event.
+ */
+export function needsAttention(event) {
+    return event?.source?.integration === 'agents' && event.category === 'reminder' &&
+        event.state !== 'ended' && event.state !== 'failed' && event.state !== 'expired';
+}
+
+/**
  * @param {object} event - a stored event (see docs/EVENT_SYSTEM.md)
  * @param {number} now - milliseconds since the epoch
  * @returns {{iconName: string, accent: string, title: string, subtitle: string,
@@ -322,10 +331,12 @@ export function describe(event, now) {
             vm.progress = 1;
         } else {
             vm.accent = 'blue';
-            // An agent (Claude Code) waiting for your approval or answer.
-            if (event.source.integration === 'agents' && event.category === 'reminder') {
+            // Claude Code is orange; waiting for your approval or answer
+            // adds a question mark.
+            if (event.source.integration === 'agents') {
                 vm.accent = 'orange';
-                vm.iconName = 'dialog-question-symbolic';
+                if (needsAttention(event))
+                    vm.iconName = 'dialog-question-symbolic';
             }
             if (p.percent !== undefined) {
                 vm.progress = p.percent / 100;
@@ -387,6 +398,8 @@ export function describe(event, now) {
                 vm.indicators.push('microphone-disabled-symbolic');
         } else if (p.type === 'media' && !p.playing && !isFinished(event)) {
             vm.indicators.push('media-playback-pause-symbolic');
+        } else if (needsAttention(event)) {
+            vm.indicators.push('dialog-question-symbolic');
         }
     }
 
