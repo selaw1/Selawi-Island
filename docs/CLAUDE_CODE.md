@@ -8,8 +8,8 @@ needs you, and when it is done.
 |---|---|
 | You send a prompt | Orange bubble: “my-app · Working”, with a running timer |
 | It uses a tool | “Editing main.rs”, “Reading README.md”, “Running a command”, “Searching the code”, “Reading a web page”, “Using github” (an MCP server)… |
-| It asks for your approval | “Needs your approval” with a question mark, and the island opens by itself |
-| It asks you a question | “Needs your answer”, the same way |
+| It asks for your approval | What it asks for (“Run: npm test”, “Edit: src/api/route.ts”, “Fetch: docs.example.com”) with **Allow** and **Deny**, a question mark, and the island opens by itself |
+| It asks you a question | The question itself, the same way, without buttons (answer it in Claude Code) |
 | You reject what it asked for | The bubble goes about a minute later, when Claude Code reports it is waiting for your next message (it reports nothing at the moment you reject). Your next message shows it again |
 | The turn finishes | Green: “Done · 4:12” (how long the turn took), then it goes |
 | The turn stops on an error | Red: “Usage limit reached”, “Service unavailable”, “Sign-in needed”, “Billing problem” or “Stopped by an error” |
@@ -23,9 +23,30 @@ small icon next to the timer. Without it, the bubble shows a gear while
 working and a question mark while waiting. No logo file is part of this
 project: the island uses the icon of the app you installed.
 
-**What is never shown:** your prompts, command lines, search terms, web
-addresses or file contents. Only the project folder's name, the kind of
-tool and a file's name.
+**What is shown:** while Claude Code works, only the project folder's
+name, the kind of tool and a file's name. While it waits for your
+approval, also what it asks for: the command's first line, the file (from
+the project folder), the site's name, the search, or its question, cut to
+one line of 80 characters. Turn that off in Settings → Integrations →
+Claude Code → **Show what Claude asks for** (for example before sharing
+your screen): it then says only “Needs your approval”. Your prompts and
+file contents are never shown, and nothing is saved or logged.
+
+## Allow and Deny
+
+Press **Allow** or **Deny** in the island, or answer in Claude Code as
+usual: whichever comes first counts.
+
+- **Allow** lets the tool run; **Deny** refuses it and tells Claude it was
+  denied from the island, so it can try something else.
+- If you answer in Claude Code instead, the island's buttons go.
+- The island waits up to 110 seconds; then its buttons go and Claude
+  Code's own prompt decides.
+- Questions and plans have no buttons: they need more than a yes, so you
+  answer them in Claude Code.
+- Any program running as you can press island buttons (as with every
+  island button). Such a program could run commands itself anyway, so
+  this gives it nothing new.
 
 ## Turning it on and off
 
@@ -63,9 +84,11 @@ Restart open Claude Code sessions after turning it on or off.
   duplicates.
 - **Never a broken file.** If the file is not valid JSON, nothing is
   changed and it says why.
-- **Never in Claude Code's way.** The hook always succeeds, prints
-  nothing and gives up after 3 seconds; if the island is not running or
-  not installed, it does nothing.
+- **Never in Claude Code's way.** The hook always succeeds and gives up
+  after 3 seconds; only for an approval does it wait for your Allow /
+  Deny (at most 110 seconds, its entry allows 120) and print the answer.
+  If the island is not running, turned off or not installed, it does
+  nothing.
 - `off` removes the entries again. Removing the package
   (`sudo pacman -R selawi-island`) removes them for logged-in users too.
 

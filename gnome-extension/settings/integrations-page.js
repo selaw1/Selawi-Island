@@ -167,6 +167,22 @@ export function integrationsPage(settings, window) {
     notifications.add(bannersRow);
     page.add(notifications);
 
+    // ---- Claude Code
+    const agents = new Adw.PreferencesGroup({title: 'Claude Code'});
+    const requestRow = new Adw.SwitchRow({
+        title: 'Show what Claude asks for',
+        subtitle: 'The command, file or site it wants approval for. Turn off before sharing your screen.',
+    });
+    requestRow.connect('notify::active', () => {
+        if (syncing || !config)
+            return;
+        const next = JSON.parse(JSON.stringify(config));
+        next.agents = {...next.agents, show_request: requestRow.active};
+        setConfig(next);
+    });
+    agents.add(requestRow);
+    page.add(agents);
+
     // ---- apps (plugins)
     const apps = new Adw.PreferencesGroup({
         title: 'Apps',
@@ -208,7 +224,7 @@ export function integrationsPage(settings, window) {
     }
 
     // ---- syncing with the daemon
-    const daemonRows = [...switches.values(), modeRow, preferredRow, bodyRow];
+    const daemonRows = [...switches.values(), modeRow, preferredRow, bodyRow, requestRow];
 
     function render() {
         syncing = true;
@@ -236,6 +252,7 @@ export function integrationsPage(settings, window) {
             preferredRow.selected = Math.max(0, preferredKeys.indexOf(preferred));
             preferredRow.sensitive = config.media?.mode === 'one';
             bodyRow.active = config.notifications?.show_body ?? true;
+            requestRow.active = config.agents?.show_request ?? true;
         }
         syncing = false;
     }

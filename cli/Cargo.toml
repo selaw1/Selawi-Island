@@ -14,6 +14,7 @@ path = "src/main.rs"
 selawi-core = { path = "../core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+futures-util = { version = "0.3", default-features = false }
 clap = { version = "4", features = ["derive"] }
 zbus = { version = "6", default-features = false, features = ["tokio", "proxy"] }
 tokio = { version = "1", features = ["rt", "macros", "signal"] }

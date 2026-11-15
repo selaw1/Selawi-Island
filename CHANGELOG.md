@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — answer Claude Code from the island
+
+### Added
+- When Claude Code asks for approval, the island shows what it asks for
+  (“Run: npm test”, “Edit: src/api/route.ts”, “Fetch: docs.example.com”,
+  or its question) with **Allow** and **Deny**. Your press answers Claude
+  Code; answering in Claude Code works as before and takes the buttons
+  away. Questions and plans are shown without buttons.
+- Settings → Integrations → Claude Code → **Show what Claude asks for**
+  (on by default; off before sharing your screen).
+
 ## Unreleased — Claude Code in orange
 
 ### Changed

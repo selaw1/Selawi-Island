@@ -63,6 +63,13 @@
 - **Claude Code shows only where its hooks run on your computer.** The
   VS Code extension works (checked); the desktop app is not checked yet;
   cloud sessions cannot reach the island.
+- **Allow / Deny in the island:** whether Claude Code's own prompt shows
+  while the island waits is up to Claude Code (not checked yet in each
+  place). The island waits at most 110 seconds. Questions and plans can
+  only be answered in Claude Code.
+- **What Claude asks for is shown on screen** (the command's first line,
+  the file, the site) unless turned off in Settings; a command can hold a
+  password, so turn it off before sharing your screen.
 - **After you reject a Claude Code request, “Needs your approval” stays
   about a minute.** Claude Code sends no hook when you reject; the bubble
   goes when it reports it is idle (about 60 seconds later).

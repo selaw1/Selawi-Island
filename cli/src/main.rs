@@ -14,6 +14,7 @@ use std::process::{Child, ExitCode, Stdio};
 use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand, ValueEnum};
+use futures_util::StreamExt;
 use selawi_core::events::{
     Category, EventId, EventInput, LifecycleState, NotificationPayload, Payload, ProgressPayload,
     Source,
@@ -35,6 +36,18 @@ trait Events {
     fn submit(&self, event_json: &str) -> zbus::Result<()>;
     fn list(&self) -> zbus::Result<String>;
     fn dismiss(&self, id: &str) -> zbus::Result<bool>;
+    /// The user pressed a button on an event.
+    #[zbus(signal)]
+    fn action_invoked(&self, id: &str, action_id: &str) -> zbus::Result<()>;
+}
+
+#[proxy(
+    interface = "com.selawi.Island.Configuration1",
+    default_service = "com.selawi.Island",
+    default_path = "/com/selawi/Island"
+)]
+trait Configuration {
+    fn get(&self) -> zbus::Result<String>;
 }
 
 #[proxy(
@@ -1009,6 +1022,14 @@ fn agent_hook(agent: &str) {
     let title = agent::project_title(input.get("cwd").and_then(serde_json::Value::as_str));
     // The Claude app's own logo, when it is installed.
     let icon = claude_app_icon();
+    // What the bubble says once you allowed a request from the island.
+    let after_allow = agent::describe_tool(
+        input
+            .get("tool_name")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or(""),
+        input.get("tool_input").unwrap_or(&serde_json::Value::Null),
+    );
     let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -1016,6 +1037,27 @@ fn agent_hook(agent: &str) {
         return;
     };
     runtime.block_on(async {
+        if let agent::Step::Approval {
+            request,
+            answerable,
+        } = step
+        {
+            let ask = Approval {
+                icon: &icon,
+                id: &id,
+                title: &title,
+                request,
+                answerable,
+            };
+            if let Some(allow) = ask.wait_for_answer().await {
+                println!("{}", agent::decision_json(allow));
+                let detail = if allow { after_allow } else { "Working".into() };
+                let island = Island::connect().await;
+                let input = agent_input(&icon, &id, LifecycleState::Updated, title, detail, false);
+                let _ = tokio::time::timeout(HOOK_DEADLINE, island.send(input)).await;
+            }
+            return;
+        }
         let deliver = async {
             let island = Island::connect().await;
             match step {
@@ -1031,6 +1073,15 @@ fn agent_hook(agent: &str) {
                     island.send(input).await;
                 }
                 agent::Step::Waiting(detail) => {
+                    // The request (and its buttons) came already with
+                    // PermissionRequest: keep them.
+                    if island
+                        .current(&id)
+                        .await
+                        .is_some_and(|e| e.category == Category::Reminder)
+                    {
+                        return;
+                    }
                     let input =
                         agent_input(&icon, &id, LifecycleState::Updated, title, detail, true);
                     island.send(input).await;
@@ -1078,11 +1129,112 @@ fn agent_hook(agent: &str) {
                         island.send(input).await;
                     }
                 }
-                agent::Step::Nothing => {}
+                agent::Step::Approval { .. } | agent::Step::Nothing => {}
             }
         };
         let _ = tokio::time::timeout(HOOK_DEADLINE, deliver).await;
     });
+}
+
+/// A request Claude Code waits on: shown in the island with Allow / Deny
+/// when those can answer it.
+struct Approval<'a> {
+    icon: &'a Option<String>,
+    id: &'a str,
+    title: &'a str,
+    request: String,
+    answerable: bool,
+}
+
+impl Approval<'_> {
+    /// Shows the request and waits for Allow or Deny. None: no answer from
+    /// the island (answered in Claude Code, out of time, island off or not
+    /// running), so Claude Code's own prompt decides.
+    async fn wait_for_answer(self) -> Option<bool> {
+        let island = Island::connect().await;
+        let events = island.events.as_ref()?;
+        let show_request = show_agent_requests(events).await;
+        let detail = match (show_request, self.answerable) {
+            (true, _) => self.request,
+            (false, true) => "Needs your approval".into(),
+            (false, false) => "Needs your answer".into(),
+        };
+        let mut input = agent_input(
+            self.icon,
+            self.id,
+            LifecycleState::Updated,
+            self.title.to_string(),
+            detail,
+            true,
+        )?;
+        if !self.answerable {
+            island.send(Some(input)).await;
+            return None;
+        }
+        input.actions = vec![
+            selawi_core::events::Action {
+                id: "allow".into(),
+                label: "Allow".into(),
+            },
+            selawi_core::events::Action {
+                id: "deny".into(),
+                label: "Deny".into(),
+            },
+        ];
+        // Listen before showing the buttons, so no press is missed.
+        let mut pressed = events.receive_action_invoked().await.ok()?;
+        island.send(Some(input.clone())).await;
+        island.current(self.id).await?;
+
+        let deadline = Instant::now() + Duration::from_secs(agent::ANSWER_WAIT_SECS);
+        loop {
+            tokio::select! {
+                signal = pressed.next() => {
+                    let Some(signal) = signal else { break };
+                    let Ok(args) = signal.args() else { continue };
+                    if *args.id() != self.id {
+                        continue;
+                    }
+                    match *args.action_id() {
+                        "allow" => return Some(true),
+                        "deny" => return Some(false),
+                        _ => {}
+                    }
+                }
+                () = tokio::time::sleep(Duration::from_secs(1)) => {
+                    if Instant::now() >= deadline {
+                        break;
+                    }
+                    // Answered in Claude Code itself: the bubble moved on
+                    // (back to working) or went.
+                    let still_waiting = island.current(self.id).await.is_some_and(|e| {
+                        e.category == Category::Reminder && !e.actions.is_empty()
+                    });
+                    if !still_waiting {
+                        return None;
+                    }
+                }
+            }
+        }
+        // Out of time: the buttons go, Claude Code's own prompt decides.
+        input.actions.clear();
+        island.send(Some(input)).await;
+        None
+    }
+}
+
+/// Settings → Integrations → Claude Code → “Show what Claude asks for”.
+async fn show_agent_requests(events: &EventsProxy<'_>) -> bool {
+    let Ok(config) = ConfigurationProxy::new(events.inner().connection()).await else {
+        return true;
+    };
+    let Ok(json) = config.get().await else {
+        return true;
+    };
+    serde_json::from_str::<serde_json::Value>(&json)
+        .ok()
+        .and_then(|c| c.get("agents")?.get("show_request")?.as_bool())
+        .unwrap_or(true)
 }
 
 fn agent_input(

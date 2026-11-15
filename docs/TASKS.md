@@ -502,3 +502,31 @@ app (name, logo, Mute / Leave, clean after leaving).
 - **Files:** `cli/src/{agent,main}.rs`, `tests/integration/dbus-smoke.sh`, docs.
 - **Tests:** unit test for `idle_prompt`; private-bus test: waiting →
   idle → gone → next tool call shows again; idle after Done keeps Done.
+
+## T-027 — Allow / Deny and the request in the island
+- **Created:** 2026-11-16
+- **Status:** Done (manual check pending)
+- **Description:** the owner saw a Mac app answer Claude Code from the
+  notch and asked for the same: seeing what Claude asks, and Allow /
+  Deny. `PermissionRequest` now shows `describe_request()` (the command's
+  first line, the file from the project folder, the site's host, the
+  search, the question; one line of 80 characters) and, for answerable
+  tools, Allow / Deny actions. The hook listens for `Events1.ActionInvoked`
+  on its bubble before showing the buttons, then prints Claude Code's
+  decision JSON on a press. It stops waiting without an answer when the
+  bubble stops waiting (answered in Claude Code, idle, turned off) or
+  after 110 s; its settings entry now has a 120 s timeout, and a
+  compile-time check keeps that order. A later `permission_prompt`
+  notification keeps the request. `AskUserQuestion` and `ExitPlanMode`
+  show without buttons (Claude Code needs more than a yes). New daemon
+  setting `agents.show_request` (default on) with a switch in
+  Integrations. No mascot and no phone approvals (owner's decision).
+- **Files:** `cli/src/{agent,agent_hooks,main}.rs`, `cli/Cargo.toml`
+  (futures-util, already in the workspace), `daemon/src/config.rs`,
+  `gnome-extension/settings/integrations-page.js`,
+  `tests/integration/dbus-smoke.sh`, docs.
+- **Tests:** unit tests for requests, answerable tools and the decision
+  JSON; private-bus tests for Allow, Deny, answered elsewhere, details
+  off, questions and the later notification.
+- **Remaining:** on GNOME with the VS Code extension: the buttons answer
+  Claude Code, and whether its own prompt shows while the island waits.

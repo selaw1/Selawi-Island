@@ -40,9 +40,13 @@ The daemon settings are stored in `~/.config/selawi-island/daemon.json`
 {
   "integrations": { "bluez": false },
   "media": { "mode": "one", "preferred_player": "spotify" },
-  "notifications": { "show_body": true }
+  "notifications": { "show_body": true },
+  "agents": { "show_request": true }
 }
 ```
+
+`agents.show_request`: show what Claude Code asks approval for (the
+command, file or site); off, it says only “Needs your approval”.
 
 ## Media players — `mpris` (implemented)
 
@@ -241,8 +245,10 @@ claude` on your computer when you send a prompt, it uses a tool, it needs
 your approval, and a turn ends. One bubble per session: the project
 folder, what it is doing (“Editing main.rs”, “Running a command”), in
 orange with the installed Claude app's logo (else a gear); “Needs your
-approval” with a question mark while it waits for you, and the island
-opens by itself; then Done with the turn's time, or the kind of error. Prompts, commands, search terms, web
+approval” with a question mark while it waits for you, with what it asks
+for (unless turned off) and Allow / Deny that answer Claude Code, and the
+island opens by itself; then Done with the turn's time, or the kind of
+error. Prompts, commands, search terms, web
 addresses and file contents are never shown. A bubble that hears nothing
 for 15 minutes (1 hour while waiting for you) goes by itself.
 

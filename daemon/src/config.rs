@@ -4,7 +4,8 @@
 //! {
 //!   "integrations": { "bluez": false },
 //!   "media": { "mode": "one", "preferred_player": "spotify" },
-//!   "notifications": { "show_body": true }
+//!   "notifications": { "show_body": true },
+//!   "agents": { "show_request": true }
 //! }
 //! ```
 //!
@@ -73,12 +74,26 @@ impl Default for NotificationConfig {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AgentsConfig {
+    /// Show what Claude Code asks approval for (the command, the file).
+    pub show_request: bool,
+}
+
+impl Default for AgentsConfig {
+    fn default() -> Self {
+        Self { show_request: true }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct Config {
     pub integrations: BTreeMap<String, bool>,
     pub media: MediaConfig,
     pub notifications: NotificationConfig,
+    pub agents: AgentsConfig,
     /// Plugin id → allowed to show events. A plugin that is not listed
     /// has not been answered yet and shows nothing.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
@@ -213,6 +228,16 @@ mod tests {
         assert_eq!(config.effective().integrations.get("bluez"), Some(&false));
         assert_eq!(config.media.mode, MediaMode::All);
         assert!(config.notifications.show_body);
+        assert!(
+            config.agents.show_request,
+            "Claude Code requests shown by default"
+        );
+        assert!(
+            !Config::parse(r#"{"agents":{"show_request":false}}"#)?
+                .agents
+                .show_request
+        );
+        assert!(Config::parse(r#"{"agents":{"show_requests":false}}"#).is_err());
         assert_eq!(Config::parse("{}")?, Config::default());
         Ok(())
     }
