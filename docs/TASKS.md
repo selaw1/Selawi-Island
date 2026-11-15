@@ -431,3 +431,38 @@ app (name, logo, Mute / Leave, clean after leaving).
   `.gitignore`, tests, docs.
 - **Tests:** `./scripts/test.sh` (the package layout check now includes
   the license file).
+
+## T-024 — Claude Code in the island
+- **Created:** 2026-11-15
+- **Status:** Done (manual check pending)
+- **Description:** `selawi-island agent-hook claude` reads a Claude Code
+  hook's JSON (UserPromptSubmit, PreToolUse, PostToolUse,
+  PermissionRequest, Notification, Stop, StopFailure, SessionEnd) and
+  shows one progress bubble per session (`agents:claude:<session>`,
+  integration `agents`): working (custom, gear), waiting for you
+  (reminder, orange), done with the turn's time, failed with the error
+  kind. Tool calls only update, so a dismissed bubble stays away until the
+  next prompt. Never fails, prints nothing, 3 s deadline, does not start
+  the daemon. `selawi-island agent-hooks on|off|status` merges the
+  island's entries into Claude Code's settings (only its own; key order
+  kept with serde_json `preserve_order`; backup; atomic write; refuses
+  invalid JSON). The update asks once (answer in
+  `~/.config/selawi-island/agent-hooks`) and refreshes when on; a pacman
+  hook removes the entries for logged-in users when the package is
+  removed (`HOME` from /etc/passwd for the hand-off). The update script
+  now runs its per-user steps from the newly installed copy.
+- **Files:** `cli/src/{agent,agent_hooks,main}.rs`, `cli/Cargo.toml`,
+  `daemon/src/{config,hub}.rs`, `gnome-extension/ui/view-model.js`,
+  `gnome-extension/settings/integrations-page.js`,
+  `packaging/pacman/selawi-island-agent-hooks.hook`, `scripts/update.sh`,
+  `scripts/test.sh`, `tests/integration/dbus-smoke.sh`,
+  `tests/js/view-model.test.js`, `docs/CLAUDE_CODE.md`, docs.
+- **Dependencies added:** none directly; `serde_json`'s `preserve_order`
+  feature brings `indexmap`, `hashbrown`, `equivalent`, `foldhash`
+  (MIT / Apache-2.0 / Zlib).
+- **Tests:** unit tests for hook meanings, tool descriptions and the
+  settings merge; private-bus end-to-end of a whole session and of the
+  merge in a throwaway home; update-script paths simulated (not asked /
+  on / yes / no).
+- **Remaining:** manual check in the terminal, the VS Code extension and
+  the desktop app (docs/TESTING.md).

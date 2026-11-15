@@ -23,6 +23,7 @@ const SOURCES = [
     ['storage', 'USB drives', 'Drives plugged in and removed'],
     ['health', 'System warnings', 'Low memory and high CPU temperature (checks every 15 s)'],
     ['pacman', 'System updates', 'Installs, updates and removals with pacman or yay'],
+    ['agents', 'Claude Code', 'What Claude Code is doing, when its hooks are on'],
 ];
 
 function call(iface, method, args = null) {

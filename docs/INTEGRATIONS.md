@@ -234,6 +234,21 @@ not shown; `selawi-island run -- yay -S name` shows the whole thing.
 Removing Selawi Island itself is not shown. Turn it off in Integrations →
 System updates.
 
+## Claude Code — `agents` (implemented, Claude Code hooks)
+
+Source: Claude Code's own hooks, which run `selawi-island agent-hook
+claude` on your computer when you send a prompt, it uses a tool, it needs
+your approval, and a turn ends. One bubble per session: the project
+folder, what it is doing (“Editing main.rs”, “Running a command”), orange
+“Needs your approval” while it waits for you, then Done with the turn's
+time, or the kind of error. Prompts, commands, search terms, web
+addresses and file contents are never shown. A bubble that hears nothing
+for 15 minutes (1 hour while waiting for you) goes by itself.
+
+Set up with `selawi-island agent-hooks on` (the update asks once); turn
+it off in Integrations → Claude Code. Details, and where it works:
+[CLAUDE_CODE.md](CLAUDE_CODE.md).
+
 ## Microphone and camera in use — `gnome-privacy` (implemented, in the extension)
 
 Sources: recording streams in GNOME's mixer and `Shell.CameraMonitor`, the

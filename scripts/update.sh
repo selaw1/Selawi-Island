@@ -10,6 +10,8 @@
 # extension and the daemon on for you.
 #   --no-pull     build what you have, without git pull
 #   --repo DIR    use the repository in DIR (remembered for next time)
+#   --after-install   only the per-user steps (run by the newly installed
+#                     copy of this script, so new steps apply at once)
 set -euo pipefail
 
 UUID="selawi-island@selawi"
@@ -18,17 +20,65 @@ SAVED="$CONFIG/selawi-island/source-dir"
 
 repo=""
 pull=1
+after_install=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --no-pull) pull=0 ;;
+        --after-install) after_install=1 ;;
         --repo) repo="${2:?--repo needs a folder}"; shift ;;
-        -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
     shift
 done
 
 [ "$(id -u)" -ne 0 ] || { echo "Run this as yourself, not root (it asks for your password when needed)."; exit 1; }
+
+# Per-user parts a package can't do.
+per_user_steps() {
+    if systemctl --user show-environment >/dev/null 2>&1; then
+        systemctl --user daemon-reload
+        systemctl --user enable selawi-islandd.service >/dev/null 2>&1 || true
+        systemctl --user restart selawi-islandd.service || true
+    fi
+    command -v gnome-extensions >/dev/null && gnome-extensions enable "$UUID" 2>/dev/null || true
+
+    # Claude Code in the island: asked once, then remembered. When on, every
+    # update refreshes the island's hooks in ~/.claude/settings.json (only its
+    # own entries; a backup is kept). Change it any time:
+    #   selawi-island agent-hooks on | off
+    agents="$(selawi-island agent-hooks status --choice 2>/dev/null || echo unset)"
+    if [ "$agents" = unset ]; then
+        if [ -t 0 ]; then
+            echo
+            echo "Selawi Island can show what Claude Code is doing (working, waiting for"
+            echo "your approval, done). It adds its own hooks to ~/.claude/settings.json"
+            echo "and keeps a backup; nothing else in that file changes."
+            read -r -p "Show Claude Code progress in the island? [Y/n] " answer || answer=n
+            case "$answer" in
+                [nN]*) selawi-island agent-hooks off >/dev/null || true ;;
+                *) selawi-island agent-hooks on || echo "Claude Code progress was not set up (see above)." ;;
+            esac
+        else
+            echo "Claude Code progress in the island: turn on with  selawi-island agent-hooks on"
+        fi
+    elif [ "$agents" = on ]; then
+        selawi-island agent-hooks on >/dev/null || echo "Could not refresh Claude Code progress: run  selawi-island agent-hooks on"
+    fi
+    cat <<'DONE'
+
+Selawi Island is installed (version: pacman -Q selawi-island).
+  - Log out and back in so GNOME loads the new island.
+  - Chrome: chrome://extensions → reload Selawi Island.
+    First time: Developer mode → Load unpacked → /usr/share/selawi-island/browser/chrome
+  - Remove it any time: sudo pacman -R selawi-island
+DONE
+}
+
+if [ "$after_install" = 1 ]; then
+    per_user_steps
+    exit 0
+fi
 command -v makepkg >/dev/null || { echo "makepkg not found: this needs Arch Linux (pacman)."; exit 1; }
 
 # Which repository: --repo, the one this script is in, or the saved one.
@@ -76,19 +126,11 @@ echo "Building and installing the package..."
 rm -rf "$repo/packaging/arch/src" "$repo/packaging/arch/pkg" \
        "$repo/packaging/arch/selawi-island" "$repo/packaging/arch/"*.pkg.tar.*
 
-# Per-user parts a package can't do.
-if systemctl --user show-environment >/dev/null 2>&1; then
-    systemctl --user daemon-reload
-    systemctl --user enable selawi-islandd.service >/dev/null 2>&1 || true
-    systemctl --user restart selawi-islandd.service || true
+# The newly installed copy of this script does the per-user steps, so a
+# step added in this update already runs now.
+if [ -x /usr/bin/selawi-island-update ]; then
+    restore_pkgbuild
+    trap - EXIT
+    exec /usr/bin/selawi-island-update --after-install
 fi
-command -v gnome-extensions >/dev/null && gnome-extensions enable "$UUID" 2>/dev/null || true
-
-cat <<'DONE'
-
-Selawi Island is installed (version: pacman -Q selawi-island).
-  - Log out and back in so GNOME loads the new island.
-  - Chrome: chrome://extensions → reload Selawi Island.
-    First time: Developer mode → Load unpacked → /usr/share/selawi-island/browser/chrome
-  - Remove it any time: sudo pacman -R selawi-island
-DONE
+per_user_steps

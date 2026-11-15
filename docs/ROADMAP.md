@@ -11,7 +11,7 @@ Status key: **Done** · **In progress** · **Next** · Planned
 | 5 | Network, VPN, USB, storage, CPU/RAM/GPU, temperature, brightness | **Done** (checked on GNOME 51); brightness and GPU left out on purpose |
 | 6 | Browser extensions (Chromium, Firefox) + native messaging | **Done** — calls on any site, Meet, per-tab media with ads hidden, downloads |
 | 7 | Communication apps (Slack, Meet, Zoom, Teams, Discord, …) by reliable detection | **Done** — any web call with standard call controls (Meet included, no per-site code), desktop apps' logos and sites' names on the mic bubble |
-| 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | **Done** — system updates (pacman/yay), `selawi-island run`, “Copied”. Left out by choice: Docker/Podman (not used), Git (too quick to be worth a bubble); file copy progress (GNOME Files does not share it) |
+| 8 | Files, packages, Git, Docker/Podman, build/test progress, full CLI | **Done** — system updates (pacman/yay), `selawi-island run`, “Copied”, Claude Code progress (hooks). Left out by choice: Docker/Podman (not used), Git (too quick to be worth a bubble); file copy progress (GNOME Files does not share it) |
 | 9 | Plugin manifests, versioned protocol, isolation | **Done** — `Plugins1` (manifest, ask-first approval, sealed events, private buttons, limits), Python and Rust helpers. Web apps can still use web standards instead |
 | 10 | GTK4/libadwaita settings app, diagnostics | **Done** (manual check pending) — settings app with Island, Integrations and Status pages |
 | 11 | Profiling, stress and multi-monitor testing | **Done** — load check in the test suite, bundled `Changed` signals, multi-monitor edge cases |

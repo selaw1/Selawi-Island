@@ -63,6 +63,66 @@ printf 'spotify\n' | "$CLI" pacman-hook --this-session pre remove
 gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
     --method com.selawi.Island.Configuration1.Set '{}' >/dev/null
 
+# Claude Code hooks: what each hook shows. Prompts, commands and file
+# contents are never shown, and a hook never fails.
+hook() { printf '%s' "$1" | "$CLI" agent-hook claude || fail "agent-hook exited with an error"; }
+S='"session_id":"abc-123","cwd":"/home/user/code/my-app"'
+hook "{$S,\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"my secret plan\"}"
+"$CLI" list | grep -q '"id":"agents:claude:abc-123".*"title":"my-app","detail":"Working"' || fail "Claude Code turn not shown"
+hook "{$S,\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"/home/user/code/my-app/src/main.rs\",\"new_string\":\"hidden text\"}}"
+"$CLI" list | grep -q '"detail":"Editing main.rs"' || fail "Claude Code tool not shown"
+hook "{$S,\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"echo topsecret\"}}"
+hook "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\"}"
+"$CLI" list | grep -q '"category":"reminder".*"detail":"Needs your approval"' || fail "waiting for approval not shown"
+hook "{$S,\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{}}"
+"$CLI" list | grep -q '"category":"custom".*"detail":"Running a command"' || fail "back to working after approval"
+"$CLI" list | grep -q 'secret\|hidden text' && fail "a prompt, command or file contents were shown"
+hook "{$S,\"hook_event_name\":\"Stop\"}"
+"$CLI" list | grep -q '"id":"agents:claude:abc-123".*"state":"ended".*"detail":"Done · 0:00"' || fail "finished turn not shown as Done"
+printf 'not json' | "$CLI" agent-hook claude || fail "agent-hook failed on bad input"
+"$CLI" agent-hook claude </dev/null || fail "agent-hook failed on empty input"
+T='"session_id":"other-1","cwd":"/tmp/other"'
+hook "{$T,\"hook_event_name\":\"UserPromptSubmit\"}"
+hook "{$T,\"hook_event_name\":\"SessionEnd\",\"reason\":\"prompt_input_exit\"}"
+"$CLI" list | grep -q 'agents:claude:other-1' && fail "a closed session's bubble stayed"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{"integrations":{"agents":false}}' >/dev/null
+hook '{"session_id":"off-1","hook_event_name":"UserPromptSubmit"}'
+"$CLI" list | grep -q 'agents:claude:off-1' && fail "Claude Code shown while turned off"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{}' >/dev/null
+
+# Claude Code settings: the island's hooks are added and removed without
+# touching anything else, with a backup, and never in a file it can't read.
+H="$WORK/home"
+mkdir -p "$H/.claude"
+SETTINGS="$H/.claude/settings.json"
+printf '{"model":"opus","hooks":{"Stop":[{"hooks":[{"type":"command","command":"notify-send done"}]}]}}\n' > "$SETTINGS"
+as_home() { env -u CLAUDE_CONFIG_DIR HOME="$H" XDG_CONFIG_HOME="$H/.config" "$CLI" "$@"; }
+[ "$(as_home agent-hooks status --choice)" = unset ] || fail "agent hooks should start unset"
+as_home agent-hooks on >/dev/null || fail "agent-hooks on failed"
+grep -q 'agent-hook claude' "$SETTINGS" || fail "hooks not added"
+grep -q 'notify-send done' "$SETTINGS" || fail "an existing hook was lost"
+grep -q '"model": "opus"' "$SETTINGS" || fail "an existing setting was lost"
+[ -f "$H/.claude/settings.json.bak" ] || fail "no backup made"
+[ "$(as_home agent-hooks status --choice)" = on ] || fail "answer not remembered"
+cp "$SETTINGS" "$WORK/once.json"
+as_home agent-hooks on >/dev/null
+cmp -s "$SETTINGS" "$WORK/once.json" || fail "turning on twice changed the file"
+as_home agent-hooks off >/dev/null || fail "agent-hooks off failed"
+grep -q 'agent-hook' "$SETTINGS" && fail "hooks not removed"
+grep -q 'notify-send done' "$SETTINGS" || fail "removing lost another hook"
+[ "$(as_home agent-hooks status --choice)" = off ] || fail "off not remembered"
+printf '{ broken' > "$SETTINGS"
+if as_home agent-hooks on 2>/dev/null; then fail "a broken settings file was changed"; fi
+[ "$(cat "$SETTINGS")" = '{ broken' ] || fail "a broken settings file was rewritten"
+rm -rf "$H/.claude"
+as_home agent-hooks on >/dev/null || fail "agent-hooks on without a settings file"
+grep -q 'agent-hook claude' "$SETTINGS" || fail "settings file not created"
+as_home agent-hooks off --keep-choice >/dev/null
+grep -q 'agent-hook' "$SETTINGS" && fail "package removal left the hooks"
+[ "$(as_home agent-hooks status --choice)" = on ] || fail "package removal forgot the answer"
+
 # Persistence: a persistent event survives a restart.
 "$CLI" send '{"id":"call","source":{"app":"Slack","integration":"test"},"category":"call","state":"started","persistent":true,"payload":{"type":"call","title":"Standup","confidence":"confirmed"}}'
 kill "$DAEMON_PID"; wait "$DAEMON_PID" 2>/dev/null || true

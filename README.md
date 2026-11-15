@@ -22,6 +22,7 @@ cloud, no hosting.
 | Automatic detection: music players, battery, Bluetooth, notifications (including GNOME's own), audio devices, microphone and camera in use, network/VPN, USB drives, “Copied”, opt-in system warnings | Implemented ([INTEGRATIONS](docs/INTEGRATIONS.md)) |
 | Browser extension: calls on any website (Mute / Leave where the site offers standard call controls), media in each tab (YouTube, YouTube Music, SoundCloud), downloads | Implemented ([BROWSER_INTEGRATIONS](docs/BROWSER_INTEGRATIONS.md)) |
 | Developer workflows: `selawi-island run`, system updates with pacman and yay | Implemented ([CLI](docs/CLI.md)) |
+| Claude Code progress: working, waiting for your approval, done (Claude Code hooks) | Implemented, manual check pending ([CLAUDE_CODE](docs/CLAUDE_CODE.md)) |
 | Plugins: your own apps show their own bubbles (`Plugins1`, Python and Rust helpers) | Implemented ([PLUGINS](docs/PLUGINS.md)) |
 | Settings app (GTK 4 / libadwaita): Island, Integrations and Status pages | Implemented, manual check pending |
 | Performance: load check in the test suite, multi-monitor cases | Implemented, tested |

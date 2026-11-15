@@ -60,6 +60,14 @@
   your real players and devices (see `docs/TESTING.md`).
 - **Calls show the site's name, not the meeting's name** (e.g. “Google
   Meet”): there is no per-site code.
+- **Claude Code shows only where its hooks run on your computer.** The
+  terminal works; the VS Code extension and the desktop app have been
+  reported to skip some hooks in some versions; cloud sessions cannot
+  reach the island. The hooks take effect in sessions started after
+  turning them on.
+- **Claude Code bubbles say what kind of tool runs, not what it does
+  exactly** (never the command or search), and only file names, not
+  paths.
 - **A site the island does not know shows the name it declares** for
   itself (`application-name`), as the site wrote it. Known sites always
   keep their own names.

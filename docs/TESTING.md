@@ -21,6 +21,8 @@
 | `tests/browser/*.test.js` (6) | The browser extension's event building (mute state only when the site reports it, buttons, call controls from hostile input, media tabs with only the controls the page offers and no timer during ads, site names for calls on any site, download progress and names), every event validated by the island's validator. Runs after `scripts/build-browser.sh` (strict TypeScript) |
 | `native-messaging` unit tests (6) | Message framing, size limit, refusing events that pose as other integrations or carry unknown fields, rate limit |
 | `tests/integration/dbus-smoke.sh` (run and pacman part) | `selawi-island run` passes output and exit codes through and shows Running → Done / Failed (exit 3); a missing program exits 127; the pacman hook shows “Updating 2 packages” → “Updated 2 packages”, rejects odd package names, and nothing is shown while System updates is off. The root → user hand-off and the “Did not finish” watcher were checked by hand with a throwaway user (not in CI: needs root and a user session) |
+| `tests/integration/dbus-smoke.sh` (Claude Code part) | A Claude Code session's hooks against the real daemon: a prompt shows “Working” with the project folder, a tool shows “Editing main.rs”, a permission request turns it orange (“Needs your approval”), after the tool it is back to working, Stop shows “Done · 0:00”; the prompt, the command and file contents never appear; bad input never fails; a closed session's bubble goes; nothing shows while the integration is off. The settings merge in a throwaway home: hooks added with a backup, other hooks and settings kept, turning on twice changes nothing, off removes only the island's entries, a broken file is never touched, a missing file is created, package removal keeps your answer |
+| `cli/src/agent*.rs` unit tests | Each hook's meaning, tool descriptions without secrets, session ids, the settings merge (key order kept, idempotent, moved program replaced, shared groups, odd files refused) |
 | `daemon/tests/fake_services.rs` (Wi-Fi back during a scan flood) | 400 access-point signals arrive while the connection comes back: “Home · Wi-Fi connected” is still shown (it used to hang at Offline) |
 | `daemon/tests/fake_services.rs` (notifications) | A `Notify` call to a fake server reaches the island without replacing it |
 | `tests/js/shell-model.test.js` | GNOME Shell and GNOME-app notifications (text setting, urgency, empty titles, app logo and grouping), “Copied” kinds and that it never opens the island |
@@ -213,6 +215,15 @@ On your machine, with a call or music playing for a while:
 3. `yay -Syu` with updates: “Updating N packages” and a few names, then “Updated N packages”. Pacman's output shows one extra line, “Telling Selawi Island...”.
 4. Start an update and answer “n” at pacman's prompt, or press Ctrl+C while it installs: nothing shown, or Failed “Did not finish”.
 5. Integrations → turn off System updates: installs no longer show.
+
+### Claude Code
+
+1. After the update, answer “y” to “Show Claude Code progress in the island?”, or run `selawi-island agent-hooks on`. `~/.claude/settings.json` now has the island's hooks and everything you had before; `settings.json.bak` holds the old file.
+2. Start `claude` in a project folder (terminal) and ask for a small change: a blue bubble with the folder's name, “Working”, then “Reading …”, “Editing …”, and a timer.
+3. When it asks for approval: orange “Needs your approval”. Approve: back to blue.
+4. When the turn ends: green “Done” with its time.
+5. Repeat in the VS Code extension and in the Claude desktop app (a local session) and note which steps show.
+6. Integrations → turn off Claude Code: nothing shows. `selawi-island agent-hooks off`: the hooks are gone from the settings file.
 
 ### Arch package
 

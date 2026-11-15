@@ -344,6 +344,10 @@ mod tests {
             owning_integration(r#"{"id":"mpris:spotify"}"#),
             Some("mpris")
         );
+        assert_eq!(
+            owning_integration(r#"{"id":"agents:claude:1f2e"}"#),
+            Some("agents")
+        );
         assert_eq!(owning_integration(r#"{"id":"cli-run-1-2"}"#), None);
         assert_eq!(owning_integration(r#"{"id":"browser:call:1"}"#), None);
         assert_eq!(owning_integration("not json"), None);
