@@ -304,6 +304,8 @@ export function describe(event, now) {
             vm.iconName = 'folder-download-symbolic';
         else if (event.source.integration === 'pacman')
             vm.iconName = 'software-update-available-symbolic';
+        else if (event.source.integration === 'agents')
+            vm.iconName = 'emblem-system-symbolic';
         else if (event.source.integration === 'cli' && event.category === 'custom')
             vm.iconName = 'system-run-symbolic';
         else
@@ -320,6 +322,11 @@ export function describe(event, now) {
             vm.progress = 1;
         } else {
             vm.accent = 'blue';
+            // An agent (Claude Code) waiting for your approval or answer.
+            if (event.source.integration === 'agents' && event.category === 'reminder') {
+                vm.accent = 'orange';
+                vm.iconName = 'dialog-question-symbolic';
+            }
             if (p.percent !== undefined) {
                 vm.progress = p.percent / 100;
                 vm.trailing = `${Math.round(p.percent)}%`;

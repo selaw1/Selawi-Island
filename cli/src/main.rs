@@ -1,6 +1,8 @@
 //! selawi-island: send events to the Selawi Island daemon from a terminal
 //! or script. See docs/CLI.md.
 
+mod agent;
+mod agent_hooks;
 mod pacman;
 mod run;
 
@@ -128,6 +130,17 @@ enum Command {
         )]
         command: Vec<String>,
     },
+    /// Show what Claude Code is doing in the island: on, off or status.
+    AgentHooks {
+        #[command(subcommand)]
+        action: AgentHooksAction,
+    },
+    /// Used by Claude Code's hooks (reads the hook's JSON on stdin).
+    #[command(hide = true)]
+    AgentHook {
+        /// Which agent sent it (only "claude" for now).
+        agent: String,
+    },
     /// Used by the pacman hooks (runs as root).
     #[command(hide = true)]
     PacmanHook {
@@ -149,6 +162,27 @@ enum Command {
         #[arg(long)]
         detail: Option<String>,
     },
+}
+
+#[derive(Subcommand)]
+enum AgentHooksAction {
+    /// Add the island's hooks to Claude Code's settings.
+    On,
+    /// Remove them again.
+    Off {
+        /// Remove them but keep your answer (package removal).
+        #[arg(long, hide = true)]
+        keep_choice: bool,
+    },
+    /// Show whether they are on.
+    Status {
+        /// Print only on, off or unset (for scripts).
+        #[arg(long)]
+        choice: bool,
+    },
+    /// Used when the package is removed (runs as root).
+    #[command(hide = true)]
+    Cleanup,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -268,6 +302,12 @@ fn main() -> ExitCode {
             pacman_user(step, title, detail);
             return ExitCode::SUCCESS;
         }
+        // Never fails: Claude Code must not depend on the island.
+        Command::AgentHook { agent } => {
+            agent_hook(&agent);
+            return ExitCode::SUCCESS;
+        }
+        Command::AgentHooks { action } => return agent_hooks(action),
         _ => {}
     }
     let runtime = match tokio::runtime::Builder::new_current_thread()
@@ -362,9 +402,11 @@ async fn run(command: Command) -> Result<()> {
             }
             Ok(())
         }
-        Command::Run { .. } | Command::PacmanHook { .. } | Command::PacmanUser { .. } => {
-            Err("handled before connecting".into())
-        }
+        Command::Run { .. }
+        | Command::PacmanHook { .. }
+        | Command::PacmanUser { .. }
+        | Command::AgentHook { .. }
+        | Command::AgentHooks { .. } => Err("handled before connecting".into()),
         Command::Status => {
             let core = CoreProxy::new(&connection).await.map_err(dbus_error)?;
             let version = core.version().await.map_err(dbus_error)?;
@@ -662,6 +704,12 @@ impl Island {
         }
     }
 
+    async fn dismiss(&self, id: &str) {
+        if let Some(events) = &self.events {
+            let _ = events.dismiss(id).await;
+        }
+    }
+
     async fn current(&self, id: &str) -> Option<Event> {
         let events = self.events.as_ref()?;
         let list: Vec<Event> = serde_json::from_str(&events.list().await.ok()?).ok()?;
@@ -776,17 +824,25 @@ fn as_user(program: &Path, args: &[String], session: Session) -> Option<Child> {
         .stderr(Stdio::null())
         .process_group(0);
     if let Some(uid) = session.uid {
-        command
-            .env_clear()
-            .env(
-                "DBUS_SESSION_BUS_ADDRESS",
-                format!("unix:path=/run/user/{uid}/bus"),
-            )
-            .current_dir("/")
-            .gid(session.gid)
-            .uid(uid);
+        command.env_clear().env(
+            "DBUS_SESSION_BUS_ADDRESS",
+            format!("unix:path=/run/user/{uid}/bus"),
+        );
+        if let Some(home) = home_of(uid) {
+            command.env("HOME", home);
+        }
+        command.current_dir("/").gid(session.gid).uid(uid);
     }
     command.spawn().ok()
+}
+
+/// A user's home folder, from /etc/passwd.
+fn home_of(uid: u32) -> Option<String> {
+    let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
+    passwd.lines().find_map(|line| {
+        let fields: Vec<&str> = line.split(':').collect();
+        (fields.len() >= 6 && fields[2].parse() == Ok(uid)).then(|| fields[5].to_string())
+    })
 }
 
 fn wait_briefly(child: &mut Child) {
@@ -917,4 +973,318 @@ fn pacman_input(
         }),
         actions: Vec::new(),
     })
+}
+
+// ---- Claude Code ------------------------------------------------------------
+
+/// Hook input is small JSON, but a Write call carries the whole file.
+const MAX_HOOK_INPUT: u64 = 32 * 1024 * 1024;
+/// The hook never holds Claude Code up for longer than this.
+const HOOK_DEADLINE: Duration = Duration::from_secs(3);
+
+fn agent_hook(agent: &str) {
+    if agent != "claude" {
+        return;
+    }
+    let mut raw = Vec::new();
+    if std::io::stdin()
+        .take(MAX_HOOK_INPUT)
+        .read_to_end(&mut raw)
+        .is_err()
+    {
+        return;
+    }
+    let Ok(input) = serde_json::from_slice::<serde_json::Value>(&raw) else {
+        return;
+    };
+    let step = agent::step_for(&input);
+    if step == agent::Step::Nothing {
+        return;
+    }
+    let Some(id) = input
+        .get("session_id")
+        .and_then(serde_json::Value::as_str)
+        .and_then(agent::event_id)
+    else {
+        return;
+    };
+    let new_turn = input
+        .get("hook_event_name")
+        .and_then(serde_json::Value::as_str)
+        == Some("UserPromptSubmit");
+    let title = agent::project_title(input.get("cwd").and_then(serde_json::Value::as_str));
+    let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    else {
+        return;
+    };
+    runtime.block_on(async {
+        let deliver = async {
+            let island = Island::connect().await;
+            match step {
+                agent::Step::Working(detail) => {
+                    // A new turn restarts a finished bubble; tool calls only
+                    // update, so a bubble you dismissed stays away.
+                    let state = if new_turn {
+                        LifecycleState::Started
+                    } else {
+                        LifecycleState::Updated
+                    };
+                    let input = agent_input(&id, state, title, detail, false);
+                    island.send(input).await;
+                }
+                agent::Step::Waiting(detail) => {
+                    let input = agent_input(&id, LifecycleState::Updated, title, detail, true);
+                    island.send(input).await;
+                }
+                agent::Step::Finished => {
+                    let Some(current) = island.current(&id).await else {
+                        return;
+                    };
+                    let elapsed = Timestamp::now().0.saturating_sub(current.created_at.0);
+                    let time = run::format_duration(Duration::from_millis(elapsed));
+                    let mut input = agent_input(
+                        &id,
+                        LifecycleState::Ended,
+                        title,
+                        format!("Done · {time}"),
+                        false,
+                    );
+                    if let Some(EventInput {
+                        payload: Payload::Progress(p),
+                        ..
+                    }) = input.as_mut()
+                    {
+                        p.percent = Some(100.0);
+                    }
+                    island.send(input).await;
+                }
+                agent::Step::Failed(detail) => {
+                    let input = agent_input(&id, LifecycleState::Failed, title, detail, false);
+                    island.send(input).await;
+                }
+                agent::Step::Closed => {
+                    if island.current(&id).await.is_some() {
+                        island.dismiss(&id).await;
+                    }
+                }
+                agent::Step::Nothing => {}
+            }
+        };
+        let _ = tokio::time::timeout(HOOK_DEADLINE, deliver).await;
+    });
+}
+
+fn agent_input(
+    id: &str,
+    state: LifecycleState,
+    title: String,
+    detail: String,
+    waiting: bool,
+) -> Option<EventInput> {
+    let ttl = if waiting {
+        agent::WAITING_TTL_SECS
+    } else {
+        agent::WORKING_TTL_SECS
+    };
+    Some(EventInput {
+        id: EventId::new(id).ok()?,
+        source: Source {
+            app: agent::APP.into(),
+            integration: agent::INTEGRATION.into(),
+            icon: None,
+        },
+        // Waiting for you is shown as a reminder: something to do.
+        category: if waiting {
+            Category::Reminder
+        } else {
+            Category::Custom
+        },
+        state,
+        priority: Some(Priority::Notification),
+        persistent: false,
+        ttl_ms: Some(secs_to_ms(ttl)),
+        group: Some("agents:claude".into()),
+        payload: Payload::Progress(ProgressPayload {
+            title,
+            detail: Some(detail),
+            percent: None,
+        }),
+        actions: Vec::new(),
+    })
+}
+
+/// Claude Code's user settings file.
+fn claude_settings_path() -> Option<std::path::PathBuf> {
+    if let Some(dir) = std::env::var_os("CLAUDE_CONFIG_DIR").filter(|d| !d.is_empty()) {
+        return Some(std::path::PathBuf::from(dir).join("settings.json"));
+    }
+    let home = std::env::var_os("HOME").filter(|h| !h.is_empty())?;
+    Some(
+        std::path::PathBuf::from(home)
+            .join(".claude")
+            .join("settings.json"),
+    )
+}
+
+/// Where your on/off answer is remembered.
+fn agent_choice_path() -> Option<std::path::PathBuf> {
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .filter(|d| !d.is_empty())
+        .map(std::path::PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .filter(|h| !h.is_empty())
+                .map(|h| std::path::PathBuf::from(h).join(".config"))
+        })?;
+    Some(config.join("selawi-island").join("agent-hooks"))
+}
+
+fn read_agent_choice() -> Option<String> {
+    let text = std::fs::read_to_string(agent_choice_path()?).ok()?;
+    let choice = text.trim();
+    matches!(choice, "on" | "off").then(|| choice.to_string())
+}
+
+fn save_agent_choice(choice: &str) -> Result<()> {
+    let path = agent_choice_path().ok_or("no home folder")?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, format!("{choice}\n")).map_err(|e| e.to_string())
+}
+
+/// Reads Claude Code's settings, changes them with `change` and, if that
+/// changed anything, saves a backup and writes the new file in one step.
+fn edit_claude_settings(
+    change: impl FnOnce(&mut serde_json::Value) -> Result<bool>,
+) -> Result<(bool, std::path::PathBuf)> {
+    let path = claude_settings_path().ok_or("no home folder")?;
+    let existing = match std::fs::read_to_string(&path) {
+        Ok(text) => Some(text),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(format!("can't read {}: {e}", path.display())),
+    };
+    let mut settings = agent_hooks::parse_settings(existing.as_deref().unwrap_or(""))
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    if !change(&mut settings).map_err(|e| format!("{}: {e}", path.display()))? {
+        return Ok((false, path));
+    }
+    let dir = path.parent().ok_or("no folder for the settings")?;
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    if existing.is_some() {
+        let backup = dir.join("settings.json.bak");
+        std::fs::copy(&path, &backup).map_err(|e| format!("can't back up the settings: {e}"))?;
+    }
+    let mut text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    text.push('\n');
+    let temporary = dir.join(".settings.json.selawi-island");
+    std::fs::write(&temporary, text).map_err(|e| e.to_string())?;
+    if let Ok(meta) = std::fs::metadata(&path) {
+        let _ = std::fs::set_permissions(&temporary, meta.permissions());
+    }
+    std::fs::rename(&temporary, &path).map_err(|e| e.to_string())?;
+    Ok((true, path))
+}
+
+fn agent_hooks(action: AgentHooksAction) -> ExitCode {
+    let result = match action {
+        AgentHooksAction::On => agent_hooks_on(),
+        AgentHooksAction::Off { keep_choice } => agent_hooks_off(keep_choice),
+        AgentHooksAction::Status { choice } => agent_hooks_status(choice),
+        AgentHooksAction::Cleanup => {
+            agent_hooks_cleanup();
+            Ok(())
+        }
+    };
+    match result {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("selawi-island: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn agent_hooks_on() -> Result<()> {
+    let program = std::env::current_exe().map_err(|e| e.to_string())?;
+    let command = agent_hooks::hook_command(&program.to_string_lossy());
+    let (changed, path) =
+        edit_claude_settings(|settings| agent_hooks::install(settings, &command))?;
+    save_agent_choice("on")?;
+    if changed {
+        println!(
+            "Claude Code progress is on: added the island's hooks to {} \
+             (backup: settings.json.bak next to it).\n\
+             Restart open Claude Code sessions to use them.",
+            path.display()
+        );
+    } else {
+        println!(
+            "Claude Code progress is on (already set up in {}).",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+fn agent_hooks_off(keep_choice: bool) -> Result<()> {
+    let (changed, path) = edit_claude_settings(agent_hooks::uninstall)?;
+    if !keep_choice {
+        save_agent_choice("off")?;
+    }
+    if changed {
+        println!(
+            "Claude Code progress is off: removed the island's hooks from {} \
+             (backup: settings.json.bak next to it).",
+            path.display()
+        );
+    } else {
+        println!("Claude Code progress is off.");
+    }
+    Ok(())
+}
+
+fn agent_hooks_status(only_choice: bool) -> Result<()> {
+    let choice = read_agent_choice();
+    if only_choice {
+        println!("{}", choice.as_deref().unwrap_or("unset"));
+        return Ok(());
+    }
+    let path = claude_settings_path().ok_or("no home folder")?;
+    let installed = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| agent_hooks::parse_settings(&text).ok())
+        .is_some_and(|settings| agent_hooks::installed(&settings));
+    let state = match (choice.as_deref(), installed) {
+        (Some("on"), true) => "on".to_string(),
+        (Some("on"), false) => {
+            "on, but the hooks are missing (run: selawi-island agent-hooks on)".into()
+        }
+        (_, true) => "hooks present (turn off with: selawi-island agent-hooks off)".into(),
+        (Some(_), false) => "off".into(),
+        (None, false) => "not set up (turn on with: selawi-island agent-hooks on)".into(),
+    };
+    println!("Claude Code progress: {state}");
+    println!("Settings: {}", path.display());
+    Ok(())
+}
+
+/// Package removal: take the hooks out of each logged-in user's Claude
+/// Code settings (their answer is kept for a later install).
+fn agent_hooks_cleanup() {
+    let Ok(program) = std::env::current_exe() else {
+        return;
+    };
+    let args = [
+        "agent-hooks".to_string(),
+        "off".to_string(),
+        "--keep-choice".to_string(),
+    ];
+    for session in user_sessions() {
+        if let Some(mut child) = as_user(&program, &args, session) {
+            wait_briefly(&mut child);
+        }
+    }
 }

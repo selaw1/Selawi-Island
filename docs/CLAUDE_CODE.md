@@ -1,0 +1,79 @@
+# Claude Code in the island
+
+The island can show what Claude Code is doing on your computer: a bubble
+per session with the project folder, what it is doing right now, when it
+needs you, and when it is done.
+
+| Claude Code | The island |
+|---|---|
+| You send a prompt | Blue bubble, gear icon: “my-app · Working”, with a running timer |
+| It uses a tool | “Editing main.rs”, “Reading README.md”, “Running a command”, “Searching the code”, “Reading a web page”, “Using github” (an MCP server)… |
+| It asks for your approval | Orange bubble, question mark: “Needs your approval” |
+| It asks you a question | Orange: “Needs your answer” |
+| The turn finishes | Green: “Done · 4:12” (how long the turn took), then it goes |
+| The turn stops on an error | Red: “Usage limit reached”, “Service unavailable”, “Sign-in needed”, “Billing problem” or “Stopped by an error” |
+| You close the session | An unfinished bubble goes |
+
+Several sessions show as separate bubbles, one per session.
+
+**What is never shown:** your prompts, command lines, search terms, web
+addresses or file contents. Only the project folder's name, the kind of
+tool and a file's name.
+
+## Turning it on and off
+
+The first `selawi-island-update` that includes this asks once:
+“Show Claude Code progress in the island? [Y/n]”. Your answer is
+remembered (`~/.config/selawi-island/agent-hooks`). Change it any time:
+
+```bash
+selawi-island agent-hooks on
+selawi-island agent-hooks off
+selawi-island agent-hooks status
+```
+
+There is also a switch in Settings → Integrations → **Claude Code**: off,
+the island ignores Claude Code's messages without changing any files.
+
+Restart open Claude Code sessions after turning it on or off.
+
+## What it changes in Claude Code's settings
+
+`on` adds the island's own hooks to `~/.claude/settings.json` (or
+`$CLAUDE_CONFIG_DIR/settings.json`) for these Claude Code events:
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`,
+`Notification`, `Stop`, `StopFailure` and `SessionEnd`. Each runs:
+
+```text
+'/usr/bin/selawi-island' agent-hook claude 2>/dev/null || true
+```
+
+- **Only its own entries.** Anything else in the file (other hooks,
+  permissions, MCP servers, the order of keys) stays as it was.
+- **A backup first:** `settings.json.bak` next to it, whenever the file
+  changes.
+- **Safe to repeat.** Every update refreshes the entries without adding
+  duplicates.
+- **Never a broken file.** If the file is not valid JSON, nothing is
+  changed and it says why.
+- **Never in Claude Code's way.** The hook always succeeds, prints
+  nothing and gives up after 3 seconds; if the island is not running or
+  not installed, it does nothing.
+- `off` removes the entries again. Removing the package
+  (`sudo pacman -R selawi-island`) removes them for logged-in users too.
+
+## Where it works
+
+It works wherever Claude Code runs **on your computer** and runs its
+hooks:
+
+- **Terminal** (`claude`), including VS Code's built-in terminal: works.
+- **VS Code extension** and the **Claude desktop app**: they use the same
+  settings file, but some hooks have been reported not to fire there in
+  some versions. Check it once on your machine (docs/TESTING.md).
+- **Cloud sessions** (Claude Code on the web, cloud sessions in the app)
+  run on another machine and cannot reach your island.
+
+Other agents can show their work with `selawi-island run -- COMMAND`
+(running, then done or failed) or through the plugin interface
+([PLUGINS.md](PLUGINS.md)).

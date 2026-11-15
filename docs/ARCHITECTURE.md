@@ -45,7 +45,7 @@ Three layers. Each may depend only on the layers listed after it.
 | Settings app | `settings-app/` (`selawi-island-settings`) | GJS GTK 4 + libadwaita app showing the shared pages; opened by right-clicking the island; works when the extension is off or broken |
 | Preferences window | `gnome-extension/prefs.js` | The same pages in GNOME's extension preferences window |
 | Plugins | `core/src/plugins.rs` (manifest, sealing, rate limit), `daemon/src/plugins.rs` (`Plugins1`), `sdk/python`, `sdk/rust` | Apps showing their own events: ask-first approval, own id namespace, manifest's name and icon, buttons sent only to the app, events gone when it disconnects. See PLUGINS.md |
-| CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status` over D-Bus |
+| CLI | `cli/` | `selawi-island notify/progress/list/dismiss/send/status/run` over D-Bus; the pacman hooks; Claude Code's hooks (`agent-hook`, pure logic in `agent.rs`) and the settings merge that adds them (`agent_hooks.rs`) |
 | Extension | `gnome-extension/` | Draws the island from a feed |
 
 The D-Bus contract is in [DBUS.md](DBUS.md); the CLI in [CLI.md](CLI.md).

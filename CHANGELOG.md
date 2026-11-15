@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Claude Code in the island
+
+### Added
+- **Claude Code progress:** one bubble per Claude Code session with the
+  project folder and what it is doing (“Editing main.rs”, “Running a
+  command”), orange “Needs your approval” when it waits for you, then
+  Done with the turn's time, or why it stopped. Never shows prompts,
+  commands or file contents. Works through Claude Code's hooks on your
+  computer (docs/CLAUDE_CODE.md).
+- `selawi-island agent-hooks on | off | status`: adds or removes the
+  island's own hooks in `~/.claude/settings.json`, keeping everything else
+  and a backup. `selawi-island-update` asks once and keeps them current;
+  removing the package takes them out.
+- Settings → Integrations → **Claude Code** switch.
+
+### Changed
+- `selawi-island-update` hands over to the newly installed copy of itself
+  for the per-user steps, so a step added in an update runs in that same
+  update.
+
 ## Unreleased — open source
 
 ### Added

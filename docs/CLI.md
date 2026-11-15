@@ -72,6 +72,7 @@ command still runs normally.
 | `selawi-island dismiss ID` | Remove an event |
 | `selawi-island send JSON` | Send a raw protocol v1 event input (`-` reads stdin) |
 | `selawi-island run -- COMMAND` | Run a command and show it (above) |
+| `selawi-island agent-hooks on\|off\|status` | Show what Claude Code is doing in the island: adds or removes the island's hooks in Claude Code's settings ([CLAUDE_CODE.md](CLAUDE_CODE.md)). `status --choice` prints only `on`, `off` or `unset` |
 
 Exit code is 0 on success and 1 on any error, with the reason on stderr
 (`run` returns the command's own exit code).

@@ -273,6 +273,15 @@ test('commands and system updates: their icon and a running timer', () => {
     const failed = describe(task('cli', 'custom', 'failed', {title: 'cargo build', detail: 'Failed (exit 101) · 0:09'}), 9_000);
     assert.equal(failed.trailing, 'Failed');
     assert.equal(failed.accent, 'red');
+    const agent = describe(task('agents', 'custom', 'started', {title: 'my-app', detail: 'Editing main.rs'}), 72_000);
+    assert.equal(agent.iconName, 'emblem-system-symbolic');
+    assert.equal(agent.accent, 'blue');
+    assert.equal(agent.trailing, '1:12', 'Claude Code working: a running timer');
+    const waiting = describe(task('agents', 'reminder', 'started', {title: 'my-app', detail: 'Needs your approval'}), 80_000);
+    assert.equal(waiting.iconName, 'dialog-question-symbolic');
+    assert.equal(waiting.accent, 'orange', 'waiting for you stands out');
+    const agentDone = describe(task('agents', 'custom', 'ended', {title: 'my-app', detail: 'Done · 4:12', percent: 100}), 90_000);
+    assert.equal(agentDone.trailing, 'Done');
     const download = describe(task('browser', 'transfer', 'started', {title: 'a.zip', detail: '5 MB'}), 9_000);
     assert.equal(download.trailing, '', 'downloads without a size keep no timer');
 });

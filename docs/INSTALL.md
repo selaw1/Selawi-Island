@@ -38,6 +38,11 @@ ones reuse the downloads and compiled files (kept in
 `~/.cache/selawi-island`) and only rebuild what changed. Log out and back in
 afterwards, and reload the browser extension (below).
 
+The first update with Claude Code support asks once whether to show
+Claude Code's progress in the island ([CLAUDE_CODE.md](CLAUDE_CODE.md)).
+Your answer is remembered, and later updates keep the island's hooks in
+Claude Code's settings current.
+
 `yay -Syu` does not update Selawi Island: it is not on the AUR. You can also build by hand in `packaging/arch` with
 `makepkg -si` or `yay -Bi .`.
 

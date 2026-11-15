@@ -1,0 +1,12 @@
+# When Selawi Island is removed, takes its hooks out of Claude Code's
+# settings for each logged-in user (their answer is kept for a later
+# install). Leftover hooks would do nothing anyway: they never fail.
+[Trigger]
+Operation = Remove
+Type = Package
+Target = selawi-island
+
+[Action]
+Description = Removing Selawi Island's Claude Code hooks...
+When = PreTransaction
+Exec = /usr/bin/selawi-island agent-hooks cleanup
