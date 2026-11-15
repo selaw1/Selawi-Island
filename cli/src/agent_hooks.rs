@@ -7,22 +7,23 @@
 
 use serde_json::{json, Map, Value};
 
-/// Claude Code hook events the island listens to, and whether the event
-/// takes a matcher (tool events).
-pub const EVENTS: [(&str, bool); 8] = [
-    ("UserPromptSubmit", false),
-    ("PreToolUse", true),
-    ("PostToolUse", true),
-    ("PermissionRequest", true),
-    ("Notification", false),
-    ("Stop", false),
-    ("StopFailure", false),
-    ("SessionEnd", false),
+/// Claude Code hook events the island listens to, whether the event takes
+/// a matcher (tool events), and the seconds Claude Code waits for the hook
+/// at most. Most take a few milliseconds; PermissionRequest waits for your
+/// Allow / Deny (agent::ANSWER_WAIT_SECS) and then gives up by itself.
+pub const EVENTS: [(&str, bool, u64); 8] = [
+    ("UserPromptSubmit", false, 5),
+    ("PreToolUse", true, 5),
+    ("PostToolUse", true, 5),
+    ("PermissionRequest", true, 120),
+    ("Notification", false, 5),
+    ("Stop", false, 5),
+    ("StopFailure", false, 5),
+    ("SessionEnd", false, 5),
 ];
 
-/// Seconds Claude Code waits for the hook at most. It normally takes a
-/// few milliseconds.
-const TIMEOUT_SECS: u64 = 5;
+// The island gives up waiting before Claude Code stops the hook.
+const _: () = assert!(crate::agent::ANSWER_WAIT_SECS < 120);
 
 /// The command Claude Code runs. It never fails: if the island is gone
 /// (for example uninstalled), the hook quietly does nothing.
@@ -63,7 +64,7 @@ pub fn install(settings: &mut Value, command: &str) -> Result<bool, String> {
     let Some(events) = hooks.as_object_mut() else {
         return Err("its \"hooks\" entry is not an object; nothing was changed".into());
     };
-    for (name, has_matcher) in EVENTS {
+    for (name, has_matcher, timeout) in EVENTS {
         let groups = events
             .entry(name)
             .or_insert_with(|| Value::Array(Vec::new()));
@@ -72,7 +73,7 @@ pub fn install(settings: &mut Value, command: &str) -> Result<bool, String> {
                 "its \"{name}\" hooks are not a list; nothing was changed"
             ));
         };
-        let handler = json!({"type": "command", "command": command, "timeout": TIMEOUT_SECS});
+        let handler = json!({"type": "command", "command": command, "timeout": timeout});
         let mut group = Map::new();
         if has_matcher {
             group.insert("matcher".into(), json!("*"));
@@ -187,6 +188,10 @@ mod tests {
         assert!(settings["hooks"]["Stop"][0].get("matcher").is_none());
         assert_eq!(settings["hooks"]["Stop"][0]["hooks"][0]["command"], CMD);
         assert_eq!(settings["hooks"]["Stop"][0]["hooks"][0]["timeout"], 5);
+        assert_eq!(
+            settings["hooks"]["PermissionRequest"][0]["hooks"][0]["timeout"], 120,
+            "time to answer from the island"
+        );
         Ok(())
     }
 

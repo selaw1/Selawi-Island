@@ -1,8 +1,22 @@
 # Changelog
 
+## Unreleased — answer Claude Code from the island
+
+### Added
+- When Claude Code asks for approval, the island shows what it asks for
+  (“Run: npm test”, “Edit: src/api/route.ts”, “Fetch: docs.example.com”,
+  or its question) with **Allow** and **Deny**. Your press answers Claude
+  Code; answering in Claude Code works as before and takes the buttons
+  away. Questions and plans are shown without buttons.
+- Settings → Integrations → Claude Code → **Show what Claude asks for**
+  (on by default; off before sharing your screen).
+
 ## Unreleased — Claude Code in orange
 
 ### Changed
+- After you reject a Claude Code request, its “Needs your approval”
+  bubble no longer stays: it goes when Claude Code reports it is idle
+  (about a minute; Claude Code sends nothing when you reject).
 - Claude Code bubbles are orange and show the installed Claude app's logo
   (a gear without it). When Claude needs your approval or an answer, a
   question mark appears and the island opens by itself.

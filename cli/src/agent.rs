@@ -14,6 +14,12 @@ const ID_PREFIX: &str = "agents:claude:";
 /// closed without saying, or a hook that never fired).
 pub const WORKING_TTL_SECS: u64 = 15 * 60;
 pub const WAITING_TTL_SECS: u64 = 60 * 60;
+/// How long the island waits for your Allow / Deny. After that the buttons
+/// go and Claude Code's own prompt decides. Must stay below the hook's
+/// timeout in Claude Code's settings (agent_hooks.rs).
+pub const ANSWER_WAIT_SECS: u64 = 110;
+/// The longest request text shown.
+const MAX_REQUEST: usize = 80;
 const MAX_TEXT: usize = 60;
 
 /// What a hook means for the session's bubble.
@@ -21,13 +27,20 @@ const MAX_TEXT: usize = 60;
 pub enum Step {
     /// Working, with what it is doing right now.
     Working(String),
-    /// Stopped until you answer.
+    /// Stopped until you answer (a notification; the request itself came
+    /// with PermissionRequest).
     Waiting(String),
+    /// Claude Code asks approval for one tool call. `request` says what it
+    /// wants; `answerable` is whether Allow / Deny can answer it (questions
+    /// and plans need more than a yes).
+    Approval { request: String, answerable: bool },
     /// The turn finished.
     Finished,
     /// The turn ended with an error.
     Failed(String),
-    /// The session closed: remove an unfinished bubble.
+    /// Nothing is running any more without a finished turn (the session
+    /// closed, or you rejected a tool and Claude Code sits idle): remove an
+    /// unfinished bubble.
     Closed,
     /// Nothing to show.
     Nothing,
@@ -96,6 +109,8 @@ pub fn describe_tool(name: &str, input: &Value) -> String {
         "WebFetch" => "Reading a web page".into(),
         "WebSearch" => "Searching the web".into(),
         "Task" | "Agent" => "Working with a helper agent".into(),
+        "AskUserQuestion" => "Asking you a question".into(),
+        "ExitPlanMode" => "Presenting a plan".into(),
         "TodoWrite" => "Planning".into(),
         other => match other.strip_prefix("mcp__") {
             Some(rest) => {
@@ -118,6 +133,112 @@ pub fn describe_tool(name: &str, input: &Value) -> String {
     }
 }
 
+/// Exactly what a tool call asks approval for, in one line: the command,
+/// the file, the site. Shown only while it waits for you, and only when
+/// that is turned on (Settings → Integrations → Claude Code).
+pub fn describe_request(name: &str, input: &Value, cwd: Option<&str>) -> String {
+    let path = |key: &str| text(input, key).map(|p| shown_path(p, cwd));
+    let line = match name {
+        "Bash" => text(input, "command").map(|c| {
+            let first = c
+                .lines()
+                .map(str::trim)
+                .find(|l| !l.is_empty())
+                .unwrap_or("");
+            format!("Run: {first}")
+        }),
+        "Edit" | "MultiEdit" => path("file_path").map(|p| format!("Edit: {p}")),
+        "Write" => path("file_path").map(|p| format!("Write: {p}")),
+        "NotebookEdit" => path("notebook_path").map(|p| format!("Edit: {p}")),
+        "Read" => path("file_path").map(|p| format!("Read: {p}")),
+        "WebFetch" => text(input, "url").map(|u| format!("Fetch: {}", host_of(u))),
+        "WebSearch" => text(input, "query").map(|q| format!("Search: {q}")),
+        "AskUserQuestion" => input
+            .get("questions")
+            .and_then(Value::as_array)
+            .and_then(|qs| qs.first())
+            .and_then(|q| text(q, "question"))
+            .map(str::to_string),
+        "ExitPlanMode" => Some("Review the plan".into()),
+        "Task" | "Agent" => Some("Start a helper agent".into()),
+        other => other.strip_prefix("mcp__").map(|rest| {
+            let mut parts = rest.splitn(2, "__");
+            let server = parts.next().unwrap_or("");
+            match parts.next() {
+                Some(tool) => format!("{server}: {tool}"),
+                None => server.to_string(),
+            }
+        }),
+    };
+    let line = clip_request(&line.unwrap_or_default());
+    if !line.is_empty() {
+        return line;
+    }
+    let tool = clip(name);
+    if tool.is_empty() {
+        "Needs your approval".into()
+    } else {
+        format!("Use {tool}")
+    }
+}
+
+/// Whether Allow / Deny can answer the request. A question needs your
+/// answer and a plan your review, so those stay in Claude Code.
+pub fn can_answer(tool: &str) -> bool {
+    !matches!(tool, "AskUserQuestion" | "ExitPlanMode")
+}
+
+/// What the hook prints to answer the request (Claude Code's
+/// PermissionRequest decision).
+pub fn decision_json(allow: bool) -> String {
+    let decision = if allow {
+        serde_json::json!({"behavior": "allow"})
+    } else {
+        serde_json::json!({"behavior": "deny", "message": "Denied from Selawi Island."})
+    };
+    serde_json::json!({
+        "hookSpecificOutput": {"hookEventName": "PermissionRequest", "decision": decision}
+    })
+    .to_string()
+}
+
+/// A file inside the project is shown from the project folder
+/// ("src/main.rs"), any other by its name.
+fn shown_path(path: &str, cwd: Option<&str>) -> String {
+    let inside = cwd
+        .map(|c| c.trim_end_matches('/'))
+        .filter(|c| !c.is_empty())
+        .and_then(|c| path.strip_prefix(c))
+        .and_then(|rest| rest.strip_prefix('/'));
+    match inside {
+        Some(rest) if !rest.is_empty() => rest.to_string(),
+        _ => file_name(path),
+    }
+}
+
+/// "https://docs.example.com/a/b" → "docs.example.com" (never a password
+/// or the path).
+fn host_of(url: &str) -> String {
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
+    host.rsplit('@').next().unwrap_or(host).to_string()
+}
+
+/// One line, at most MAX_REQUEST characters.
+fn clip_request(text: &str) -> String {
+    let clean: String = text
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect();
+    let clean = clean.split_whitespace().collect::<Vec<_>>().join(" ");
+    if clean.chars().count() > MAX_REQUEST {
+        let cut: String = clean.chars().take(MAX_REQUEST - 1).collect();
+        format!("{}…", cut.trim_end())
+    } else {
+        clean
+    }
+}
+
 /// What one hook means for the bubble.
 pub fn step_for(input: &Value) -> Step {
     match text(input, "hook_event_name").unwrap_or("") {
@@ -127,12 +248,24 @@ pub fn step_for(input: &Value) -> Step {
             let args = input.get("tool_input").unwrap_or(&Value::Null);
             Step::Working(describe_tool(tool, args))
         }
-        "PermissionRequest" => Step::Waiting("Needs your approval".into()),
+        "PermissionRequest" => {
+            let tool = text(input, "tool_name").unwrap_or("");
+            let args = input.get("tool_input").unwrap_or(&Value::Null);
+            Step::Approval {
+                request: describe_request(tool, args, text(input, "cwd")),
+                answerable: can_answer(tool),
+            }
+        }
         "Notification" => match text(input, "notification_type") {
             Some("permission_prompt") => Step::Waiting("Needs your approval".into()),
             Some("agent_needs_input" | "elicitation_dialog" | "elicitation_url_dialog") => {
                 Step::Waiting("Needs your answer".into())
             }
+            // About a minute after the turn stopped and you have not typed.
+            // Rejecting a tool sends no hook of its own (and no Stop), so
+            // this is when its bubble goes. After a normal turn the bubble
+            // already finished and this changes nothing.
+            Some("idle_prompt") => Step::Closed,
             _ => Step::Nothing,
         },
         "Stop" => Step::Finished,
@@ -274,8 +407,24 @@ mod tests {
             Step::Working("Editing README.md".into())
         );
         assert_eq!(
-            step(json!({"hook_event_name": "PermissionRequest", "tool_name": "Bash"})),
-            Step::Waiting("Needs your approval".into())
+            step(
+                json!({"hook_event_name": "PermissionRequest", "tool_name": "Bash",
+                        "tool_input": {"command": "npm test"}})
+            ),
+            Step::Approval {
+                request: "Run: npm test".into(),
+                answerable: true
+            }
+        );
+        assert_eq!(
+            step(
+                json!({"hook_event_name": "PermissionRequest", "tool_name": "AskUserQuestion",
+                        "tool_input": {"questions": [{"question": "Which database?"}]}})
+            ),
+            Step::Approval {
+                request: "Which database?".into(),
+                answerable: false
+            }
         );
         assert_eq!(
             step(
@@ -285,8 +434,12 @@ mod tests {
         );
         assert_eq!(
             step(json!({"hook_event_name": "Notification", "notification_type": "idle_prompt"})),
-            Step::Nothing,
-            "idle after a finished turn is not news"
+            Step::Closed,
+            "idle with no finished turn (a rejected tool): the bubble goes"
+        );
+        assert_eq!(
+            step(json!({"hook_event_name": "Notification", "notification_type": "auth_success"})),
+            Step::Nothing
         );
         assert_eq!(step(json!({"hook_event_name": "Stop"})), Step::Finished);
         assert_eq!(
@@ -341,5 +494,65 @@ mod tests {
         );
         assert_eq!(desktop_id("bad name.desktop"), None);
         assert_eq!(desktop_id("claude"), None);
+    }
+
+    #[test]
+    fn what_a_request_asks_for() {
+        let cwd = Some("/home/user/app");
+        let req = |name: &str, v: Value| describe_request(name, &v, cwd);
+        assert_eq!(req("Bash", json!({"command": "npm test"})), "Run: npm test");
+        assert_eq!(
+            req("Bash", json!({"command": "\n  cd x &&\n make"})),
+            "Run: cd x &&"
+        );
+        assert_eq!(
+            req(
+                "Edit",
+                json!({"file_path": "/home/user/app/src/api/route.ts"})
+            ),
+            "Edit: src/api/route.ts"
+        );
+        assert_eq!(
+            req("Write", json!({"file_path": "/etc/hosts"})),
+            "Write: hosts",
+            "outside the project: the name only"
+        );
+        assert_eq!(
+            req(
+                "WebFetch",
+                json!({"url": "https://me:pw@docs.example.com/a?b=1"})
+            ),
+            "Fetch: docs.example.com"
+        );
+        assert_eq!(
+            req("WebSearch", json!({"query": "rust zbus"})),
+            "Search: rust zbus"
+        );
+        assert_eq!(
+            req("mcp__github__create_issue", json!({})),
+            "github: create_issue"
+        );
+        assert_eq!(req("ExitPlanMode", json!({})), "Review the plan");
+        assert_eq!(req("Mystery", json!({})), "Use Mystery");
+        assert_eq!(req("", json!({})), "Needs your approval");
+        let long = req("Bash", json!({"command": "x".repeat(300)}));
+        assert_eq!(long.chars().count(), 80);
+        assert!(long.ends_with('…'));
+        assert!(!req("Bash", json!({"command": "a\u{7}b"})).contains('\u{7}'));
+    }
+
+    #[test]
+    fn answers_claude_code_understands() {
+        assert!(can_answer("Bash") && can_answer("Edit") && can_answer("mcp__x__y"));
+        assert!(!can_answer("AskUserQuestion") && !can_answer("ExitPlanMode"));
+        let allow: Value = serde_json::from_str(&decision_json(true)).unwrap_or_default();
+        assert_eq!(
+            allow["hookSpecificOutput"]["hookEventName"],
+            "PermissionRequest"
+        );
+        assert_eq!(allow["hookSpecificOutput"]["decision"]["behavior"], "allow");
+        let deny: Value = serde_json::from_str(&decision_json(false)).unwrap_or_default();
+        assert_eq!(deny["hookSpecificOutput"]["decision"]["behavior"], "deny");
+        assert!(deny["hookSpecificOutput"]["decision"]["message"].is_string());
     }
 }

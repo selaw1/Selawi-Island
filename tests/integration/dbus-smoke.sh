@@ -72,13 +72,71 @@ hook "{$S,\"hook_event_name\":\"UserPromptSubmit\",\"prompt\":\"my secret plan\"
 hook "{$S,\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"/home/user/code/my-app/src/main.rs\",\"new_string\":\"hidden text\"}}"
 "$CLI" list | grep -q '"detail":"Editing main.rs"' || fail "Claude Code tool not shown"
 hook "{$S,\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"echo topsecret\"}}"
-hook "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\"}"
-"$CLI" list | grep -q '"category":"reminder".*"detail":"Needs your approval"' || fail "waiting for approval not shown"
+# Approval: the request with Allow / Deny; the hook waits for a press and
+# answers Claude Code, or stops waiting when Claude Code got its answer.
+ask() { printf '%s' "$1" | "$CLI" agent-hook claude > "$2" & ASK_PID=$!; }
+finish_ask() {
+    for _ in $(seq 50); do
+        kill -0 "$ASK_PID" 2>/dev/null || { wait "$ASK_PID" || fail "agent-hook exited with an error"; return 0; }
+        sleep 0.1
+    done
+    fail "$1"
+}
+wait_list() {
+    for _ in $(seq 50); do "$CLI" list | grep -q "$1" && return 0; sleep 0.1; done
+    fail "$2"
+}
+press() {
+    gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+        --method com.selawi.Island.Events1.InvokeAction "$1" "$2" >/dev/null
+}
+ask "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"npm test\"}}" "$WORK/allow.out"
+wait_list '"category":"reminder".*"detail":"Run: npm test".*"actions":\[{"id":"allow","label":"Allow"},{"id":"deny","label":"Deny"}\]' \
+    "the request with Allow / Deny was not shown"
+hook "{$S,\"hook_event_name\":\"Notification\",\"notification_type\":\"permission_prompt\"}"
+"$CLI" list | grep -q '"detail":"Run: npm test".*"label":"Allow"' || fail "Claude Code's later notification replaced the request"
+press agents:claude:abc-123 allow
+finish_ask "the hook did not answer after Allow"
+grep -q '"behavior":"allow"' "$WORK/allow.out" || fail "Allow did not reach Claude Code"
+"$CLI" list | grep -q '"category":"custom".*"detail":"Running a command"' || fail "back to working after Allow"
+ask "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Edit\",\"tool_input\":{\"file_path\":\"/home/user/code/my-app/src/main.rs\"}}" "$WORK/deny.out"
+wait_list '"detail":"Edit: src/main.rs"' "a file request was not shown from the project folder"
+press agents:claude:abc-123 deny
+finish_ask "the hook did not answer after Deny"
+grep -q '"behavior":"deny"' "$WORK/deny.out" || fail "Deny did not reach Claude Code"
+ask "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cargo build\"}}" "$WORK/elsewhere.out"
+wait_list '"detail":"Run: cargo build"' "the second request was not shown"
 hook "{$S,\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{}}"
-"$CLI" list | grep -q '"category":"custom".*"detail":"Running a command"' || fail "back to working after approval"
+finish_ask "the hook kept waiting after Claude Code itself got the answer"
+[ -s "$WORK/elsewhere.out" ] && fail "the island answered although Claude Code already had an answer"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{"agents":{"show_request":false}}' >/dev/null
+ask "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"curl -H private-header\"}}" "$WORK/hidden.out"
+wait_list '"category":"reminder".*"detail":"Needs your approval".*"label":"Allow"' "with details off: Needs your approval and the buttons"
+"$CLI" list | grep -q 'private-header' && fail "the request was shown although that is turned off"
+press agents:claude:abc-123 deny
+finish_ask "the hook did not answer with details off"
+gdbus call --session --dest com.selawi.Island --object-path /com/selawi/Island \
+    --method com.selawi.Island.Configuration1.Set '{}' >/dev/null
+hook "{$S,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"AskUserQuestion\",\"tool_input\":{\"questions\":[{\"question\":\"Which database?\"}]}}"
+"$CLI" list | grep -q '"category":"reminder".*"detail":"Which database?"' || fail "Claude's question was not shown"
+"$CLI" list | grep -q '"detail":"Which database?".*"label":"Allow"' && fail "a question got Allow / Deny"
+hook "{$S,\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"AskUserQuestion\",\"tool_input\":{}}"
+"$CLI" list | grep -q '"category":"custom".*"detail":"Asking you a question"' || fail "back to working after the question"
 "$CLI" list | grep -q 'secret\|hidden text' && fail "a prompt, command or file contents were shown"
 hook "{$S,\"hook_event_name\":\"Stop\"}"
 "$CLI" list | grep -q '"id":"agents:claude:abc-123".*"state":"ended".*"detail":"Done · 0:00"' || fail "finished turn not shown as Done"
+R='"session_id":"reject-1","cwd":"/tmp/rejected"'
+hook "{$R,\"hook_event_name\":\"UserPromptSubmit\"}"
+ask "{$R,\"hook_event_name\":\"PermissionRequest\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"ls\"}}" "$WORK/rejected.out"
+wait_list '"id":"agents:claude:reject-1".*"label":"Allow"' "the rejected request was not shown"
+hook "{$R,\"hook_event_name\":\"Notification\",\"notification_type\":\"idle_prompt\"}"
+finish_ask "the hook kept waiting after the request went"
+"$CLI" list | grep -q 'agents:claude:reject-1' && fail "a rejected tool's bubble stayed after Claude Code went idle"
+hook "{$R,\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Read\",\"tool_input\":{}}"
+"$CLI" list | grep -q '"id":"agents:claude:reject-1"' || fail "after going idle, the next tool call should show again"
+hook "{$S,\"hook_event_name\":\"Notification\",\"notification_type\":\"idle_prompt\"}"
+"$CLI" list | grep -q '"id":"agents:claude:abc-123".*"state":"ended"' || fail "idle after a finished turn should keep Done"
 printf 'not json' | "$CLI" agent-hook claude || fail "agent-hook failed on bad input"
 mkdir -p "$WORK/data/applications"
 printf '[Desktop Entry]\nType=Application\nName=Claude\nIcon=claude\nExec=claude-desktop\n' > "$WORK/data/applications/claude-desktop.desktop"

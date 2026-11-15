@@ -387,6 +387,7 @@ name = "selawi-island"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures-util",
  "selawi-core",
  "serde",
  "serde_json",
