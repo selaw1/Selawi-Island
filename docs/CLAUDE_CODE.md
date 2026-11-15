@@ -6,15 +6,21 @@ needs you, and when it is done.
 
 | Claude Code | The island |
 |---|---|
-| You send a prompt | Blue bubble, gear icon: “my-app · Working”, with a running timer |
+| You send a prompt | Orange bubble: “my-app · Working”, with a running timer |
 | It uses a tool | “Editing main.rs”, “Reading README.md”, “Running a command”, “Searching the code”, “Reading a web page”, “Using github” (an MCP server)… |
-| It asks for your approval | Orange bubble, question mark: “Needs your approval” |
-| It asks you a question | Orange: “Needs your answer” |
+| It asks for your approval | “Needs your approval” with a question mark, and the island opens by itself |
+| It asks you a question | “Needs your answer”, the same way |
 | The turn finishes | Green: “Done · 4:12” (how long the turn took), then it goes |
 | The turn stops on an error | Red: “Usage limit reached”, “Service unavailable”, “Sign-in needed”, “Billing problem” or “Stopped by an error” |
 | You close the session | An unfinished bubble goes |
 
 Several sessions show as separate bubbles, one per session.
+
+**Logo:** if the Claude app is installed (an entry named “Claude” in your
+app grid), the bubble shows its logo, and the question mark appears as a
+small icon next to the timer. Without it, the bubble shows a gear while
+working and a question mark while waiting. No logo file is part of this
+project: the island uses the icon of the app you installed.
 
 **What is never shown:** your prompts, command lines, search terms, web
 addresses or file contents. Only the project folder's name, the kind of
@@ -67,10 +73,11 @@ Restart open Claude Code sessions after turning it on or off.
 It works wherever Claude Code runs **on your computer** and runs its
 hooks:
 
-- **Terminal** (`claude`), including VS Code's built-in terminal: works.
-- **VS Code extension** and the **Claude desktop app**: they use the same
-  settings file, but some hooks have been reported not to fire there in
-  some versions. Check it once on your machine (docs/TESTING.md).
+- **VS Code extension:** works (checked: working and done).
+- **Terminal** (`claude`), including VS Code's built-in terminal: runs
+  the same hooks.
+- **Claude desktop app:** uses the same settings file; not checked yet
+  (docs/TESTING.md).
 - **Cloud sessions** (Claude Code on the web, cloud sessions in the app)
   run on another machine and cannot reach your island.
 

@@ -1013,6 +1013,8 @@ fn agent_hook(agent: &str) {
         .and_then(serde_json::Value::as_str)
         == Some("UserPromptSubmit");
     let title = agent::project_title(input.get("cwd").and_then(serde_json::Value::as_str));
+    // The Claude app's own logo, when it is installed.
+    let icon = claude_app_icon();
     let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -1031,11 +1033,12 @@ fn agent_hook(agent: &str) {
                     } else {
                         LifecycleState::Updated
                     };
-                    let input = agent_input(&id, state, title, detail, false);
+                    let input = agent_input(&icon, &id, state, title, detail, false);
                     island.send(input).await;
                 }
                 agent::Step::Waiting(detail) => {
-                    let input = agent_input(&id, LifecycleState::Updated, title, detail, true);
+                    let input =
+                        agent_input(&icon, &id, LifecycleState::Updated, title, detail, true);
                     island.send(input).await;
                 }
                 agent::Step::Finished => {
@@ -1045,6 +1048,7 @@ fn agent_hook(agent: &str) {
                     let elapsed = Timestamp::now().0.saturating_sub(current.created_at.0);
                     let time = run::format_duration(Duration::from_millis(elapsed));
                     let mut input = agent_input(
+                        &icon,
                         &id,
                         LifecycleState::Ended,
                         title,
@@ -1061,7 +1065,8 @@ fn agent_hook(agent: &str) {
                     island.send(input).await;
                 }
                 agent::Step::Failed(detail) => {
-                    let input = agent_input(&id, LifecycleState::Failed, title, detail, false);
+                    let input =
+                        agent_input(&icon, &id, LifecycleState::Failed, title, detail, false);
                     island.send(input).await;
                 }
                 agent::Step::Closed => {
@@ -1077,6 +1082,7 @@ fn agent_hook(agent: &str) {
 }
 
 fn agent_input(
+    icon: &Option<String>,
     id: &str,
     state: LifecycleState,
     title: String,
@@ -1093,7 +1099,7 @@ fn agent_input(
         source: Source {
             app: agent::APP.into(),
             integration: agent::INTEGRATION.into(),
-            icon: None,
+            icon: icon.clone(),
         },
         // Waiting for you is shown as a reminder: something to do.
         category: if waiting {
@@ -1287,4 +1293,46 @@ fn agent_hooks_cleanup() {
             wait_briefly(&mut child);
         }
     }
+}
+
+/// `app:<desktop id>` of the installed Claude app, if there is one: the
+/// island then shows its logo. Looks only at entries whose file name
+/// mentions Claude, in the usual application folders (yours first).
+fn claude_app_icon() -> Option<String> {
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    match std::env::var_os("XDG_DATA_HOME").filter(|d| !d.is_empty()) {
+        Some(dir) => dirs.push(dir.into()),
+        None => {
+            if let Some(home) = std::env::var_os("HOME").filter(|h| !h.is_empty()) {
+                dirs.push(std::path::PathBuf::from(home).join(".local/share"));
+            }
+        }
+    }
+    let system = std::env::var("XDG_DATA_DIRS")
+        .ok()
+        .filter(|d| !d.is_empty())
+        .unwrap_or_else(|| "/usr/local/share:/usr/share".into());
+    dirs.extend(system.split(':').filter(|d| !d.is_empty()).map(Into::into));
+    for dir in dirs {
+        let apps = dir.join("applications");
+        let Ok(entries) = std::fs::read_dir(&apps) else {
+            continue;
+        };
+        let mut names: Vec<String> = entries
+            .filter_map(|e| e.ok()?.file_name().into_string().ok())
+            .filter(|name| agent::may_be_claude_app(name))
+            .collect();
+        names.sort();
+        for name in names {
+            let Ok(text) = std::fs::read_to_string(apps.join(&name)) else {
+                continue;
+            };
+            if agent::is_claude_app(&text) {
+                if let Some(id) = agent::desktop_id(&name) {
+                    return Some(format!("app:{id}"));
+                }
+            }
+        }
+    }
+    None
 }

@@ -18,7 +18,7 @@ import {ExpandedView} from './expanded-view.js';
 import {MonitorManager} from './monitor-manager.js';
 import {anchorSpot, customSpot, placePill, positionFromDrop} from './placement.js';
 import {smooth} from './level.js';
-import {describe, foldBrowserMedia, foldBrowserMic, foldMicIntoCalls, playingFirst} from './view-model.js';
+import {describe, foldBrowserMedia, foldBrowserMic, foldMicIntoCalls, needsAttention, playingFirst} from './view-model.js';
 import {isQuiet} from '../services/shell-model.js';
 
 const MORPH_MS = 420;
@@ -44,7 +44,7 @@ export class Island {
         this._mode = Mode.IDLE;
         this._expandedBy = null; // 'user' | 'auto'
         this._selectedId = null;
-        this._seen = new Map(); // id -> created_at, to spot new events
+        this._seen = new Map(); // id -> {created, attention}, to spot new events
         this._target = null;
         this._collapseTimer = 0;
         this._tickTimer = 0;
@@ -190,9 +190,13 @@ export class Island {
         // briefly expands the island. Lower-priority arrivals stay quiet,
         // so nothing interrupts an active call.
         const top = events[0];
-        // Quiet events ("Copied") show in the closed island only.
-        const isNewTop = top && !isQuiet(top) && this._seen.get(top.id) !== top.created_at;
-        this._seen = new Map(events.map(e => [e.id, e.created_at]));
+        // Quiet events ("Copied") show in the closed island only. An event
+        // that starts waiting for you (Claude Code asking for approval)
+        // counts as new too.
+        const seen = top ? this._seen.get(top.id) : undefined;
+        const isNewTop = top && !isQuiet(top) &&
+            (seen?.created !== top.created_at || (needsAttention(top) && !seen?.attention));
+        this._seen = new Map(events.map(e => [e.id, {created: e.created_at, attention: needsAttention(e)}]));
 
         if (events.length === 0) {
             this._selectedId = null;

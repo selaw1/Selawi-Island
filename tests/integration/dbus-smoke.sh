@@ -80,6 +80,15 @@ hook "{$S,\"hook_event_name\":\"PostToolUse\",\"tool_name\":\"Bash\",\"tool_inpu
 hook "{$S,\"hook_event_name\":\"Stop\"}"
 "$CLI" list | grep -q '"id":"agents:claude:abc-123".*"state":"ended".*"detail":"Done · 0:00"' || fail "finished turn not shown as Done"
 printf 'not json' | "$CLI" agent-hook claude || fail "agent-hook failed on bad input"
+mkdir -p "$WORK/data/applications"
+printf '[Desktop Entry]\nType=Application\nName=Claude\nIcon=claude\nExec=claude-desktop\n' > "$WORK/data/applications/claude-desktop.desktop"
+printf '{"session_id":"logo-1","hook_event_name":"UserPromptSubmit"}' |
+    XDG_DATA_HOME="$WORK/data" XDG_DATA_DIRS="$WORK/none" "$CLI" agent-hook claude
+printf '{"session_id":"logo-2","hook_event_name":"UserPromptSubmit"}' |
+    XDG_DATA_HOME="$WORK/none" XDG_DATA_DIRS="$WORK/none" "$CLI" agent-hook claude
+icon_of() { "$CLI" list | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const e=JSON.parse(s).find(e=>e.id===process.argv[1]);console.log(e?.source.icon ?? "none")})' "$1"; }
+[ "$(icon_of agents:claude:logo-1)" = app:claude-desktop ] || fail "the installed Claude app's logo was not used"
+[ "$(icon_of agents:claude:logo-2)" = none ] || fail "a logo was sent without the Claude app"
 "$CLI" agent-hook claude </dev/null || fail "agent-hook failed on empty input"
 T='"session_id":"other-1","cwd":"/tmp/other"'
 hook "{$T,\"hook_event_name\":\"UserPromptSubmit\"}"

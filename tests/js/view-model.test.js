@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 
-import {describe, formatClock} from '../../gnome-extension/ui/view-model.js';
+import {describe, formatClock, needsAttention} from '../../gnome-extension/ui/view-model.js';
 
 const base = {source: {app: 'App', integration: 'test'}, created_at: 0, updated_at: 0, actions: []};
 
@@ -275,13 +275,26 @@ test('commands and system updates: their icon and a running timer', () => {
     assert.equal(failed.accent, 'red');
     const agent = describe(task('agents', 'custom', 'started', {title: 'my-app', detail: 'Editing main.rs'}), 72_000);
     assert.equal(agent.iconName, 'emblem-system-symbolic');
-    assert.equal(agent.accent, 'blue');
+    assert.equal(agent.accent, 'orange', 'Claude Code is orange');
     assert.equal(agent.trailing, '1:12', 'Claude Code working: a running timer');
-    const waiting = describe(task('agents', 'reminder', 'started', {title: 'my-app', detail: 'Needs your approval'}), 80_000);
+    assert.equal(needsAttention(task('agents', 'custom', 'started', {title: 'x'})), false);
+    const waitingEvent = task('agents', 'reminder', 'started', {title: 'my-app', detail: 'Needs your approval'});
+    assert.equal(needsAttention(waitingEvent), true, 'waiting for you opens the island');
+    const waiting = describe(waitingEvent, 80_000);
     assert.equal(waiting.iconName, 'dialog-question-symbolic');
-    assert.equal(waiting.accent, 'orange', 'waiting for you stands out');
+    assert.equal(waiting.accent, 'orange');
+    assert.deepEqual(waiting.indicators, [], 'no logo: the question mark is the icon itself');
+    const withLogo = ev => ({...ev, source: {...ev.source, icon: 'app:claude-desktop'}});
+    const logoWorking = describe(withLogo(task('agents', 'custom', 'started', {title: 'my-app'})), 1_000);
+    assert.equal(logoWorking.logo, 'app:claude-desktop');
+    assert.deepEqual(logoWorking.indicators, []);
+    const logoWaiting = describe(withLogo(waitingEvent), 1_000);
+    assert.equal(logoWaiting.logo, 'app:claude-desktop');
+    assert.deepEqual(logoWaiting.indicators, ['dialog-question-symbolic'], 'with the logo: a question mark next to the time');
     const agentDone = describe(task('agents', 'custom', 'ended', {title: 'my-app', detail: 'Done · 4:12', percent: 100}), 90_000);
     assert.equal(agentDone.trailing, 'Done');
+    assert.equal(agentDone.accent, 'green');
+    assert.equal(needsAttention(task('agents', 'reminder', 'ended', {title: 'x'})), false);
     const download = describe(task('browser', 'transfer', 'started', {title: 'a.zip', detail: '5 MB'}), 9_000);
     assert.equal(download.trailing, '', 'downloads without a size keep no timer');
 });
