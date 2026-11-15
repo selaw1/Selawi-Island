@@ -485,3 +485,20 @@ app (name, logo, Mute / Leave, clean after leaving).
   indicator, attention); private-bus check of the logo with and without
   a Claude app entry.
 - **Remaining:** check the approval step and the island opening on GNOME.
+
+## T-026 — Rejected Claude Code requests
+- **Created:** 2026-11-16
+- **Status:** Done (manual check pending)
+- **Description:** the owner found that rejecting an approval left
+  “Needs your approval” on screen. Claude Code's docs: rejecting fires no
+  hook of its own, `Stop` does not run after a user interrupt,
+  `PermissionDenied` is for auto mode only and `PostToolUseFailure` not
+  for rejections. The `idle_prompt` notification (about 60 s after the
+  turn stops, if you have not typed) now removes an unfinished bubble by
+  sending `expired` (not a dismissal, so the next tool call or prompt
+  shows it again). `SessionEnd` uses the same. After a finished turn it
+  changes nothing. Owner confirmed in the VS Code extension: logo,
+  question mark, back to working after approving, done.
+- **Files:** `cli/src/{agent,main}.rs`, `tests/integration/dbus-smoke.sh`, docs.
+- **Tests:** unit test for `idle_prompt`; private-bus test: waiting →
+  idle → gone → next tool call shows again; idle after Done keeps Done.

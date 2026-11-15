@@ -10,6 +10,7 @@ needs you, and when it is done.
 | It uses a tool | “Editing main.rs”, “Reading README.md”, “Running a command”, “Searching the code”, “Reading a web page”, “Using github” (an MCP server)… |
 | It asks for your approval | “Needs your approval” with a question mark, and the island opens by itself |
 | It asks you a question | “Needs your answer”, the same way |
+| You reject what it asked for | The bubble goes about a minute later, when Claude Code reports it is waiting for your next message (it reports nothing at the moment you reject). Your next message shows it again |
 | The turn finishes | Green: “Done · 4:12” (how long the turn took), then it goes |
 | The turn stops on an error | Red: “Usage limit reached”, “Service unavailable”, “Sign-in needed”, “Billing problem” or “Stopped by an error” |
 | You close the session | An unfinished bubble goes |
@@ -73,7 +74,8 @@ Restart open Claude Code sessions after turning it on or off.
 It works wherever Claude Code runs **on your computer** and runs its
 hooks:
 
-- **VS Code extension:** works (checked: working and done).
+- **VS Code extension:** works (checked: working, approval with the logo
+  and the question mark, back to working after approving, done).
 - **Terminal** (`claude`), including VS Code's built-in terminal: runs
   the same hooks.
 - **Claude desktop app:** uses the same settings file; not checked yet

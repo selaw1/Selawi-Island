@@ -63,6 +63,9 @@
 - **Claude Code shows only where its hooks run on your computer.** The
   VS Code extension works (checked); the desktop app is not checked yet;
   cloud sessions cannot reach the island.
+- **After you reject a Claude Code request, “Needs your approval” stays
+  about a minute.** Claude Code sends no hook when you reject; the bubble
+  goes when it reports it is idle (about 60 seconds later).
 - **The Claude logo comes from the installed Claude app.** Without an app
   grid entry named “Claude”, the bubble shows a gear. The hooks take effect in sessions started after
   turning them on.

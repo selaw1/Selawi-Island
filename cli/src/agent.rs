@@ -27,7 +27,9 @@ pub enum Step {
     Finished,
     /// The turn ended with an error.
     Failed(String),
-    /// The session closed: remove an unfinished bubble.
+    /// Nothing is running any more without a finished turn (the session
+    /// closed, or you rejected a tool and Claude Code sits idle): remove an
+    /// unfinished bubble.
     Closed,
     /// Nothing to show.
     Nothing,
@@ -133,6 +135,11 @@ pub fn step_for(input: &Value) -> Step {
             Some("agent_needs_input" | "elicitation_dialog" | "elicitation_url_dialog") => {
                 Step::Waiting("Needs your answer".into())
             }
+            // About a minute after the turn stopped and you have not typed.
+            // Rejecting a tool sends no hook of its own (and no Stop), so
+            // this is when its bubble goes. After a normal turn the bubble
+            // already finished and this changes nothing.
+            Some("idle_prompt") => Step::Closed,
             _ => Step::Nothing,
         },
         "Stop" => Step::Finished,
@@ -285,8 +292,12 @@ mod tests {
         );
         assert_eq!(
             step(json!({"hook_event_name": "Notification", "notification_type": "idle_prompt"})),
-            Step::Nothing,
-            "idle after a finished turn is not news"
+            Step::Closed,
+            "idle with no finished turn (a rejected tool): the bubble goes"
+        );
+        assert_eq!(
+            step(json!({"hook_event_name": "Notification", "notification_type": "auth_success"})),
+            Step::Nothing
         );
         assert_eq!(step(json!({"hook_event_name": "Stop"})), Step::Finished);
         assert_eq!(

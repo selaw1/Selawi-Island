@@ -222,8 +222,9 @@ On your machine, with a call or music playing for a while:
 2. Start Claude Code in a project folder and ask for a small change: an orange bubble with the folder's name and the Claude app's logo (a gear without the app), “Working”, then “Reading …”, “Editing …”, and a timer.
 3. When it asks for approval: “Needs your approval” with a question mark (next to the timer when the logo shows), and the island opens by itself. Approve: back to working.
 4. When the turn ends: green “Done” with its time.
-5. Checked in the VS Code extension (working and done, 2026-11-15). Still to check there: step 3. Also try the terminal and the Claude desktop app (a local session).
-6. Integrations → turn off Claude Code: nothing shows. `selawi-island agent-hooks off`: the hooks are gone from the settings file.
+5. Reject an approval instead: the question mark stays until Claude Code reports it is idle, then the bubble goes (about a minute). Type a new message: it is back, working.
+6. Checked in the VS Code extension on 2026-11-15: steps 2–4 (logo, question mark, back to working, done). Also try the terminal and the Claude desktop app (a local session).
+7. Integrations → turn off Claude Code: nothing shows. `selawi-island agent-hooks off`: the hooks are gone from the settings file.
 
 ### Arch package
 

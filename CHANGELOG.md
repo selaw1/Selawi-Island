@@ -3,6 +3,9 @@
 ## Unreleased — Claude Code in orange
 
 ### Changed
+- After you reject a Claude Code request, its “Needs your approval”
+  bubble no longer stays: it goes when Claude Code reports it is idle
+  (about a minute; Claude Code sends nothing when you reject).
 - Claude Code bubbles are orange and show the installed Claude app's logo
   (a gear without it). When Claude needs your approval or an answer, a
   question mark appears and the island opens by itself.

@@ -704,12 +704,6 @@ impl Island {
         }
     }
 
-    async fn dismiss(&self, id: &str) {
-        if let Some(events) = &self.events {
-            let _ = events.dismiss(id).await;
-        }
-    }
-
     async fn current(&self, id: &str) -> Option<Event> {
         let events = self.events.as_ref()?;
         let list: Vec<Event> = serde_json::from_str(&events.list().await.ok()?).ok()?;
@@ -1070,8 +1064,18 @@ fn agent_hook(agent: &str) {
                     island.send(input).await;
                 }
                 agent::Step::Closed => {
+                    // Expired removes it without counting as dismissed, so
+                    // the next prompt or tool call shows it again.
                     if island.current(&id).await.is_some() {
-                        island.dismiss(&id).await;
+                        let input = agent_input(
+                            &icon,
+                            &id,
+                            LifecycleState::Expired,
+                            title,
+                            "Stopped".into(),
+                            false,
+                        );
+                        island.send(input).await;
                     }
                 }
                 agent::Step::Nothing => {}
